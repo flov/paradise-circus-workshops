@@ -8,6 +8,8 @@ import { BookingsList } from "@/components/admin/bookings-list"
 import { AddWorkshopButton } from "@/components/admin/add-workshop-button"
 import { BarChart3, Calendar, Users, TrendingUp } from "lucide-react"
 
+export const dynamic = 'force-dynamic'
+
 export default async function AdminPage() {
   // Fetch statistics
   const today = new Date().toISOString().split('T')[0] // Get today's date in YYYY-MM-DD format
