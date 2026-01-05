@@ -1,11 +1,11 @@
 "use server"
 
-import { neon } from "@neondatabase/serverless"
+import { db } from "@/db"
+import { workshops, bookings } from "@/db/schema"
+import { eq, sql } from "drizzle-orm"
 import { revalidatePath } from "next/cache"
 
 export async function createWorkshop(formData: FormData) {
-  const sql = neon(process.env.DATABASE_URL!)
-
   const title = formData.get("title") as string
   const description = formData.get("description") as string
   const instructor = formData.get("instructor") as string
@@ -20,10 +20,16 @@ export async function createWorkshop(formData: FormData) {
   }
 
   try {
-    await sql`
-      INSERT INTO workshops (title, description, instructor, date, start_time, end_time, location, max_capacity)
-      VALUES (${title}, ${description}, ${instructor}, ${date}, ${start_time}, ${end_time}, ${location}, ${max_capacity})
-    `
+    await db.insert(workshops).values({
+      title,
+      description,
+      instructor,
+      date,
+      startTime: start_time,
+      endTime: end_time,
+      location,
+      maxCapacity: parseInt(max_capacity),
+    })
 
     revalidatePath("/admin")
     revalidatePath("/")
@@ -36,8 +42,6 @@ export async function createWorkshop(formData: FormData) {
 }
 
 export async function updateWorkshop(formData: FormData) {
-  const sql = neon(process.env.DATABASE_URL!)
-
   const id = formData.get("id") as string
   const title = formData.get("title") as string
   const description = formData.get("description") as string
@@ -53,13 +57,20 @@ export async function updateWorkshop(formData: FormData) {
   }
 
   try {
-    await sql`
-      UPDATE workshops 
-      SET title = ${title}, description = ${description}, instructor = ${instructor}, 
-          date = ${date}, start_time = ${start_time}, end_time = ${end_time}, 
-          location = ${location}, max_capacity = ${max_capacity}, updated_at = CURRENT_TIMESTAMP
-      WHERE id = ${id}
-    `
+    await db
+      .update(workshops)
+      .set({
+        title,
+        description,
+        instructor,
+        date,
+        startTime: start_time,
+        endTime: end_time,
+        location,
+        maxCapacity: parseInt(max_capacity),
+        updatedAt: sql`CURRENT_TIMESTAMP`,
+      })
+      .where(eq(workshops.id, parseInt(id)))
 
     revalidatePath("/admin")
     revalidatePath("/")
@@ -73,10 +84,8 @@ export async function updateWorkshop(formData: FormData) {
 }
 
 export async function deleteWorkshop(workshopId: number) {
-  const sql = neon(process.env.DATABASE_URL!)
-
   try {
-    await sql`DELETE FROM workshops WHERE id = ${workshopId}`
+    await db.delete(workshops).where(eq(workshops.id, workshopId))
 
     revalidatePath("/admin")
     revalidatePath("/")
@@ -87,17 +96,14 @@ export async function deleteWorkshop(workshopId: number) {
 }
 
 export async function deleteBooking(bookingId: number, workshopId: number) {
-  const sql = neon(process.env.DATABASE_URL!)
-
   try {
-    await sql`DELETE FROM bookings WHERE id = ${bookingId}`
+    await db.delete(bookings).where(eq(bookings.id, bookingId))
 
     // Update workshop capacity
-    await sql`
-      UPDATE workshops 
-      SET current_bookings = current_bookings - 1
-      WHERE id = ${workshopId}
-    `
+    await db
+      .update(workshops)
+      .set({ currentBookings: sql`${workshops.currentBookings} - 1` })
+      .where(eq(workshops.id, workshopId))
 
     revalidatePath("/admin")
     revalidatePath("/")

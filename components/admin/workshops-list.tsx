@@ -1,4 +1,6 @@
-import { neon } from "@neondatabase/serverless"
+import { db } from "@/db"
+import { workshops } from "@/db/schema"
+import { desc } from "drizzle-orm"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { EditWorkshopButton } from "./edit-workshop-button"
@@ -17,12 +19,22 @@ type Workshop = {
 }
 
 export async function WorkshopsList() {
-  const sql = neon(process.env.DATABASE_URL!)
+  const workshopsData = await db
+    .select()
+    .from(workshops)
+    .orderBy(desc(workshops.date), desc(workshops.startTime))
 
-  const workshops = await sql<Workshop[]>`
-    SELECT * FROM workshops 
-    ORDER BY date DESC, start_time DESC
-  `
+  const workshops: Workshop[] = workshopsData.map((w) => ({
+    id: w.id,
+    title: w.title,
+    instructor: w.instructor,
+    date: w.date,
+    start_time: w.startTime,
+    end_time: w.endTime,
+    max_capacity: w.maxCapacity,
+    current_bookings: w.currentBookings,
+    location: w.location || "",
+  }))
 
   if (workshops.length === 0) {
     return (

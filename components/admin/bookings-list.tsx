@@ -1,4 +1,6 @@
-import { neon } from "@neondatabase/serverless"
+import { db } from "@/db"
+import { bookings, workshops } from "@/db/schema"
+import { eq, desc } from "drizzle-orm"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { DeleteBookingButton } from "./delete-booking-button"
@@ -16,17 +18,33 @@ type Booking = {
 }
 
 export async function BookingsList() {
-  const sql = neon(process.env.DATABASE_URL!)
+  const bookingsData = await db
+    .select({
+      id: bookings.id,
+      workshop_id: bookings.workshopId,
+      participant_name: bookings.participantName,
+      participant_email: bookings.participantEmail,
+      phone: bookings.phone,
+      booking_date: bookings.bookingDate,
+      workshop_title: workshops.title,
+      workshop_date: workshops.date,
+      workshop_start_time: workshops.startTime,
+    })
+    .from(bookings)
+    .innerJoin(workshops, eq(bookings.workshopId, workshops.id))
+    .orderBy(desc(bookings.bookingDate))
 
-  const bookings = await sql<Booking[]>`
-    SELECT 
-      b.id, b.workshop_id, b.participant_name, b.participant_email, 
-      b.phone, b.booking_date,
-      w.title as workshop_title, w.date as workshop_date, w.start_time as workshop_start_time
-    FROM bookings b
-    JOIN workshops w ON b.workshop_id = w.id
-    ORDER BY b.booking_date DESC
-  `
+  const bookings: Booking[] = bookingsData.map((b) => ({
+    id: b.id,
+    workshop_id: b.workshop_id,
+    participant_name: b.participant_name,
+    participant_email: b.participant_email,
+    phone: b.phone,
+    booking_date: b.booking_date.toISOString(),
+    workshop_title: b.workshop_title,
+    workshop_date: b.workshop_date,
+    workshop_start_time: b.workshop_start_time,
+  }))
 
   if (bookings.length === 0) {
     return <div className="text-center py-8 text-muted-foreground">No bookings found.</div>

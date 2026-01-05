@@ -1,9 +1,10 @@
-"use client"
-
-import { neon } from "@neondatabase/serverless"
+import { db } from "@/db"
+import { bookings, workshops } from "@/db/schema"
+import { eq } from "drizzle-orm"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { PrintButton } from "@/components/print-button"
 import { CheckCircle, Calendar, Clock, MapPin, Mail, Phone } from "lucide-react"
 import { notFound } from "next/navigation"
 import Link from "next/link"
@@ -30,24 +31,50 @@ type Workshop = {
 
 export default async function BookingConfirmationPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
-  const sql = neon(process.env.DATABASE_URL!)
 
-  const bookings = await sql<Booking[]>`
-    SELECT * FROM bookings WHERE id = ${id}
-  `
+  const bookingResults = await db
+    .select()
+    .from(bookings)
+    .where(eq(bookings.id, parseInt(id)))
 
-  if (bookings.length === 0) {
+  if (bookingResults.length === 0) {
     notFound()
   }
 
-  const booking = bookings[0]
+  const bookingData = bookingResults[0]
+  const booking: Booking = {
+    id: bookingData.id,
+    workshop_id: bookingData.workshopId,
+    participant_name: bookingData.participantName,
+    participant_email: bookingData.participantEmail,
+    phone: bookingData.phone,
+    notes: bookingData.notes,
+    booking_date: bookingData.bookingDate.toISOString(),
+  }
 
-  const workshops = await sql<Workshop[]>`
-    SELECT id, title, date, start_time, end_time, location, instructor
-    FROM workshops WHERE id = ${booking.workshop_id}
-  `
+  const workshopResults = await db
+    .select({
+      id: workshops.id,
+      title: workshops.title,
+      date: workshops.date,
+      startTime: workshops.startTime,
+      endTime: workshops.endTime,
+      location: workshops.location,
+      instructor: workshops.instructor,
+    })
+    .from(workshops)
+    .where(eq(workshops.id, bookingData.workshopId))
 
-  const workshop = workshops[0]
+  const workshopData = workshopResults[0]
+  const workshop: Workshop = {
+    id: workshopData.id,
+    title: workshopData.title,
+    date: workshopData.date,
+    start_time: workshopData.startTime,
+    end_time: workshopData.endTime,
+    location: workshopData.location || "",
+    instructor: workshopData.instructor,
+  }
 
   // Format date
   const date = new Date(workshop.date)
@@ -137,9 +164,7 @@ export default async function BookingConfirmationPage({ params }: { params: Prom
           <Link href="/">
             <Button className="w-full">Browse More Workshops</Button>
           </Link>
-          <Button variant="outline" className="w-full bg-transparent" onClick={() => window.print()}>
-            Print Confirmation
-          </Button>
+          <PrintButton />
         </div>
 
         <div className="mt-8 p-4 rounded-lg bg-muted/50 border border-border">

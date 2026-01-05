@@ -1,4 +1,6 @@
-import { neon } from "@neondatabase/serverless"
+import { db } from "@/db"
+import { workshops } from "@/db/schema"
+import { eq } from "drizzle-orm"
 import { BookingForm } from "@/components/booking-form"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -22,17 +24,29 @@ type Workshop = {
 
 export default async function BookWorkshopPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
-  const sql = neon(process.env.DATABASE_URL!)
 
-  const workshops = await sql<Workshop[]>`
-    SELECT * FROM workshops WHERE id = ${id}
-  `
+  const workshopResults = await db
+    .select()
+    .from(workshops)
+    .where(eq(workshops.id, parseInt(id)))
 
-  if (workshops.length === 0) {
+  if (workshopResults.length === 0) {
     notFound()
   }
 
-  const workshop = workshops[0]
+  const workshopData = workshopResults[0]
+  const workshop: Workshop = {
+    id: workshopData.id,
+    title: workshopData.title,
+    description: workshopData.description || "",
+    instructor: workshopData.instructor,
+    date: workshopData.date,
+    start_time: workshopData.startTime,
+    end_time: workshopData.endTime,
+    max_capacity: workshopData.maxCapacity,
+    current_bookings: workshopData.currentBookings,
+    location: workshopData.location || "",
+  }
   const spotsLeft = workshop.max_capacity - workshop.current_bookings
   const isFull = spotsLeft <= 0
 

@@ -1,12 +1,12 @@
 "use server"
 
-import { neon } from "@neondatabase/serverless"
+import { db } from "@/db"
+import { workshops, bookings } from "@/db/schema"
+import { eq, sql } from "drizzle-orm"
 import { revalidatePath } from "next/cache"
 import { sendBookingConfirmationEmail, sendAdminNotificationEmail } from "@/lib/email"
 
 export async function createBooking(formData: FormData) {
-  const sql = neon(process.env.DATABASE_URL!)
-
   const workshopId = formData.get("workshopId") as string
   const name = formData.get("name") as string
   const email = formData.get("email") as string
@@ -20,36 +20,49 @@ export async function createBooking(formData: FormData) {
 
   try {
     // Check if workshop exists and has capacity
-    const workshops = await sql`
-      SELECT id, max_capacity, current_bookings, title, date, start_time, end_time, location, instructor
-      FROM workshops 
-      WHERE id = ${workshopId}
-    `
+    const workshopResults = await db
+      .select({
+        id: workshops.id,
+        maxCapacity: workshops.maxCapacity,
+        currentBookings: workshops.currentBookings,
+        title: workshops.title,
+        date: workshops.date,
+        startTime: workshops.startTime,
+        endTime: workshops.endTime,
+        location: workshops.location,
+        instructor: workshops.instructor,
+      })
+      .from(workshops)
+      .where(eq(workshops.id, parseInt(workshopId)))
 
-    if (workshops.length === 0) {
+    if (workshopResults.length === 0) {
       return { success: false, error: "Workshop not found" }
     }
 
-    const workshop = workshops[0]
-    if (workshop.current_bookings >= workshop.max_capacity) {
+    const workshop = workshopResults[0]
+    if (workshop.currentBookings >= workshop.maxCapacity) {
       return { success: false, error: "Workshop is full" }
     }
 
     // Create booking
-    const bookings = await sql`
-      INSERT INTO bookings (workshop_id, participant_name, participant_email, phone, notes)
-      VALUES (${workshopId}, ${name}, ${email}, ${phone || null}, ${notes || null})
-      RETURNING id
-    `
+    const bookingResults = await db
+      .insert(bookings)
+      .values({
+        workshopId: parseInt(workshopId),
+        participantName: name,
+        participantEmail: email,
+        phone: phone || null,
+        notes: notes || null,
+      })
+      .returning({ id: bookings.id })
 
-    const bookingId = bookings[0].id
+    const bookingId = bookingResults[0].id
 
     // Update workshop capacity
-    await sql`
-      UPDATE workshops 
-      SET current_bookings = current_bookings + 1
-      WHERE id = ${workshopId}
-    `
+    await db
+      .update(workshops)
+      .set({ currentBookings: sql`${workshops.currentBookings} + 1` })
+      .where(eq(workshops.id, parseInt(workshopId)))
 
     try {
       await sendBookingConfirmationEmail({
@@ -57,9 +70,9 @@ export async function createBooking(formData: FormData) {
         participantEmail: email,
         workshopTitle: workshop.title,
         workshopDate: workshop.date,
-        workshopStartTime: workshop.start_time,
-        workshopEndTime: workshop.end_time,
-        workshopLocation: workshop.location,
+        workshopStartTime: workshop.startTime,
+        workshopEndTime: workshop.endTime,
+        workshopLocation: workshop.location || "",
         instructorName: workshop.instructor,
         bookingId,
       })
@@ -75,7 +88,7 @@ export async function createBooking(formData: FormData) {
         participantPhone: phone,
         workshopTitle: workshop.title,
         workshopDate: workshop.date,
-        workshopStartTime: workshop.start_time,
+        workshopStartTime: workshop.startTime,
         bookingId,
       })
     } catch (emailError) {

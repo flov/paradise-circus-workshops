@@ -1,4 +1,6 @@
-import { neon } from "@neondatabase/serverless"
+import { db } from "@/db"
+import { workshops, bookings } from "@/db/schema"
+import { count, sum, gte } from "drizzle-orm"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { WorkshopsList } from "@/components/admin/workshops-list"
@@ -6,28 +8,26 @@ import { BookingsList } from "@/components/admin/bookings-list"
 import { AddWorkshopButton } from "@/components/admin/add-workshop-button"
 import { BarChart3, Calendar, Users, TrendingUp } from "lucide-react"
 
-type Stats = {
-  total_workshops: number
-  total_bookings: number
-  upcoming_workshops: number
-  total_capacity: number
-}
-
 export default async function AdminPage() {
-  const sql = neon(process.env.DATABASE_URL!)
-
   // Fetch statistics
-  const stats = await sql<Stats[]>`
-    SELECT 
-      COUNT(DISTINCT w.id) as total_workshops,
-      COUNT(DISTINCT b.id) as total_bookings,
-      COUNT(DISTINCT CASE WHEN w.date >= CURRENT_DATE THEN w.id END) as upcoming_workshops,
-      COALESCE(SUM(CASE WHEN w.date >= CURRENT_DATE THEN w.max_capacity END), 0) as total_capacity
-    FROM workshops w
-    LEFT JOIN bookings b ON w.id = b.workshop_id
-  `
+  const today = new Date().toISOString().split('T')[0] // Get today's date in YYYY-MM-DD format
+  const totalWorkshops = await db.select({ count: count() }).from(workshops)
+  const totalBookings = await db.select({ count: count() }).from(bookings)
+  const upcomingWorkshops = await db
+    .select({ count: count() })
+    .from(workshops)
+    .where(gte(workshops.date, today))
+  const totalCapacity = await db
+    .select({ sum: sum(workshops.maxCapacity) })
+    .from(workshops)
+    .where(gte(workshops.date, today))
 
-  const dashboardStats = stats[0]
+  const dashboardStats = {
+    total_workshops: totalWorkshops[0]?.count || 0,
+    total_bookings: totalBookings[0]?.count || 0,
+    upcoming_workshops: upcomingWorkshops[0]?.count || 0,
+    total_capacity: Number(totalCapacity[0]?.sum) || 0,
+  }
 
   return (
     <div className="min-h-screen bg-background">

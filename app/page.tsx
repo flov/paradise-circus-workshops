@@ -1,4 +1,6 @@
-import { neon } from "@neondatabase/serverless"
+import { db } from "@/db"
+import { workshops as workshopsTable } from "@/db/schema"
+import { gte, asc } from "drizzle-orm"
 import { WorkshopCard } from "@/components/workshop-card"
 import { WeeklyTimetable } from "@/components/weekly-timetable"
 import { Tent, Sparkles } from "lucide-react"
@@ -17,14 +19,39 @@ type Workshop = {
 }
 
 export default async function Home() {
-  const sql = neon(process.env.DATABASE_URL!)
-
   // Fetch upcoming workshops ordered by date and time
-  const workshops = await sql<Workshop[]>`
-    SELECT * FROM workshops 
-    WHERE date >= CURRENT_DATE 
-    ORDER BY date, start_time
-  `
+  const today = new Date().toISOString().split('T')[0] // Get today's date in YYYY-MM-DD format
+  
+  const workshopsData = await db
+    .select({
+      id: workshopsTable.id,
+      title: workshopsTable.title,
+      description: workshopsTable.description,
+      instructor: workshopsTable.instructor,
+      date: workshopsTable.date,
+      startTime: workshopsTable.startTime,
+      endTime: workshopsTable.endTime,
+      maxCapacity: workshopsTable.maxCapacity,
+      currentBookings: workshopsTable.currentBookings,
+      location: workshopsTable.location,
+    })
+    .from(workshopsTable)
+    .where(gte(workshopsTable.date, today))
+    .orderBy(asc(workshopsTable.date), asc(workshopsTable.startTime))
+
+  // Map to match the expected type format
+  const workshops: Workshop[] = workshopsData.map((w) => ({
+    id: w.id,
+    title: w.title,
+    description: w.description || "",
+    instructor: w.instructor,
+    date: w.date,
+    start_time: w.startTime,
+    end_time: w.endTime,
+    max_capacity: w.maxCapacity,
+    current_bookings: w.currentBookings,
+    location: w.location || "",
+  }))
 
   return (
     <div className="min-h-screen bg-background">
