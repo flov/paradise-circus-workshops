@@ -3,7 +3,7 @@ import { workshops as workshopsTable } from "@/db/schema";
 import { gte, asc } from "drizzle-orm";
 import { WorkshopCard } from "@/components/workshop-card";
 import { WeeklyTimetable } from "@/components/weekly-timetable";
-import { Tent, Sparkles } from "lucide-react";
+import { Tent } from "lucide-react";
 
 type Workshop = {
   id: number;
@@ -70,7 +70,6 @@ export default async function Home() {
                 </p>
               </div>
             </div>
-            <Sparkles className="h-8 w-8 text-secondary" />
           </div>
         </div>
       </header>
