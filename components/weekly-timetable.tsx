@@ -168,127 +168,125 @@ export function WeeklyTimetable() {
 
       {/* Timetable Grid */}
       <div className="rounded-lg border border-border bg-card overflow-hidden">
-        <div className="overflow-x-auto">
+        {/* Desktop View */}
+        <div className="hidden md:block overflow-x-auto">
           <div className="min-w-[800px]">
-            {/* Desktop View */}
-            <div className="hidden md:block">
-              <table className="w-full border-collapse">
-                <thead>
-                  <tr className="border-b border-border bg-muted/50">
-                    <th className="p-3 text-left font-semibold text-sm sticky left-0 bg-muted/50 min-w-[80px]">
-                      TIME
-                    </th>
-                    {DAYS.map((day, index) => (
-                      <th
-                        key={day}
-                        className="p-3 text-center font-semibold text-sm min-w-[100px]"
-                      >
-                        <div>{day}</div>
-                        {weekDates[index] && (
-                          <div className="text-xs font-normal text-muted-foreground mt-0.5">
-                            {weekDates[index].getDate()}
-                          </div>
-                        )}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {TIME_SLOTS.map((time) => (
-                    <tr
-                      key={time}
-                      className="border-b border-border last:border-0"
+            <table className="w-full border-collapse">
+              <thead>
+                <tr className="border-b border-border bg-muted/50">
+                  <th className="p-3 text-left font-semibold text-sm sticky left-0 bg-muted/50 min-w-[80px]">
+                    TIME
+                  </th>
+                  {DAYS.map((day, index) => (
+                    <th
+                      key={day}
+                      className="p-3 text-center font-semibold text-sm min-w-[100px]"
                     >
-                      <td className="p-3 text-sm font-medium text-muted-foreground sticky left-0 bg-background">
-                        {time}
-                      </td>
-                      {DAYS.map((day) => {
-                        const slot = timetableData[day]?.[time];
-                        return (
-                          <td key={`${day}-${time}`} className="p-1.5">
-                            {slot ? (
-                              <a
-                                href={`/book/${slot.workshop_id}`}
-                                className="block p-2 rounded bg-primary/10 hover:bg-primary/20 transition-colors h-full"
-                              >
-                                <div className="text-sm font-medium text-foreground line-clamp-2">
-                                  {slot.title}
-                                </div>
-                                <div className="text-xs text-muted-foreground mt-0.5 line-clamp-1">
-                                  {slot.instructor}
-                                </div>
-                              </a>
-                            ) : (
-                              <div className="p-2 h-full min-h-[60px] bg-muted/20 rounded" />
-                            )}
-                          </td>
-                        );
-                      })}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-
-            {/* Mobile View - Daily Cards */}
-            <div className="md:hidden p-4 space-y-4">
-              {DAYS.map((day, dayIndex) => {
-                const daySlots = timetableData[day] || {};
-                const hasSlots = Object.keys(daySlots).length > 0;
-
-                return (
-                  <div
-                    key={day}
-                    className="border border-border rounded-lg overflow-hidden"
-                  >
-                    <div className="bg-muted/50 p-3 font-semibold">
-                      {day}
-                      {weekDates[dayIndex] && (
-                        <span className="ml-2 text-sm font-normal text-muted-foreground">
-                          {weekDates[dayIndex].toLocaleDateString("en-US", {
-                            month: "short",
-                            day: "numeric",
-                          })}
-                        </span>
+                      <div>{day}</div>
+                      {weekDates[index] && (
+                        <div className="text-xs font-normal text-muted-foreground mt-0.5">
+                          {weekDates[index].getDate()}
+                        </div>
                       )}
-                    </div>
-                    <div className="p-3 space-y-2">
-                      {hasSlots ? (
-                        TIME_SLOTS.map((time) => {
-                          const slot = daySlots[time];
-                          if (!slot) return null;
-
-                          return (
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {TIME_SLOTS.map((time) => (
+                  <tr
+                    key={time}
+                    className="border-b border-border last:border-0"
+                  >
+                    <td className="p-3 text-sm font-medium text-muted-foreground sticky left-0 bg-background">
+                      {time}
+                    </td>
+                    {DAYS.map((day) => {
+                      const slot = timetableData[day]?.[time];
+                      return (
+                        <td key={`${day}-${time}`} className="p-1.5">
+                          {slot ? (
                             <a
-                              key={time}
                               href={`/book/${slot.workshop_id}`}
-                              className="block p-3 rounded bg-primary/10 hover:bg-primary/20 transition-colors"
+                              className="block p-2 rounded bg-primary/10 hover:bg-primary/20 transition-colors h-full"
                             >
-                              <div className="flex justify-between items-start gap-2 mb-1">
-                                <div className="font-medium text-foreground">
-                                  {slot.title}
-                                </div>
-                                <div className="text-sm text-muted-foreground whitespace-nowrap">
-                                  {time}
-                                </div>
+                              <div className="text-sm font-medium text-foreground line-clamp-2">
+                                {slot.title}
                               </div>
-                              <div className="text-sm text-muted-foreground">
+                              <div className="text-xs text-muted-foreground mt-0.5 line-clamp-1">
                                 {slot.instructor}
                               </div>
                             </a>
-                          );
-                        })
-                      ) : (
-                        <div className="text-sm text-muted-foreground text-center py-4">
-                          No workshops scheduled
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+                          ) : (
+                            <div className="p-2 h-full min-h-[60px] bg-muted/20 rounded" />
+                          )}
+                        </td>
+                      );
+                    })}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
+        </div>
+
+        {/* Mobile View - Daily Cards */}
+        <div className="md:hidden p-4 space-y-4">
+          {DAYS.map((day, dayIndex) => {
+            const daySlots = timetableData[day] || {};
+            const hasSlots = Object.keys(daySlots).length > 0;
+
+            return (
+              <div
+                key={day}
+                className="border border-border rounded-lg overflow-hidden"
+              >
+                <div className="bg-muted/50 p-3 font-semibold">
+                  {day}
+                  {weekDates[dayIndex] && (
+                    <span className="ml-2 text-sm font-normal text-muted-foreground">
+                      {weekDates[dayIndex].toLocaleDateString("en-US", {
+                        month: "short",
+                        day: "numeric",
+                      })}
+                    </span>
+                  )}
+                </div>
+                <div className="p-3 space-y-2">
+                  {hasSlots ? (
+                    TIME_SLOTS.map((time) => {
+                      const slot = daySlots[time];
+                      if (!slot) return null;
+
+                      return (
+                        <a
+                          key={time}
+                          href={`/book/${slot.workshop_id}`}
+                          className="block p-3 rounded bg-primary/10 hover:bg-primary/20 transition-colors"
+                        >
+                          <div className="flex justify-between items-start gap-2 mb-1">
+                            <div className="font-medium text-foreground flex-1 min-w-0">
+                              {slot.title}
+                            </div>
+                            <div className="text-sm text-muted-foreground whitespace-nowrap flex-shrink-0">
+                              {time}
+                            </div>
+                          </div>
+                          <div className="text-sm text-muted-foreground">
+                            {slot.instructor}
+                          </div>
+                        </a>
+                      );
+                    })
+                  ) : (
+                    <div className="text-sm text-muted-foreground text-center py-4">
+                      No workshops scheduled
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })}
         </div>
       </div>
 
