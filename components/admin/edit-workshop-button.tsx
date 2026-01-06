@@ -27,7 +27,6 @@ type Workshop = {
   date: string
   start_time: string
   end_time: string
-  max_capacity: number
   location: string
 }
 
@@ -135,23 +134,9 @@ export function EditWorkshopButton({ workshop }: { workshop: Workshop }) {
             </div>
           </div>
 
-          <div className="grid gap-4 md:grid-cols-2">
-            <div className="space-y-2">
-              <Label htmlFor="location">Location *</Label>
-              <Input id="location" name="location" defaultValue={workshop.location} required disabled={isSubmitting} />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="max_capacity">Max Capacity *</Label>
-              <Input
-                id="max_capacity"
-                name="max_capacity"
-                type="number"
-                min="1"
-                defaultValue={workshop.max_capacity}
-                required
-                disabled={isSubmitting}
-              />
-            </div>
+          <div className="space-y-2">
+            <Label htmlFor="location">Location *</Label>
+            <Input id="location" name="location" defaultValue={workshop.location} required disabled={isSubmitting} />
           </div>
 
           {error && (

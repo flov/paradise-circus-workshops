@@ -22,7 +22,6 @@ export async function GET(request: NextRequest) {
         start_time: workshops.startTime,
         end_time: workshops.endTime,
         location: workshops.location,
-        max_capacity: workshops.maxCapacity,
         current_bookings: workshops.currentBookings,
       })
       .from(workshops)

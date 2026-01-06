@@ -17,7 +17,6 @@ type Workshop = {
   date: string
   start_time: string
   end_time: string
-  max_capacity: number
   current_bookings: number
   location: string
 }
@@ -43,12 +42,9 @@ export default async function BookWorkshopPage({ params }: { params: Promise<{ i
     date: workshopData.date,
     start_time: workshopData.startTime,
     end_time: workshopData.endTime,
-    max_capacity: workshopData.maxCapacity,
     current_bookings: workshopData.currentBookings,
     location: workshopData.location || "",
   }
-  const spotsLeft = workshop.max_capacity - workshop.current_bookings
-  const isFull = spotsLeft <= 0
 
   // Format date
   const date = new Date(workshop.date)
@@ -89,11 +85,9 @@ export default async function BookWorkshopPage({ params }: { params: Promise<{ i
             <CardHeader>
               <div className="flex items-start justify-between gap-2 mb-2">
                 <CardTitle className="text-2xl text-balance">{workshop.title}</CardTitle>
-                {isFull ? (
-                  <Badge variant="destructive">Full</Badge>
-                ) : (
-                  <Badge variant="outline">{spotsLeft} spots left</Badge>
-                )}
+                <Badge variant="outline">
+                  {workshop.current_bookings} {workshop.current_bookings === 1 ? 'participant' : 'participants'}
+                </Badge>
               </div>
               <CardDescription className="text-pretty">{workshop.description}</CardDescription>
             </CardHeader>
@@ -133,9 +127,9 @@ export default async function BookWorkshopPage({ params }: { params: Promise<{ i
 
               <div className="pt-4 border-t border-border">
                 <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">Capacity</span>
+                  <span className="text-muted-foreground">Participants</span>
                   <span className="font-medium text-foreground">
-                    {workshop.current_bookings} / {workshop.max_capacity} booked
+                    {workshop.current_bookings} {workshop.current_bookings === 1 ? 'person' : 'people'} signed up
                   </span>
                 </div>
               </div>
@@ -144,31 +138,15 @@ export default async function BookWorkshopPage({ params }: { params: Promise<{ i
 
           {/* Booking Form */}
           <div>
-            {isFull ? (
-              <Card>
-                <CardHeader>
-                  <CardTitle>Workshop Full</CardTitle>
-                  <CardDescription>
-                    This workshop is currently at full capacity. Please check back later or explore other workshops.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <Link href="/">
-                    <Button className="w-full">View Other Workshops</Button>
-                  </Link>
-                </CardContent>
-              </Card>
-            ) : (
-              <Card>
-                <CardHeader>
-                  <CardTitle>Complete Your Booking</CardTitle>
-                  <CardDescription>Fill in your details to secure your spot</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <BookingForm workshopId={workshop.id} />
-                </CardContent>
-              </Card>
-            )}
+            <Card>
+              <CardHeader>
+                <CardTitle>Complete Your Booking</CardTitle>
+                <CardDescription>Fill in your details to secure your spot</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <BookingForm workshopId={workshop.id} />
+              </CardContent>
+            </Card>
           </div>
         </div>
       </main>

@@ -93,15 +93,9 @@ export function AddWorkshopButton() {
             </div>
           </div>
 
-          <div className="grid gap-4 md:grid-cols-2">
-            <div className="space-y-2">
-              <Label htmlFor="location">Location *</Label>
-              <Input id="location" name="location" required disabled={isSubmitting} />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="max_capacity">Max Capacity *</Label>
-              <Input id="max_capacity" name="max_capacity" type="number" min="1" required disabled={isSubmitting} />
-            </div>
+          <div className="space-y-2">
+            <Label htmlFor="location">Location *</Label>
+            <Input id="location" name="location" required disabled={isSubmitting} />
           </div>
 
           {error && (

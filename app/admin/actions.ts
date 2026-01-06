@@ -13,9 +13,7 @@ export async function createWorkshop(formData: FormData) {
   const start_time = formData.get("start_time") as string
   const end_time = formData.get("end_time") as string
   const location = formData.get("location") as string
-  const max_capacity = formData.get("max_capacity") as string
-
-  if (!title || !description || !instructor || !date || !start_time || !end_time || !location || !max_capacity) {
+  if (!title || !description || !instructor || !date || !start_time || !end_time || !location) {
     return { success: false, error: "Missing required fields" }
   }
 
@@ -28,7 +26,6 @@ export async function createWorkshop(formData: FormData) {
       startTime: start_time,
       endTime: end_time,
       location,
-      maxCapacity: parseInt(max_capacity),
     })
 
     revalidatePath("/admin")
@@ -50,9 +47,7 @@ export async function updateWorkshop(formData: FormData) {
   const start_time = formData.get("start_time") as string
   const end_time = formData.get("end_time") as string
   const location = formData.get("location") as string
-  const max_capacity = formData.get("max_capacity") as string
-
-  if (!id || !title || !description || !instructor || !date || !start_time || !end_time || !location || !max_capacity) {
+  if (!id || !title || !description || !instructor || !date || !start_time || !end_time || !location) {
     return { success: false, error: "Missing required fields" }
   }
 
@@ -67,7 +62,6 @@ export async function updateWorkshop(formData: FormData) {
         startTime: start_time,
         endTime: end_time,
         location,
-        maxCapacity: parseInt(max_capacity),
         updatedAt: sql`CURRENT_TIMESTAMP`,
       })
       .where(eq(workshops.id, parseInt(id)))
@@ -99,7 +93,7 @@ export async function deleteBooking(bookingId: number, workshopId: number) {
   try {
     await db.delete(bookings).where(eq(bookings.id, bookingId))
 
-    // Update workshop capacity
+    // Update workshop booking count
     await db
       .update(workshops)
       .set({ currentBookings: sql`${workshops.currentBookings} - 1` })

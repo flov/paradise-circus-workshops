@@ -13,7 +13,6 @@ type Workshop = {
   date: string;
   start_time: string;
   end_time: string;
-  max_capacity: number;
   current_bookings: number;
   location: string;
 };
@@ -31,7 +30,6 @@ export default async function Home() {
       date: workshopsTable.date,
       startTime: workshopsTable.startTime,
       endTime: workshopsTable.endTime,
-      maxCapacity: workshopsTable.maxCapacity,
       currentBookings: workshopsTable.currentBookings,
       location: workshopsTable.location,
     })
@@ -48,7 +46,6 @@ export default async function Home() {
     date: w.date,
     start_time: w.startTime,
     end_time: w.endTime,
-    max_capacity: w.maxCapacity,
     current_bookings: w.currentBookings,
     location: w.location || "",
   }));

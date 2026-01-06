@@ -1,14 +1,12 @@
 import { db } from "@/db"
 import { workshops, bookings } from "@/db/schema"
-import { count, sum, gte } from "drizzle-orm"
+import { count, gte } from "drizzle-orm"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { WorkshopsList } from "@/components/admin/workshops-list"
 import { BookingsList } from "@/components/admin/bookings-list"
 import { AddWorkshopButton } from "@/components/admin/add-workshop-button"
-import { BarChart3, Calendar, Users, TrendingUp } from "lucide-react"
-
-export const dynamic = 'force-dynamic'
+import { Calendar, Users, TrendingUp } from "lucide-react"
 
 export default async function AdminPage() {
   // Fetch statistics
@@ -19,16 +17,11 @@ export default async function AdminPage() {
     .select({ count: count() })
     .from(workshops)
     .where(gte(workshops.date, today))
-  const totalCapacity = await db
-    .select({ sum: sum(workshops.maxCapacity) })
-    .from(workshops)
-    .where(gte(workshops.date, today))
 
   const dashboardStats = {
     total_workshops: totalWorkshops[0]?.count || 0,
     total_bookings: totalBookings[0]?.count || 0,
     upcoming_workshops: upcomingWorkshops[0]?.count || 0,
-    total_capacity: Number(totalCapacity[0]?.sum) || 0,
   }
 
   return (
@@ -47,7 +40,7 @@ export default async function AdminPage() {
 
       <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
         {/* Stats Cards */}
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-8">
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 mb-8">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Total Workshops</CardTitle>
@@ -78,15 +71,6 @@ export default async function AdminPage() {
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Available Capacity</CardTitle>
-              <BarChart3 className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{dashboardStats.total_capacity}</div>
-            </CardContent>
-          </Card>
         </div>
 
         {/* Main Content */}

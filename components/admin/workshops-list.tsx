@@ -14,7 +14,6 @@ type Workshop = {
   date: string
   start_time: string
   end_time: string
-  max_capacity: number
   current_bookings: number
   location: string
 }
@@ -33,7 +32,6 @@ export async function WorkshopsList() {
     date: w.date,
     start_time: w.startTime,
     end_time: w.endTime,
-    max_capacity: w.maxCapacity,
     current_bookings: w.currentBookings,
     location: w.location || "",
   }))
@@ -68,14 +66,12 @@ export async function WorkshopsList() {
             <TableHead>Date & Time</TableHead>
             <TableHead>Location</TableHead>
             <TableHead>Instructor</TableHead>
-            <TableHead>Capacity</TableHead>
+            <TableHead>Participants</TableHead>
             <TableHead className="text-right">Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {workshopsList.map((workshop) => {
-            const spotsLeft = workshop.max_capacity - workshop.current_bookings
-            const isFull = spotsLeft <= 0
             const isPast = new Date(workshop.date) < new Date()
 
             return (
@@ -94,14 +90,10 @@ export async function WorkshopsList() {
                 <TableCell>
                   <div className="flex items-center gap-2">
                     <span className="text-sm">
-                      {workshop.current_bookings}/{workshop.max_capacity}
+                      {workshop.current_bookings} {workshop.current_bookings === 1 ? 'participant' : 'participants'}
                     </span>
-                    {isFull ? (
-                      <Badge variant="destructive">Full</Badge>
-                    ) : isPast ? (
+                    {isPast && (
                       <Badge variant="secondary">Past</Badge>
-                    ) : (
-                      <Badge variant="outline">{spotsLeft} left</Badge>
                     )}
                   </div>
                 </TableCell>

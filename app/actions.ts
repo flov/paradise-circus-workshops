@@ -19,11 +19,10 @@ export async function createBooking(formData: FormData) {
   }
 
   try {
-    // Check if workshop exists and has capacity
+    // Check if workshop exists
     const workshopResults = await db
       .select({
         id: workshops.id,
-        maxCapacity: workshops.maxCapacity,
         currentBookings: workshops.currentBookings,
         title: workshops.title,
         date: workshops.date,
@@ -40,9 +39,6 @@ export async function createBooking(formData: FormData) {
     }
 
     const workshop = workshopResults[0]
-    if (workshop.currentBookings >= workshop.maxCapacity) {
-      return { success: false, error: "Workshop is full" }
-    }
 
     // Create booking
     const bookingResults = await db
@@ -58,7 +54,7 @@ export async function createBooking(formData: FormData) {
 
     const bookingId = bookingResults[0].id
 
-    // Update workshop capacity
+    // Update workshop booking count
     await db
       .update(workshops)
       .set({ currentBookings: sql`${workshops.currentBookings} + 1` })

@@ -12,15 +12,11 @@ type Workshop = {
   date: string
   start_time: string
   end_time: string
-  max_capacity: number
   current_bookings: number
   location: string
 }
 
 export function WorkshopCard({ workshop }: { workshop: Workshop }) {
-  const spotsLeft = workshop.max_capacity - workshop.current_bookings
-  const isFull = spotsLeft <= 0
-  const isAlmostFull = spotsLeft > 0 && spotsLeft <= 3
 
   // Format date
   const date = new Date(workshop.date)
@@ -45,19 +41,9 @@ export function WorkshopCard({ workshop }: { workshop: Workshop }) {
       <CardHeader>
         <div className="flex items-start justify-between gap-2 mb-2">
           <CardTitle className="text-xl text-balance">{workshop.title}</CardTitle>
-          {isFull ? (
-            <Badge variant="destructive" className="shrink-0">
-              Full
-            </Badge>
-          ) : isAlmostFull ? (
-            <Badge variant="secondary" className="shrink-0 bg-secondary text-secondary-foreground">
-              {spotsLeft} left
-            </Badge>
-          ) : (
-            <Badge variant="outline" className="shrink-0">
-              {spotsLeft} spots
-            </Badge>
-          )}
+          <Badge variant="outline" className="shrink-0">
+            {workshop.current_bookings} {workshop.current_bookings === 1 ? 'participant' : 'participants'}
+          </Badge>
         </div>
         <CardDescription className="text-pretty">{workshop.description}</CardDescription>
       </CardHeader>
@@ -84,9 +70,7 @@ export function WorkshopCard({ workshop }: { workshop: Workshop }) {
         </div>
 
         <Link href={`/book/${workshop.id}`} className="mt-auto">
-          <Button className="w-full" disabled={isFull} variant={isFull ? "secondary" : "default"}>
-            {isFull ? "Fully Booked" : "Book Now"}
-          </Button>
+          <Button className="w-full">Book Now</Button>
         </Link>
       </CardContent>
     </Card>

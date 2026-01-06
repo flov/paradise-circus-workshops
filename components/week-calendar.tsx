@@ -14,7 +14,6 @@ type Workshop = {
   date: string | Date;
   startTime: string;
   endTime: string;
-  maxCapacity: number;
   currentBookings: number;
   location: string | null;
 };
