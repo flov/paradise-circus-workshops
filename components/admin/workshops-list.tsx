@@ -9,6 +9,7 @@ import { DeleteWorkshopButton } from "./delete-workshop-button"
 type Workshop = {
   id: number
   title: string
+  description: string
   instructor: string
   date: string
   start_time: string
@@ -24,9 +25,10 @@ export async function WorkshopsList() {
     .from(workshops)
     .orderBy(desc(workshops.date), desc(workshops.startTime))
 
-  const workshops: Workshop[] = workshopsData.map((w) => ({
+  const workshopsList: Workshop[] = workshopsData.map((w) => ({
     id: w.id,
     title: w.title,
+    description: w.description || "",
     instructor: w.instructor,
     date: w.date,
     start_time: w.startTime,
@@ -36,7 +38,7 @@ export async function WorkshopsList() {
     location: w.location || "",
   }))
 
-  if (workshops.length === 0) {
+  if (workshopsList.length === 0) {
     return (
       <div className="text-center py-8 text-muted-foreground">
         No workshops found. Create your first workshop to get started.
@@ -71,7 +73,7 @@ export async function WorkshopsList() {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {workshops.map((workshop) => {
+          {workshopsList.map((workshop) => {
             const spotsLeft = workshop.max_capacity - workshop.current_bookings
             const isFull = spotsLeft <= 0
             const isPast = new Date(workshop.date) < new Date()

@@ -34,7 +34,7 @@ export async function BookingsList() {
     .innerJoin(workshops, eq(bookings.workshopId, workshops.id))
     .orderBy(desc(bookings.bookingDate))
 
-  const bookings: Booking[] = bookingsData.map((b) => ({
+  const bookingsList: Booking[] = bookingsData.map((b) => ({
     id: b.id,
     workshop_id: b.workshop_id,
     participant_name: b.participant_name,
@@ -46,7 +46,7 @@ export async function BookingsList() {
     workshop_start_time: b.workshop_start_time,
   }))
 
-  if (bookings.length === 0) {
+  if (bookingsList.length === 0) {
     return <div className="text-center py-8 text-muted-foreground">No bookings found.</div>
   }
 
@@ -77,7 +77,7 @@ export async function BookingsList() {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {bookings.map((booking) => {
+          {bookingsList.map((booking) => {
             const isPast = new Date(booking.workshop_date) < new Date()
 
             return (
