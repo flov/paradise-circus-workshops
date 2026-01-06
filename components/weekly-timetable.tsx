@@ -262,14 +262,15 @@ export function WeeklyTimetable() {
                         <a
                           key={time}
                           href={`/book/${slot.workshop_id}`}
-                          className="block p-3 rounded bg-primary/10 hover:bg-primary/20 transition-colors"
+                          className="block p-4 rounded-lg bg-primary/15 hover:bg-primary/25 active:bg-primary/30 border-2 border-primary/30 hover:border-primary/50 active:border-primary/60 shadow-sm hover:shadow-md active:shadow-sm transition-all duration-150 cursor-pointer"
                         >
                           <div className="flex justify-between items-start gap-2 mb-1">
                             <div className="font-medium text-foreground flex-1 min-w-0">
                               {slot.title}
                             </div>
-                            <div className="text-sm text-muted-foreground whitespace-nowrap flex-shrink-0">
+                            <div className="text-sm text-muted-foreground whitespace-nowrap flex-shrink-0 flex items-center gap-1">
                               {time}
+                              <span className="text-primary">→</span>
                             </div>
                           </div>
                           <div className="text-sm text-muted-foreground">
