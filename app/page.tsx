@@ -53,7 +53,7 @@ export default async function Home() {
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="border-b border-border bg-card">
+      <header className="border-b border-border bg-card" suppressHydrationWarning>
         <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -72,7 +72,7 @@ export default async function Home() {
       </header>
 
       {/* Main Content */}
-      <main className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8 space-y-16">
+      <main className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8 space-y-16" suppressHydrationWarning>
         {/* Weekly Timetable Section */}
         <WeeklyTimetable />
 
@@ -105,7 +105,7 @@ export default async function Home() {
       </main>
 
       {/* Footer */}
-      <footer className="mt-16 border-t border-border bg-card">
+      <footer className="mt-16 border-t border-border bg-card" suppressHydrationWarning>
         <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
           <p className="text-center text-sm text-muted-foreground">
             Paradise Circus - Where dreams take flight
