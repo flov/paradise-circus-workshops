@@ -98,6 +98,20 @@ export function AddWorkshopButton() {
             <Input id="location" name="location" required disabled={isSubmitting} />
           </div>
 
+          <div className="space-y-2">
+            <Label htmlFor="whatToBring">What to Bring (Optional)</Label>
+            <Textarea
+              id="whatToBring"
+              name="whatToBring"
+              placeholder="Enter items participants should bring, one per line (e.g., Yoga mat&#10;Towel)"
+              disabled={isSubmitting}
+              rows={4}
+            />
+            <p className="text-xs text-muted-foreground">
+              Each line will be displayed as a separate item. "Enthusiasm and a willingness to learn!" will always be included.
+            </p>
+          </div>
+
           {error && (
             <div className="rounded-md bg-destructive/10 border border-destructive/20 p-3 text-sm text-destructive">
               {error}

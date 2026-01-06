@@ -30,6 +30,7 @@ export async function createBooking(formData: FormData) {
         endTime: workshops.endTime,
         location: workshops.location,
         instructor: workshops.instructor,
+        whatToBring: workshops.whatToBring,
       })
       .from(workshops)
       .where(eq(workshops.id, parseInt(workshopId)))
@@ -71,6 +72,7 @@ export async function createBooking(formData: FormData) {
         workshopLocation: workshop.location || "",
         instructorName: workshop.instructor,
         bookingId,
+        whatToBring: workshop.whatToBring,
       })
     } catch (emailError) {
       console.error("Failed to send confirmation email:", emailError)

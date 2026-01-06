@@ -13,6 +13,7 @@ export async function createWorkshop(formData: FormData) {
   const start_time = formData.get("start_time") as string
   const end_time = formData.get("end_time") as string
   const location = formData.get("location") as string
+  const whatToBring = formData.get("whatToBring") as string
   if (!title || !description || !instructor || !date || !start_time || !end_time || !location) {
     return { success: false, error: "Missing required fields" }
   }
@@ -26,6 +27,7 @@ export async function createWorkshop(formData: FormData) {
       startTime: start_time,
       endTime: end_time,
       location,
+      whatToBring: whatToBring || null,
     })
 
     revalidatePath("/admin")
@@ -47,6 +49,7 @@ export async function updateWorkshop(formData: FormData) {
   const start_time = formData.get("start_time") as string
   const end_time = formData.get("end_time") as string
   const location = formData.get("location") as string
+  const whatToBring = formData.get("whatToBring") as string
   if (!id || !title || !description || !instructor || !date || !start_time || !end_time || !location) {
     return { success: false, error: "Missing required fields" }
   }
@@ -62,6 +65,7 @@ export async function updateWorkshop(formData: FormData) {
         startTime: start_time,
         endTime: end_time,
         location,
+        whatToBring: whatToBring || null,
         updatedAt: sql`CURRENT_TIMESTAMP`,
       })
       .where(eq(workshops.id, parseInt(id)))

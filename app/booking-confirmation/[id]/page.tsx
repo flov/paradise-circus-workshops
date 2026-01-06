@@ -34,6 +34,7 @@ type Workshop = {
   end_time: string;
   location: string;
   instructor: string;
+  what_to_bring?: string | null;
 };
 
 export default async function BookingConfirmationPage({
@@ -72,6 +73,7 @@ export default async function BookingConfirmationPage({
       endTime: workshops.endTime,
       location: workshops.location,
       instructor: workshops.instructor,
+      whatToBring: workshops.whatToBring,
     })
     .from(workshops)
     .where(eq(workshops.id, bookingData.workshopId));
@@ -85,6 +87,7 @@ export default async function BookingConfirmationPage({
     end_time: workshopData.endTime,
     location: workshopData.location || "",
     instructor: workshopData.instructor,
+    what_to_bring: workshopData.whatToBring,
   };
 
   // Format date
@@ -180,6 +183,22 @@ export default async function BookingConfirmationPage({
                 <p className="text-sm text-muted-foreground">{booking.notes}</p>
               </div>
             )}
+
+            <div className="pt-4 border-t border-border">
+              <h4 className="font-semibold text-foreground mb-2">
+                What to Bring
+              </h4>
+              <ul className="text-sm text-muted-foreground space-y-1 list-disc list-inside">
+                {workshop.what_to_bring
+                  ? workshop.what_to_bring
+                      .split('\n')
+                      .map((item) => item.trim())
+                      .filter((item) => item.length > 0)
+                      .map((item, index) => <li key={index}>{item}</li>)
+                  : null}
+                <li>Enthusiasm and a willingness to learn!</li>
+              </ul>
+            </div>
           </CardContent>
         </Card>
 

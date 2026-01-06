@@ -14,6 +14,7 @@ export const workshops = pgTable(
     maxCapacity: integer("max_capacity").notNull().default(20),
     currentBookings: integer("current_bookings").notNull().default(0),
     location: varchar("location", { length: 255 }),
+    whatToBring: text("what_to_bring"),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at").defaultNow().notNull(),
   },

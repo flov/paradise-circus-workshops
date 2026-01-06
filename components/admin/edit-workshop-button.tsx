@@ -28,6 +28,7 @@ type Workshop = {
   start_time: string
   end_time: string
   location: string
+  what_to_bring?: string | null
 }
 
 export function EditWorkshopButton({ workshop }: { workshop: Workshop }) {
@@ -137,6 +138,21 @@ export function EditWorkshopButton({ workshop }: { workshop: Workshop }) {
           <div className="space-y-2">
             <Label htmlFor="location">Location *</Label>
             <Input id="location" name="location" defaultValue={workshop.location} required disabled={isSubmitting} />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="whatToBring">What to Bring (Optional)</Label>
+            <Textarea
+              id="whatToBring"
+              name="whatToBring"
+              defaultValue={workshop.what_to_bring || ""}
+              placeholder="Enter items participants should bring, one per line (e.g., Yoga mat&#10;Towel)"
+              disabled={isSubmitting}
+              rows={4}
+            />
+            <p className="text-xs text-muted-foreground">
+              Each line will be displayed as a separate item. "Enthusiasm and a willingness to learn!" will always be included.
+            </p>
           </div>
 
           {error && (

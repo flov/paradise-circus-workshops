@@ -1,0 +1,1 @@
+ALTER TABLE "workshops" ADD COLUMN "what_to_bring" text;

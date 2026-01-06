@@ -10,6 +10,7 @@ type BookingConfirmationEmailProps = {
   workshopLocation: string
   instructorName: string
   bookingId: number
+  whatToBring?: string | null
 }
 
 export async function sendBookingConfirmationEmail(props: BookingConfirmationEmailProps) {
@@ -23,7 +24,34 @@ export async function sendBookingConfirmationEmail(props: BookingConfirmationEma
     workshopLocation,
     instructorName,
     bookingId,
+    whatToBring,
   } = props
+
+  // Simple HTML escape function
+  const escapeHtml = (text: string) => {
+    return text
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;')
+  }
+
+  // Build "What to Bring" list
+  const whatToBringItems: string[] = []
+  
+  // Add custom items from workshop if provided
+  if (whatToBring) {
+    const customItems = whatToBring
+      .split('\n')
+      .map(item => item.trim())
+      .filter(item => item.length > 0)
+      .map(item => escapeHtml(item))
+    whatToBringItems.push(...customItems)
+  }
+  
+  // Always add the required item
+  whatToBringItems.push("Enthusiasm and a willingness to learn!")
 
   // Format date
   const date = new Date(workshopDate)
@@ -175,9 +203,7 @@ export async function sendBookingConfirmationEmail(props: BookingConfirmationEma
             <div class="info-box">
               <h3>What to Bring:</h3>
               <ul>
-                <li>Comfortable, flexible clothing</li>
-                <li>Water bottle to stay hydrated</li>
-                <li>Enthusiasm and a willingness to learn!</li>
+                ${whatToBringItems.map(item => `<li>${item}</li>`).join('\n                ')}
               </ul>
             </div>
             
@@ -227,9 +253,7 @@ Workshop Details:
 - Instructor: ${instructorName}
 
 What to Bring:
-- Comfortable, flexible clothing
-- Water bottle to stay hydrated
-- Enthusiasm and a willingness to learn!
+${whatToBringItems.map(item => `- ${item}`).join('\n')}
 
 Important Information:
 - Please arrive 15 minutes early to check in

@@ -16,6 +16,7 @@ type Workshop = {
   end_time: string
   current_bookings: number
   location: string
+  what_to_bring?: string | null
 }
 
 export async function WorkshopsList() {
@@ -34,6 +35,7 @@ export async function WorkshopsList() {
     end_time: w.endTime,
     current_bookings: w.currentBookings,
     location: w.location || "",
+    what_to_bring: w.whatToBring,
   }))
 
   if (workshopsList.length === 0) {
