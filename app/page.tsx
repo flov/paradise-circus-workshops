@@ -76,32 +76,6 @@ export default async function Home() {
         {/* Weekly Timetable Section */}
         <WeeklyTimetable />
 
-        {/* Upcoming Workshops Section */}
-        <div>
-          <div className="mb-8">
-            <h2 className="text-3xl font-bold text-foreground mb-2 text-balance">
-              Upcoming Workshops
-            </h2>
-          </div>
-
-          {workshops.length === 0 ? (
-            <div className="rounded-lg border border-border bg-card p-12 text-center">
-              <Tent className="mx-auto h-16 w-16 text-muted-foreground mb-4" />
-              <h3 className="text-xl font-semibold text-foreground mb-2">
-                No workshops scheduled yet
-              </h3>
-              <p className="text-muted-foreground">
-                Check back soon for upcoming workshops!
-              </p>
-            </div>
-          ) : (
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-              {workshops.map((workshop) => (
-                <WorkshopCard key={workshop.id} workshop={workshop} />
-              ))}
-            </div>
-          )}
-        </div>
       </main>
 
       {/* Footer */}
