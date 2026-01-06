@@ -1,19 +1,21 @@
-import { Resend } from "resend"
+import { Resend } from "resend";
 
 type BookingConfirmationEmailProps = {
-  participantName: string
-  participantEmail: string
-  workshopTitle: string
-  workshopDate: string
-  workshopStartTime: string
-  workshopEndTime: string
-  workshopLocation: string
-  instructorName: string
-  bookingId: number
-  whatToBring?: string | null
-}
+  participantName: string;
+  participantEmail: string;
+  workshopTitle: string;
+  workshopDate: string;
+  workshopStartTime: string;
+  workshopEndTime: string;
+  workshopLocation: string;
+  instructorName: string;
+  bookingId: number;
+  whatToBring?: string | null;
+};
 
-export async function sendBookingConfirmationEmail(props: BookingConfirmationEmailProps) {
+export async function sendBookingConfirmationEmail(
+  props: BookingConfirmationEmailProps,
+) {
   const {
     participantName,
     participantEmail,
@@ -25,51 +27,51 @@ export async function sendBookingConfirmationEmail(props: BookingConfirmationEma
     instructorName,
     bookingId,
     whatToBring,
-  } = props
+  } = props;
 
   // Simple HTML escape function
   const escapeHtml = (text: string) => {
     return text
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
-      .replace(/'/g, '&#039;')
-  }
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
+  };
 
   // Build "What to Bring" list
-  const whatToBringItems: string[] = []
-  
+  const whatToBringItems: string[] = [];
+
   // Add custom items from workshop if provided
   if (whatToBring) {
     const customItems = whatToBring
-      .split('\n')
-      .map(item => item.trim())
-      .filter(item => item.length > 0)
-      .map(item => escapeHtml(item))
-    whatToBringItems.push(...customItems)
+      .split("\n")
+      .map((item) => item.trim())
+      .filter((item) => item.length > 0)
+      .map((item) => escapeHtml(item));
+    whatToBringItems.push(...customItems);
   }
-  
+
   // Always add the required item
-  whatToBringItems.push("Enthusiasm and a willingness to learn!")
+  whatToBringItems.push("Enthusiasm and a willingness to learn!");
 
   // Format date
-  const date = new Date(workshopDate)
+  const date = new Date(workshopDate);
   const formattedDate = date.toLocaleDateString("en-US", {
     weekday: "long",
     month: "long",
     day: "numeric",
     year: "numeric",
-  })
+  });
 
   // Format time
   const formatTime = (time: string) => {
-    const [hours, minutes] = time.split(":")
-    const hour = Number.parseInt(hours)
-    const ampm = hour >= 12 ? "PM" : "AM"
-    const displayHour = hour % 12 || 12
-    return `${displayHour}:${minutes} ${ampm}`
-  }
+    const [hours, minutes] = time.split(":");
+    const hour = Number.parseInt(hours);
+    const ampm = hour >= 12 ? "PM" : "AM";
+    const displayHour = hour % 12 || 12;
+    return `${displayHour}:${minutes} ${ampm}`;
+  };
 
   const emailHtml = `
     <!DOCTYPE html>
@@ -203,14 +205,13 @@ export async function sendBookingConfirmationEmail(props: BookingConfirmationEma
             <div class="info-box">
               <h3>What to Bring:</h3>
               <ul>
-                ${whatToBringItems.map(item => `<li>${item}</li>`).join('\n                ')}
+                ${whatToBringItems.map((item) => `<li>${item}</li>`).join("\n                ")}
               </ul>
             </div>
             
             <div class="info-box">
               <h3>Important Information:</h3>
               <ul>
-                <li>Please arrive 15 minutes early to check in</li>
                 <li>All equipment will be provided</li>
                 <li>Contact us if you need to make any changes</li>
               </ul>
@@ -236,7 +237,7 @@ export async function sendBookingConfirmationEmail(props: BookingConfirmationEma
         </div>
       </body>
     </html>
-  `
+  `;
 
   const emailText = `
 Paradise Circus - Workshop Booking Confirmation
@@ -253,10 +254,9 @@ Workshop Details:
 - Instructor: ${instructorName}
 
 What to Bring:
-${whatToBringItems.map(item => `- ${item}`).join('\n')}
+${whatToBringItems.map((item) => `- ${item}`).join("\n")}
 
 Important Information:
-- Please arrive 15 minutes early to check in
 - All equipment will be provided
 - Contact us if you need to make any changes
 
@@ -266,55 +266,57 @@ Booking Reference: #${bookingId}
 
 The Paradise Circus Team
 Where dreams take flight
-  `
+  `;
 
   // Send email via Resend
   if (!process.env.RESEND_API_KEY) {
-    console.error("RESEND_API_KEY is not set. Email will not be sent.")
+    console.error("RESEND_API_KEY is not set. Email will not be sent.");
     return {
       success: false,
       error: "Email service not configured",
       html: emailHtml,
       text: emailText,
-    }
+    };
   }
 
   try {
-    const resend = new Resend(process.env.RESEND_API_KEY)
-    const fromEmail = process.env.RESEND_FROM_EMAIL || "onboarding@resend.dev"
-    
+    const resend = new Resend(process.env.RESEND_API_KEY);
+    const fromEmail = process.env.RESEND_FROM_EMAIL || "onboarding@resend.dev";
+
     await resend.emails.send({
       from: fromEmail,
       to: participantEmail,
       subject: `Booking Confirmed: ${workshopTitle}`,
       html: emailHtml,
       text: emailText,
-    })
+    });
 
-    console.log("Booking confirmation email sent to:", participantEmail)
+    console.log("Booking confirmation email sent to:", participantEmail);
   } catch (error) {
-    console.error("Failed to send booking confirmation email:", error)
-    throw error
+    console.error("Failed to send booking confirmation email:", error);
+    throw error;
   }
 
   return {
     success: true,
     html: emailHtml,
     text: emailText,
-  }
+  };
 }
 
 type AdminNotificationEmailProps = {
-  participantName: string
-  participantEmail: string
-  participantPhone: string | null
-  workshopTitle: string
-  workshopDate: string
-  workshopStartTime: string
-  bookingId: number
-}
+  participantName: string;
+  participantEmail: string;
+  participantPhone: string | null;
+  workshopTitle: string;
+  workshopDate: string;
+  workshopStartTime: string;
+  bookingId: number;
+};
 
-export async function sendAdminNotificationEmail(props: AdminNotificationEmailProps) {
+export async function sendAdminNotificationEmail(
+  props: AdminNotificationEmailProps,
+) {
   const {
     participantName,
     participantEmail,
@@ -323,25 +325,25 @@ export async function sendAdminNotificationEmail(props: AdminNotificationEmailPr
     workshopDate,
     workshopStartTime,
     bookingId,
-  } = props
+  } = props;
 
-  const date = new Date(workshopDate)
+  const date = new Date(workshopDate);
   const formattedDate = date.toLocaleDateString("en-US", {
     weekday: "long",
     month: "long",
     day: "numeric",
     year: "numeric",
-  })
+  });
 
   const formatTime = (time: string) => {
-    const [hours, minutes] = time.split(":")
-    const hour = Number.parseInt(hours)
-    const ampm = hour >= 12 ? "PM" : "AM"
-    const displayHour = hour % 12 || 12
-    return `${displayHour}:${minutes} ${ampm}`
-  }
+    const [hours, minutes] = time.split(":");
+    const hour = Number.parseInt(hours);
+    const ampm = hour >= 12 ? "PM" : "AM";
+    const displayHour = hour % 12 || 12;
+    return `${displayHour}:${minutes} ${ampm}`;
+  };
 
-  const adminEmail = process.env.ADMIN_EMAIL || "admin@paradisecircus.com"
+  const adminEmail = process.env.ADMIN_EMAIL || "admin@paradisecircus.com";
 
   const emailHtml = `
     <!DOCTYPE html>
@@ -433,30 +435,32 @@ export async function sendAdminNotificationEmail(props: AdminNotificationEmailPr
         </div>
       </body>
     </html>
-  `
+  `;
 
   // Send admin notification email via Resend
   if (!process.env.RESEND_API_KEY) {
-    console.error("RESEND_API_KEY is not set. Admin notification will not be sent.")
-    return { success: false, error: "Email service not configured" }
+    console.error(
+      "RESEND_API_KEY is not set. Admin notification will not be sent.",
+    );
+    return { success: false, error: "Email service not configured" };
   }
 
   try {
-    const resend = new Resend(process.env.RESEND_API_KEY)
-    const fromEmail = process.env.RESEND_FROM_EMAIL || "onboarding@resend.dev"
-    
+    const resend = new Resend(process.env.RESEND_API_KEY);
+    const fromEmail = process.env.RESEND_FROM_EMAIL || "onboarding@resend.dev";
+
     await resend.emails.send({
       from: fromEmail,
       to: adminEmail,
       subject: `New Booking: ${workshopTitle}`,
       html: emailHtml,
-    })
+    });
 
-    console.log("Admin notification email sent to:", adminEmail)
+    console.log("Admin notification email sent to:", adminEmail);
   } catch (error) {
-    console.error("Failed to send admin notification email:", error)
-    throw error
+    console.error("Failed to send admin notification email:", error);
+    throw error;
   }
 
-  return { success: true }
+  return { success: true };
 }
