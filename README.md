@@ -27,7 +27,7 @@ A full-stack workshop booking system built with Next.js 16, featuring a public t
 - **Database**: Neon PostgreSQL (serverless)
 - **Styling**: Tailwind CSS v4 with custom circus-themed color palette
 - **UI Components**: shadcn/ui
-- **Email**: Ready for integration with Resend, SendGrid, or similar services
+- **Email**: Integrated with Resend for automated email notifications
 
 ## Database Schema
 
@@ -54,40 +54,41 @@ The application uses three main tables:
 - Node.js 18+ installed
 - Neon PostgreSQL database (already connected)
 
-### Database Setup
-
-1. Run the database creation script:
-   - The schema is in `scripts/001-create-schema.sql`
-   - Sample data is in `scripts/002-seed-sample-data.sql`
-
-2. These scripts will create:
-   - All necessary tables with proper relationships
-   - Indexes for optimal performance
-   - Sample workshop data to get started
-
 ### Environment Variables
 
 The following environment variables are already configured:
 - `DATABASE_URL` - Neon PostgreSQL connection string
 
+Required environment variables for email:
+- `RESEND_API_KEY` - API key for Resend email service (get from https://resend.com/api-keys)
+
 Optional environment variables for email:
+- `RESEND_FROM_EMAIL` - Email address to send from (default: onboarding@resend.dev). Must be a verified domain in Resend for production use.
 - `ADMIN_EMAIL` - Admin email address for notifications (default: admin@paradisecircus.com)
-- `RESEND_API_KEY` - API key for Resend email service (if using Resend)
 
 ### Email Integration
 
-The email system is currently set up to log emails to the console. To enable actual email sending:
+The email system is fully integrated with Resend. To enable email sending:
 
-1. **Using Resend** (recommended):
+1. **Get a Resend API Key**:
+   - Sign up at https://resend.com
+   - Go to API Keys section and create a new key
+   - Copy your API key
+
+2. **Set Environment Variables**:
    ```bash
-   npm install resend
+   RESEND_API_KEY=re_xxxxxxxxxxxxx
+   RESEND_FROM_EMAIL=bookings@yourdomain.com  # Optional: Use your verified domain
+   ADMIN_EMAIL=admin@yourdomain.com  # Optional: Where to send admin notifications
    ```
-   
-   Add your API key to environment variables, then uncomment the Resend code in `lib/email.ts`
 
-2. **Using SendGrid** or other providers:
-   - Install the appropriate SDK
-   - Update the email functions in `lib/email.ts` with your provider's API calls
+3. **Verify Your Domain** (for production):
+   - In Resend dashboard, add and verify your domain
+   - Update `RESEND_FROM_EMAIL` to use your verified domain email address
+
+The system will automatically send:
+- Booking confirmation emails to participants
+- Admin notification emails when new bookings are created
 
 ## Application Routes
 

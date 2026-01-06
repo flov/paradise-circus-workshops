@@ -1,3 +1,5 @@
+import { Resend } from "resend"
+
 type BookingConfirmationEmailProps = {
   participantName: string
   participantEmail: string
@@ -242,22 +244,34 @@ The Paradise Circus Team
 Where dreams take flight
   `
 
-  console.log("[v0] Email notification prepared for:", participantEmail)
-  console.log("[v0] Workshop:", workshopTitle)
-  console.log("[v0] To implement actual email sending, integrate with Resend, SendGrid, or similar service")
+  // Send email via Resend
+  if (!process.env.RESEND_API_KEY) {
+    console.error("RESEND_API_KEY is not set. Email will not be sent.")
+    return {
+      success: false,
+      error: "Email service not configured",
+      html: emailHtml,
+      text: emailText,
+    }
+  }
 
-  // For now, just log the email content
-  // In production, integrate with an email service:
+  try {
+    const resend = new Resend(process.env.RESEND_API_KEY)
+    const fromEmail = process.env.RESEND_FROM_EMAIL || "onboarding@resend.dev"
+    
+    await resend.emails.send({
+      from: fromEmail,
+      to: participantEmail,
+      subject: `Booking Confirmed: ${workshopTitle}`,
+      html: emailHtml,
+      text: emailText,
+    })
 
-  // Example with Resend:
-  // const resend = new Resend(process.env.RESEND_API_KEY)
-  // await resend.emails.send({
-  //   from: 'Paradise Circus <bookings@paradisecircus.com>',
-  //   to: participantEmail,
-  //   subject: `Booking Confirmed: ${workshopTitle}`,
-  //   html: emailHtml,
-  //   text: emailText,
-  // })
+    console.log("Booking confirmation email sent to:", participantEmail)
+  } catch (error) {
+    console.error("Failed to send booking confirmation email:", error)
+    throw error
+  }
 
   return {
     success: true,
@@ -397,15 +411,28 @@ export async function sendAdminNotificationEmail(props: AdminNotificationEmailPr
     </html>
   `
 
-  console.log("[v0] Admin notification prepared for:", adminEmail)
-  console.log("[v0] New booking ID:", bookingId)
+  // Send admin notification email via Resend
+  if (!process.env.RESEND_API_KEY) {
+    console.error("RESEND_API_KEY is not set. Admin notification will not be sent.")
+    return { success: false, error: "Email service not configured" }
+  }
 
-  // In production, send to admin email
-  // await sendEmail({
-  //   to: adminEmail,
-  //   subject: `New Booking: ${workshopTitle}`,
-  //   html: adminEmail,
-  // })
+  try {
+    const resend = new Resend(process.env.RESEND_API_KEY)
+    const fromEmail = process.env.RESEND_FROM_EMAIL || "onboarding@resend.dev"
+    
+    await resend.emails.send({
+      from: fromEmail,
+      to: adminEmail,
+      subject: `New Booking: ${workshopTitle}`,
+      html: emailHtml,
+    })
+
+    console.log("Admin notification email sent to:", adminEmail)
+  } catch (error) {
+    console.error("Failed to send admin notification email:", error)
+    throw error
+  }
 
   return { success: true }
 }
