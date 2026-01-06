@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { PrintButton } from "@/components/print-button";
+import { AddToCalendarButton } from "@/components/add-to-calendar-button";
 import {
   CheckCircle,
   Calendar,
@@ -191,7 +192,7 @@ export default async function BookingConfirmationPage({
               <ul className="text-sm text-muted-foreground space-y-1 list-disc list-inside">
                 {workshop.what_to_bring
                   ? workshop.what_to_bring
-                      .split('\n')
+                      .split("\n")
                       .map((item) => item.trim())
                       .filter((item) => item.length > 0)
                       .map((item, index) => <li key={index}>{item}</li>)
@@ -203,10 +204,13 @@ export default async function BookingConfirmationPage({
         </Card>
 
         <div className="space-y-3">
+          <AddToCalendarButton bookingId={booking.id} className="w-full" />
           <Link href="/">
             <Button className="w-full">Browse More Workshops</Button>
           </Link>
-          <PrintButton />
+          <div className="pt-4">
+            <PrintButton />
+          </div>
         </div>
 
         <div className="mt-8 p-4 rounded-lg bg-muted/50 border border-border">
