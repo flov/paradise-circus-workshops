@@ -69,6 +69,18 @@ export function WeekCalendar({ workshops }: WeekCalendarProps) {
 
   return (
     <div className="space-y-6">
+      {/* Legend */}
+      <div className="flex items-center justify-center gap-6 text-sm">
+        <div className="flex items-center gap-2">
+          <div className="w-4 h-4 rounded bg-blue-600 border border-blue-500"></div>
+          <span className="text-white drop-shadow-black">Paradise River</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="w-4 h-4 rounded bg-red-600 border border-red-500"></div>
+          <span className="text-white drop-shadow-black">Paradise Stage</span>
+        </div>
+      </div>
+
       {/* Calendar Header */}
       <div className="flex items-center justify-between mb-6">
         {/* Navigation Buttons */}
@@ -137,25 +149,32 @@ export function WeekCalendar({ workshops }: WeekCalendarProps) {
                     >
                       {workshopsInSlot.length > 0 ? (
                         <div className="space-y-2">
-                          {workshopsInSlot.map((workshop) => (
-                            <Link
-                              key={workshop.id}
-                              href={`/book/${workshop.id}`}
-                              className="block rounded-lg bg-slate-700 p-3 text-white hover:bg-slate-600 transition-colors h-full border border-slate-600"
-                            >
-                              <div className="text-sm font-semibold text-balance leading-tight mb-1">
-                                {workshop.title}
-                              </div>
-                              {workshop.instructor && (
-                                <div className="text-xs text-slate-300">
-                                  {workshop.instructor}
+                          {workshopsInSlot.map((workshop) => {
+                            const isParadiseRiver = workshop.location?.toLowerCase().includes("paradise river") || workshop.location?.toLowerCase() === "paradise river";
+                            return (
+                              <Link
+                                key={workshop.id}
+                                href={`/book/${workshop.id}`}
+                                className={`block rounded-lg p-3 text-white transition-colors h-full border ${
+                                  isParadiseRiver
+                                    ? "bg-blue-600 hover:bg-blue-500 border-blue-500"
+                                    : "bg-red-600 hover:bg-red-500 border-red-500"
+                                }`}
+                              >
+                                <div className="text-sm font-semibold text-balance leading-tight mb-1">
+                                  {workshop.title}
                                 </div>
-                              )}
-                              <div className="text-xs text-slate-400 mt-1">
-                                {workshop.startTime.slice(0, 5)}
-                              </div>
-                            </Link>
-                          ))}
+                                {workshop.instructor && (
+                                  <div className="text-xs text-slate-300">
+                                    {workshop.instructor}
+                                  </div>
+                                )}
+                                <div className="text-xs text-slate-400 mt-1">
+                                  {workshop.startTime.slice(0, 5)}
+                                </div>
+                              </Link>
+                            );
+                          })}
                         </div>
                       ) : (
                         <div className="h-full min-h-[100px]" />

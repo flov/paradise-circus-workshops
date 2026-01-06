@@ -10,11 +10,12 @@ type TimeSlot = {
   instructor: string;
   start_time: string;
   end_time: string;
+  location: string | null;
 };
 
 type TimetableData = {
   [day: string]: {
-    [time: string]: TimeSlot;
+    [time: string]: TimeSlot[];
   };
 };
 
@@ -72,13 +73,15 @@ export function WeeklyTimetable() {
           hour >= 12 ? `${hour === 12 ? 12 : hour - 12}pm` : `${hour}am`;
 
         if (!organized[dayName]) organized[dayName] = {};
-        organized[dayName][timeSlot] = {
+        if (!organized[dayName][timeSlot]) organized[dayName][timeSlot] = [];
+        organized[dayName][timeSlot].push({
           workshop_id: workshop.id,
           title: workshop.title,
           instructor: workshop.instructor,
           start_time: workshop.start_time,
           end_time: workshop.end_time,
-        };
+          location: workshop.location,
+        });
       });
 
       setTimetableData(organized);
@@ -166,6 +169,18 @@ export function WeeklyTimetable() {
         </div>
       </div>
 
+      {/* Legend */}
+      <div className="flex items-center gap-6 text-sm">
+        <div className="flex items-center gap-2">
+          <div className="w-4 h-4 rounded bg-blue-500/20 border border-blue-500/40"></div>
+          <span className="text-muted-foreground">Paradise River</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="w-4 h-4 rounded bg-red-500/20 border border-red-500/40"></div>
+          <span className="text-muted-foreground">Paradise Stage</span>
+        </div>
+      </div>
+
       {/* Timetable Grid */}
       <div className="rounded-lg border border-border bg-card overflow-hidden">
         {/* Desktop View */}
@@ -202,21 +217,33 @@ export function WeeklyTimetable() {
                       {time}
                     </td>
                     {DAYS.map((day) => {
-                      const slot = timetableData[day]?.[time];
+                      const slots = timetableData[day]?.[time] || [];
                       return (
                         <td key={`${day}-${time}`} className="p-1.5">
-                          {slot ? (
-                            <a
-                              href={`/book/${slot.workshop_id}`}
-                              className="block p-2 rounded bg-primary/10 hover:bg-primary/20 transition-colors h-full"
-                            >
-                              <div className="text-sm font-medium text-foreground line-clamp-2">
-                                {slot.title}
-                              </div>
-                              <div className="text-xs text-muted-foreground mt-0.5 line-clamp-1">
-                                {slot.instructor}
-                              </div>
-                            </a>
+                          {slots.length > 0 ? (
+                            <div className="space-y-1">
+                              {slots.map((slot) => {
+                                const isParadiseRiver = slot.location?.toLowerCase().includes("paradise river") || slot.location?.toLowerCase() === "paradise river";
+                                return (
+                                  <a
+                                    key={slot.workshop_id}
+                                    href={`/book/${slot.workshop_id}`}
+                                    className={`block p-2 rounded transition-colors h-full ${
+                                      isParadiseRiver
+                                        ? "bg-blue-500/20 hover:bg-blue-500/30 border border-blue-500/40"
+                                        : "bg-red-500/20 hover:bg-red-500/30 border border-red-500/40"
+                                    }`}
+                                  >
+                                    <div className="text-sm font-medium text-foreground line-clamp-2">
+                                      {slot.title}
+                                    </div>
+                                    <div className="text-xs text-muted-foreground mt-0.5 line-clamp-1">
+                                      {slot.instructor}
+                                    </div>
+                                  </a>
+                                );
+                              })}
+                            </div>
                           ) : (
                             <div className="p-2 h-full min-h-[60px] bg-muted/20 rounded" />
                           )}
@@ -255,28 +282,39 @@ export function WeeklyTimetable() {
                 <div className="p-3 space-y-2">
                   {hasSlots ? (
                     TIME_SLOTS.map((time) => {
-                      const slot = daySlots[time];
-                      if (!slot) return null;
+                      const slots = daySlots[time] || [];
+                      if (slots.length === 0) return null;
 
                       return (
-                        <a
-                          key={time}
-                          href={`/book/${slot.workshop_id}`}
-                          className="block p-4 rounded-lg bg-primary/15 hover:bg-primary/25 active:bg-primary/30 border-2 border-primary/30 hover:border-primary/50 active:border-primary/60 shadow-sm hover:shadow-md active:shadow-sm transition-all duration-150 cursor-pointer"
-                        >
-                          <div className="flex justify-between items-start gap-2 mb-1">
-                            <div className="font-medium text-foreground flex-1 min-w-0">
-                              {slot.title}
-                            </div>
-                            <div className="text-sm text-muted-foreground whitespace-nowrap flex-shrink-0 flex items-center gap-1">
-                              {time}
-                              <span className="text-primary">→</span>
-                            </div>
-                          </div>
-                          <div className="text-sm text-muted-foreground">
-                            {slot.instructor}
-                          </div>
-                        </a>
+                        <div key={time} className="space-y-2">
+                          {slots.map((slot) => {
+                            const isParadiseRiver = slot.location?.toLowerCase().includes("paradise river") || slot.location?.toLowerCase() === "paradise river";
+                            return (
+                              <a
+                                key={slot.workshop_id}
+                                href={`/book/${slot.workshop_id}`}
+                                className={`block p-4 rounded-lg border-2 shadow-sm hover:shadow-md active:shadow-sm transition-all duration-150 cursor-pointer ${
+                                  isParadiseRiver
+                                    ? "bg-blue-500/15 hover:bg-blue-500/25 active:bg-blue-500/30 border-blue-500/40 hover:border-blue-500/50 active:border-blue-500/60"
+                                    : "bg-red-500/15 hover:bg-red-500/25 active:bg-red-500/30 border-red-500/40 hover:border-red-500/50 active:border-red-500/60"
+                                }`}
+                              >
+                                <div className="flex justify-between items-start gap-2 mb-1">
+                                  <div className="font-medium text-foreground flex-1 min-w-0">
+                                    {slot.title}
+                                  </div>
+                                  <div className="text-sm text-muted-foreground whitespace-nowrap flex-shrink-0 flex items-center gap-1">
+                                    {time}
+                                    <span className={isParadiseRiver ? "text-blue-600 dark:text-blue-400" : "text-red-600 dark:text-red-400"}>→</span>
+                                  </div>
+                                </div>
+                                <div className="text-sm text-muted-foreground">
+                                  {slot.instructor}
+                                </div>
+                              </a>
+                            );
+                          })}
+                        </div>
                       );
                     })
                   ) : (
