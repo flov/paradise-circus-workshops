@@ -216,11 +216,27 @@ export function WeeklyTimetable() {
                     <td className="p-3 text-sm font-medium text-muted-foreground sticky left-0 bg-background">
                       {time}
                     </td>
-                    {DAYS.map((day) => {
+                    {DAYS.map((day, dayIndex) => {
                       const slots = timetableData[day]?.[time] || [];
+                      // Create a deterministic hash to show skeletons in various cells
+                      // Using modulo 8 and showing when hash < 4 gives ~50% coverage
+                      const cellHash = (dayIndex * TIME_SLOTS.length + TIME_SLOTS.indexOf(time)) % 8;
+                      const showSkeleton = isLoading && cellHash < 4;
+                      
                       return (
                         <td key={`${day}-${time}`} className="p-1.5">
-                          {slots.length > 0 ? (
+                          {isLoading ? (
+                            <div className="space-y-1">
+                              {showSkeleton ? (
+                                <div className="p-2 rounded animate-pulse bg-muted/40 border border-border">
+                                  <div className="h-4 bg-muted-foreground/20 rounded mb-1.5 w-3/4"></div>
+                                  <div className="h-3 bg-muted-foreground/20 rounded w-1/2"></div>
+                                </div>
+                              ) : (
+                                <div className="p-2 h-full min-h-[60px] bg-muted/20 rounded" />
+                              )}
+                            </div>
+                          ) : slots.length > 0 ? (
                             <div className="space-y-1">
                               {slots.map((slot) => {
                                 const isParadiseRiver = slot.location?.toLowerCase().includes("paradise river") || slot.location?.toLowerCase() === "paradise river";
@@ -280,7 +296,33 @@ export function WeeklyTimetable() {
                   )}
                 </div>
                 <div className="p-3 space-y-2">
-                  {hasSlots ? (
+                  {isLoading ? (
+                    // Show skeleton entries for mobile view using modulo 8 for ~50% coverage
+                    <>
+                      {TIME_SLOTS.map((time, timeIndex) => {
+                        const cellHash = (dayIndex * TIME_SLOTS.length + timeIndex) % 8;
+                        if (cellHash >= 4) return null;
+                        
+                        return (
+                          <div key={`${day}-${time}`} className="p-4 rounded-lg border-2 border-border animate-pulse bg-muted/40">
+                            <div className="flex justify-between items-start gap-2 mb-1">
+                              <div className="h-5 bg-muted-foreground/20 rounded w-3/4"></div>
+                              <div className="h-4 bg-muted-foreground/20 rounded w-12"></div>
+                            </div>
+                            <div className="h-4 bg-muted-foreground/20 rounded w-1/2"></div>
+                          </div>
+                        );
+                      })}
+                      {TIME_SLOTS.filter((_, timeIndex) => {
+                        const cellHash = (dayIndex * TIME_SLOTS.length + timeIndex) % 8;
+                        return cellHash < 4;
+                      }).length === 0 && (
+                        <div className="text-sm text-muted-foreground text-center py-4">
+                          No workshops scheduled
+                        </div>
+                      )}
+                    </>
+                  ) : hasSlots ? (
                     TIME_SLOTS.map((time) => {
                       const slots = daySlots[time] || [];
                       if (slots.length === 0) return null;
@@ -328,12 +370,6 @@ export function WeeklyTimetable() {
           })}
         </div>
       </div>
-
-      {isLoading && (
-        <div className="text-center text-muted-foreground py-8">
-          Loading timetable...
-        </div>
-      )}
     </div>
   );
 }
