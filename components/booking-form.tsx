@@ -15,19 +15,25 @@ import { getUserName, getUserEmail } from "@/lib/utils";
 
 export function BookingForm({ 
   workshopId, 
-  isPast 
+  isPast,
+  initialUserName = "",
+  initialUserEmail = "",
+  isAuthenticated = false
 }: { 
   workshopId: number;
   isPast: boolean;
+  initialUserName?: string;
+  initialUserEmail?: string;
+  isAuthenticated?: boolean;
 }) {
   const router = useRouter();
   const { user, isLoaded } = useUser();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
+  const [name, setName] = useState(initialUserName);
+  const [email, setEmail] = useState(initialUserEmail);
 
-  // Auto-fill name and email from Clerk user when available
+  // Update name and email from Clerk user when client-side data loads (for real-time updates)
   useEffect(() => {
     if (isLoaded && user) {
       const userName = getUserName(user);
@@ -46,7 +52,7 @@ export function BookingForm({
     formData.append("workshopId", workshopId.toString());
     
     // Add name and email from state if user is logged in (they're hidden but still needed)
-    if (user) {
+    if (isLoggedIn) {
       formData.set("name", name);
       formData.set("email", email);
     }
@@ -66,8 +72,25 @@ export function BookingForm({
     }
   }
 
+  // Use server-provided auth state if available, otherwise wait for client-side loading
+  // This allows immediate rendering when navigating from server-rendered pages
+  const isLoggedIn = isAuthenticated || (isLoaded && !!user);
+  const showLoading = !isLoaded && !isAuthenticated;
+
+  // Show loading state only if we don't have server-side auth data
+  if (showLoading) {
+    return (
+      <div className="space-y-4">
+        <div className="rounded-md bg-muted/50 border border-border p-4 text-center">
+          <Loader2 className="h-6 w-6 animate-spin mx-auto mb-2 text-muted-foreground" />
+          <p className="text-sm text-muted-foreground">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
   // Show sign-in prompt for future workshops when not logged in
-  if (!isPast && isLoaded && !user) {
+  if (!isPast && !isLoggedIn) {
     return (
       <div className="space-y-4">
         <div className="rounded-md bg-muted/50 border border-border p-4 text-center">
@@ -81,8 +104,6 @@ export function BookingForm({
       </div>
     );
   }
-
-  const isLoggedIn = isLoaded && user;
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">

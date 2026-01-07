@@ -1,14 +1,15 @@
 import { db } from "@/db"
 import { workshops } from "@/db/schema"
 import { eq } from "drizzle-orm"
-import { BookingForm } from "@/components/booking-form"
+import { BookWorkshopButton } from "@/components/book-workshop-button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Calendar, Clock, MapPin, Users, ArrowLeft } from "lucide-react"
 import { notFound } from "next/navigation"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
-import { isWorkshopPast } from "@/lib/utils"
+import { isWorkshopPast, getUserName, getUserEmail } from "@/lib/utils"
+import { auth, currentUser } from "@clerk/nextjs/server"
 
 type Workshop = {
   id: number
@@ -67,6 +68,19 @@ export default async function BookWorkshopPage({ params }: { params: Promise<{ i
 
   const isPast = isWorkshopPast(workshop.date, workshop.end_time)
 
+  // Get user data on server side for faster loading
+  const { userId } = await auth()
+  let initialUserName = ""
+  let initialUserEmail = ""
+  
+  if (userId) {
+    const user = await currentUser()
+    if (user) {
+      initialUserName = getUserName(user)
+      initialUserEmail = getUserEmail(user)
+    }
+  }
+
   return (
     <div className="min-h-screen bg-background">
       <div className="border-b border-border bg-card">
@@ -81,8 +95,8 @@ export default async function BookWorkshopPage({ params }: { params: Promise<{ i
         </div>
       </div>
 
-      <main className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
-        <div className="grid gap-8 lg:grid-cols-2">
+      <main className="mx-auto max-w-3xl px-4 py-8 sm:px-6 lg:px-8">
+        <div>
           {/* Workshop Details */}
           <Card>
             <CardHeader>
@@ -135,43 +149,15 @@ export default async function BookWorkshopPage({ params }: { params: Promise<{ i
                 </div>
               </div>
 
-              <div className="pt-4 border-t border-border">
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">Participants</span>
-                  <span className="font-medium text-foreground">
-                    {workshop.current_bookings} {workshop.current_bookings === 1 ? 'person' : 'people'} signed up
-                  </span>
-                </div>
-              </div>
+              <BookWorkshopButton
+                workshopId={workshop.id}
+                isPast={isPast}
+                isAuthenticated={!!userId}
+                userName={initialUserName}
+                userEmail={initialUserEmail}
+              />
             </CardContent>
           </Card>
-
-          {/* Booking Form or Past Workshop Message */}
-          <div>
-            {isPast ? (
-              <Card>
-                <CardHeader>
-                  <CardTitle>Workshop Ended</CardTitle>
-                  <CardDescription>This workshop has already taken place</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-muted-foreground">
-                    Unfortunately, this workshop has already ended and bookings are no longer available.
-                  </p>
-                </CardContent>
-              </Card>
-            ) : (
-              <Card>
-                <CardHeader>
-                  <CardTitle>Complete Your Booking</CardTitle>
-                  <CardDescription>Fill in your details to secure your spot</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <BookingForm workshopId={workshop.id} isPast={isPast} />
-                </CardContent>
-              </Card>
-            )}
-          </div>
         </div>
       </main>
     </div>
