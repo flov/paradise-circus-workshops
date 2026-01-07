@@ -48,7 +48,12 @@ export async function WorkshopsList() {
 
   const formatDate = (dateStr: string) => {
     const date = new Date(dateStr)
-    return date.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
+    const weekdays = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
+    const weekday = weekdays[date.getDay()]
+    const day = date.getDate()
+    const month = date.toLocaleDateString("en-US", { month: "short" })
+    const year = date.getFullYear()
+    return `${weekday}, ${day} ${month} ${year}`
   }
 
   const formatTime = (time: string) => {
@@ -74,7 +79,9 @@ export async function WorkshopsList() {
         </TableHeader>
         <TableBody>
           {workshopsList.map((workshop) => {
-            const isPast = new Date(workshop.date) < new Date()
+            // Combine date and start_time to properly compare datetime
+            const workshopDateTime = new Date(`${workshop.date}T${workshop.start_time}`)
+            const isPast = workshopDateTime < new Date()
 
             return (
               <TableRow key={workshop.id}>
