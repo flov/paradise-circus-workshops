@@ -74,6 +74,7 @@ export default async function BookingConfirmationPage({
       endTime: workshops.endTime,
       location: workshops.location,
       instructor: workshops.instructor,
+      description: workshops.description,
       whatToBring: workshops.whatToBring,
     })
     .from(workshops)
@@ -129,7 +130,6 @@ export default async function BookingConfirmationPage({
           <CardHeader>
             <div className="flex items-center justify-between">
               <CardTitle className="text-xl">Booking Details</CardTitle>
-              <Badge variant="outline">Booking #{booking.id}</Badge>
             </div>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -195,7 +195,9 @@ export default async function BookingConfirmationPage({
                     .split("\n")
                     .map((item) => item.trim())
                     .filter((item) => item.length > 0)
-                    .map((item, index) => <li key={index}>{item}</li>)}
+                    .map((item, index) => (
+                      <li key={index}>{item}</li>
+                    ))}
                 </ul>
               </div>
             )}
@@ -203,7 +205,22 @@ export default async function BookingConfirmationPage({
         </Card>
 
         <div className="space-y-3">
-          <AddToCalendarButton confirmationToken={bookingData.confirmationToken} className="w-full" />
+          <AddToCalendarButton
+            confirmationToken={bookingData.confirmationToken}
+            workshopData={{
+              title: workshopData.title,
+              date: workshopData.date,
+              startTime: workshopData.startTime,
+              endTime: workshopData.endTime,
+              location: workshopData.location,
+              instructor: workshopData.instructor,
+              description: workshopData.description,
+              whatToBring: workshopData.whatToBring,
+              bookingId: bookingData.id,
+              confirmationToken: bookingData.confirmationToken,
+            }}
+            className="w-full"
+          />
           <Link href="/">
             <Button className="w-full">Browse More Workshops</Button>
           </Link>

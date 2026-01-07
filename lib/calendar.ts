@@ -3,7 +3,7 @@
  * Implements RFC 5545 specification
  */
 
-type WorkshopCalendarData = {
+export type WorkshopCalendarData = {
   title: string;
   date: string; // ISO date string (YYYY-MM-DD)
   startTime: string; // Time string (HH:MM:SS or HH:MM)
@@ -35,13 +35,13 @@ function escapeICS(text: string): string {
 function formatICSDateTime(dateStr: string, timeStr: string): string {
   // Parse date (YYYY-MM-DD) - already in correct format, just remove dashes
   const datePart = dateStr.replace(/-/g, "");
-  
+
   // Parse time (HH:MM:SS or HH:MM) and pad to HHMMSS
   const timeParts = timeStr.split(":");
   const hours = timeParts[0].padStart(2, "0");
   const minutes = timeParts[1].padStart(2, "0");
   const seconds = (timeParts[2] || "00").padStart(2, "0");
-  
+
   // Format as YYYYMMDDTHHmmss (floating time, no timezone)
   return `${datePart}T${hours}${minutes}${seconds}`;
 }
@@ -74,7 +74,8 @@ export function generateICSFile(data: WorkshopCalendarData): string {
   // Format dates/times
   const dtStart = formatICSDateTime(date, startTime);
   const dtEnd = formatICSDateTime(date, endTime);
-  const dtStamp = new Date().toISOString().replace(/[-:]/g, "").split(".")[0] + "Z";
+  const dtStamp =
+    new Date().toISOString().replace(/[-:]/g, "").split(".")[0] + "Z";
   const uid = generateUID(bookingId, date);
 
   // Build description
@@ -91,7 +92,6 @@ export function generateICSFile(data: WorkshopCalendarData): string {
       .filter((item) => item.length > 0);
     eventDescription += items.map((item) => `- ${item}`).join("\\n");
   }
-  eventDescription += "\\n\\nBooking Reference: #" + bookingId;
 
   // Build iCalendar content
   const lines: string[] = [
@@ -117,10 +117,13 @@ export function generateICSFile(data: WorkshopCalendarData): string {
   }
 
   // Add organizer (instructor)
-  lines.push(`ORGANIZER;CN=${escapeICS(instructor)}:mailto:${escapeICS(instructor.toLowerCase().replace(/\s+/g, "."))}@paradisecircus.com`);
+  lines.push(
+    `ORGANIZER;CN=${escapeICS(instructor)}:mailto:${escapeICS(instructor.toLowerCase().replace(/\s+/g, "."))}@paradisecircus.com`,
+  );
 
   // Add URL to booking confirmation page
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://paradisecircus.com";
+  const siteUrl =
+    process.env.NEXT_PUBLIC_SITE_URL || "https://paradisecircus.com";
   lines.push(`URL:${siteUrl}/booking-confirmation/${confirmationToken}`);
 
   // Set status
@@ -133,3 +136,79 @@ export function generateICSFile(data: WorkshopCalendarData): string {
   return lines.join("\r\n");
 }
 
+/**
+ * Formats a date and time string into Google Calendar format (YYYYMMDDTHHmmss)
+ * Uses floating time (no timezone) - Google Calendar will interpret in user's local timezone
+ * This matches the ICS format approach since we don't have timezone information
+ */
+function formatGoogleCalendarDateTime(
+  dateStr: string,
+  timeStr: string,
+): string {
+  // Parse date (YYYY-MM-DD) - already in correct format, just remove dashes
+  const datePart = dateStr.replace(/-/g, "");
+
+  // Parse time (HH:MM:SS or HH:MM) and pad to HHMMSS
+  const timeParts = timeStr.split(":");
+  const hours = timeParts[0].padStart(2, "0");
+  const minutes = timeParts[1].padStart(2, "0");
+  const seconds = (timeParts[2] || "00").padStart(2, "0");
+
+  // Format as YYYYMMDDTHHmmss (floating time, no timezone)
+  return `${datePart}T${hours}${minutes}${seconds}`;
+}
+
+/**
+ * Generates a Google Calendar URL with pre-filled event details
+ * Opens Google Calendar in a new tab with the event form prepopulated
+ */
+export function generateGoogleCalendarURL(data: WorkshopCalendarData): string {
+  const {
+    title,
+    date,
+    startTime,
+    endTime,
+    location,
+    instructor,
+    description,
+    whatToBring,
+    bookingId,
+    confirmationToken,
+  } = data;
+
+  // Format dates/times in UTC
+  const startDateTime = formatGoogleCalendarDateTime(date, startTime);
+  const endDateTime = formatGoogleCalendarDateTime(date, endTime);
+
+  // Build description similar to ICS format
+  let eventDescription = "";
+  if (description) {
+    eventDescription += description + "\n\n";
+  }
+  eventDescription += `Instructor: ${instructor}`;
+  if (whatToBring) {
+    eventDescription += "\n\nWhat to Bring:\n";
+    const items = whatToBring
+      .split("\n")
+      .map((item) => item.trim())
+      .filter((item) => item.length > 0);
+    eventDescription += items.map((item) => `- ${item}`).join("\n");
+  }
+
+  // Add URL to booking confirmation page
+  const siteUrl =
+    process.env.NEXT_PUBLIC_SITE_URL || "https://www.paradisepai.com/";
+  eventDescription += `\n\nView booking: ${siteUrl}/booking-confirmation/${confirmationToken}`;
+
+  // Build Google Calendar URL with URL-encoded parameters
+  const params = new URLSearchParams({
+    action: "TEMPLATE",
+    text: title,
+    dates: `${startDateTime}/${endDateTime}`,
+    details: eventDescription,
+  });
+
+  params.append("location", "Paradise Pai");
+
+  return `https://calendar.google.com/calendar/render?${params.toString()}`;
+}
