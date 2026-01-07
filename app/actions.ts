@@ -5,17 +5,39 @@ import { workshops, bookings } from "@/db/schema"
 import { eq, sql } from "drizzle-orm"
 import { revalidatePath } from "next/cache"
 import { sendBookingConfirmationEmail, sendAdminNotificationEmail } from "@/lib/email"
+import { auth, currentUser } from "@clerk/nextjs/server"
+import { getUserName, getUserEmail } from "@/lib/utils"
 
 export async function createBooking(formData: FormData) {
+  // Get authenticated user
+  const { userId } = await auth()
+  
+  if (!userId) {
+    return { success: false, error: "You must be signed in to book a workshop" }
+  }
+
+  const user = await currentUser()
+  if (!user) {
+    return { success: false, error: "Unable to retrieve user information" }
+  }
+
+  // Get user's name and email from Clerk, fallback to form data
+  const clerkName = getUserName(user)
+  const clerkEmail = getUserEmail(user)
+
   const workshopId = formData.get("workshopId") as string
-  const name = formData.get("name") as string
-  const email = formData.get("email") as string
+  const formName = formData.get("name") as string
+  const formEmail = formData.get("email") as string
   const phone = formData.get("phone") as string
   const notes = formData.get("notes") as string
 
+  // Use Clerk data if available, otherwise fallback to form data
+  const name = clerkName || formName
+  const email = clerkEmail || formEmail
+
   // Validate required fields
   if (!workshopId || !name || !email) {
-    return { success: false, error: "Missing required fields" }
+    return { success: false, error: "Missing required fields. Please ensure you have a name and email." }
   }
 
   try {

@@ -2,19 +2,34 @@
 
 import type React from "react";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { useUser } from "@clerk/nextjs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { createBooking } from "@/app/actions";
 import { Loader2 } from "lucide-react";
+import { getUserName, getUserEmail } from "@/lib/utils";
 
 export function BookingForm({ workshopId }: { workshopId: number }) {
   const router = useRouter();
+  const { user, isLoaded } = useUser();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+
+  // Auto-fill name and email from Clerk user when available
+  useEffect(() => {
+    if (isLoaded && user) {
+      const userName = getUserName(user);
+      const userEmail = getUserEmail(user);
+      if (userName) setName(userName);
+      if (userEmail) setEmail(userEmail);
+    }
+  }, [isLoaded, user]);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -48,6 +63,8 @@ export function BookingForm({ workshopId }: { workshopId: number }) {
           name="name"
           type="text"
           placeholder="John Smith"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
           required
           disabled={isSubmitting}
         />
@@ -60,6 +77,8 @@ export function BookingForm({ workshopId }: { workshopId: number }) {
           name="email"
           type="email"
           placeholder="john@example.com"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
           required
           disabled={isSubmitting}
         />

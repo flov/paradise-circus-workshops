@@ -4,6 +4,13 @@ import { gte, asc } from "drizzle-orm";
 import { WorkshopCard } from "@/components/workshop-card";
 import { WeeklyTimetable } from "@/components/weekly-timetable";
 import { Tent } from "lucide-react";
+import {
+  SignInButton,
+  SignUpButton,
+  SignedIn,
+  SignedOut,
+  UserButton,
+} from "@clerk/nextjs";
 
 type Workshop = {
   id: number;
@@ -66,6 +73,15 @@ export default async function Home() {
                   Workshop Timetable
                 </p>
               </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <SignedOut>
+                <SignInButton />
+                <SignUpButton />
+              </SignedOut>
+              <SignedIn>
+                <UserButton />
+              </SignedIn>
             </div>
           </div>
         </div>

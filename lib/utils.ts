@@ -6,6 +6,26 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 /**
+ * Get user's name from Clerk user object
+ * @param user - Clerk user object (from useUser hook or currentUser())
+ * @returns User's name (firstName) or empty string if not available
+ */
+export function getUserName(user: { firstName: string | null | undefined } | null | undefined): string {
+  if (!user) return ""
+  return user.firstName || ""
+}
+
+/**
+ * Get user's email from Clerk user object
+ * @param user - Clerk user object (from useUser hook or currentUser())
+ * @returns User's primary email address or empty string if not available
+ */
+export function getUserEmail(user: { emailAddresses: Array<{ emailAddress: string }> } | null | undefined): string {
+  if (!user || !user.emailAddresses || user.emailAddresses.length === 0) return ""
+  return user.emailAddresses[0]?.emailAddress || ""
+}
+
+/**
  * Check if a workshop is in the past based on its date and end time
  * @param date - Workshop date (string in YYYY-MM-DD format or Date object)
  * @param endTime - Workshop end time in HH:MM format (24-hour)
