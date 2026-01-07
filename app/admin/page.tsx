@@ -61,8 +61,8 @@ export default async function AdminPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <header className="border-b border-border bg-card">
-        <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+      <div className="border-b border-border bg-card">
+        <div className="mx-auto max-w-7xl px-4 py-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-3xl font-bold text-foreground">Admin Dashboard</h1>
@@ -71,7 +71,7 @@ export default async function AdminPage() {
             <AddWorkshopButton />
           </div>
         </div>
-      </header>
+      </div>
 
       <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
         {/* Stats Cards */}

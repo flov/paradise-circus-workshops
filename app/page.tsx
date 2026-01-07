@@ -4,13 +4,6 @@ import { gte, asc } from "drizzle-orm";
 import { WorkshopCard } from "@/components/workshop-card";
 import { WeeklyTimetable } from "@/components/weekly-timetable";
 import { Tent } from "lucide-react";
-import {
-  SignInButton,
-  SignUpButton,
-  SignedIn,
-  SignedOut,
-  UserButton,
-} from "@clerk/nextjs";
 
 type Workshop = {
   id: number;
@@ -59,34 +52,6 @@ export default async function Home() {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="border-b border-border bg-card" suppressHydrationWarning>
-        <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="h-16 w-16 text-primary text-6xl">🎪</div>
-              <div>
-                <h1 className="text-4xl font-bold text-foreground text-balance">
-                  Paradise Circus
-                </h1>
-                <p className="text-sm text-muted-foreground mt-1">
-                  Workshop Timetable
-                </p>
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <SignedOut>
-                <SignInButton />
-                <SignUpButton />
-              </SignedOut>
-              <SignedIn>
-                <UserButton />
-              </SignedIn>
-            </div>
-          </div>
-        </div>
-      </header>
-
       {/* Main Content */}
       <main className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8 space-y-16" suppressHydrationWarning>
         {/* Weekly Timetable Section */}

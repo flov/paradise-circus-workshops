@@ -69,17 +69,17 @@ export default async function BookWorkshopPage({ params }: { params: Promise<{ i
 
   return (
     <div className="min-h-screen bg-background">
-      <header className="border-b border-border bg-card">
-        <div className="mx-auto max-w-5xl px-4 py-6 sm:px-6 lg:px-8">
+      <div className="border-b border-border bg-card">
+        <div className="mx-auto max-w-7xl px-4 py-4 sm:px-6 lg:px-8">
           <Link href="/">
-            <Button variant="ghost" size="sm" className="mb-4">
+            <Button variant="ghost" size="sm">
               <ArrowLeft className="h-4 w-4 mr-2" />
               Back to Timetable
             </Button>
           </Link>
-          <h1 className="text-3xl font-bold text-foreground text-balance">Book Your Workshop</h1>
+          <h1 className="text-3xl font-bold text-foreground text-balance mt-2">Book Your Workshop</h1>
         </div>
-      </header>
+      </div>
 
       <main className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
         <div className="grid gap-8 lg:grid-cols-2">
@@ -167,7 +167,7 @@ export default async function BookWorkshopPage({ params }: { params: Promise<{ i
                   <CardDescription>Fill in your details to secure your spot</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <BookingForm workshopId={workshop.id} />
+                  <BookingForm workshopId={workshop.id} isPast={isPast} />
                 </CardContent>
               </Card>
             )}
