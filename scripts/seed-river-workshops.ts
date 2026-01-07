@@ -235,7 +235,7 @@ const workshopData: WorkshopData[] = [
 ];
 
 async function seedRiverWorkshops() {
-  console.log("Starting to seed paradise river workshops...");
+  console.log("Starting to seed Paradise River workshops...");
 
   try {
     for (const workshop of workshopData) {
@@ -250,7 +250,7 @@ async function seedRiverWorkshops() {
         date: workshop.date,
         startTime: workshop.startTime,
         endTime: workshop.endTime,
-        location: "paradise river",
+        location: "Paradise River",
         description: null,
         maxCapacity: 20,
         currentBookings: 0,
