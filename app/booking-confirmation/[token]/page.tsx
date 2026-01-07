@@ -13,6 +13,7 @@ import {
   MapPin,
   Mail,
   Phone,
+  User,
 } from "lucide-react";
 import { notFound } from "next/navigation";
 import Link from "next/link";
@@ -161,6 +162,12 @@ export default async function BookingConfirmationPage({
                 Participant Information
               </h4>
               <div className="space-y-2 text-sm">
+                <div className="flex items-center gap-3">
+                  <User className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-foreground">
+                    {booking.participant_name}
+                  </span>
+                </div>
                 <div className="flex items-center gap-3">
                   <Mail className="h-4 w-4 text-muted-foreground" />
                   <span className="text-foreground">

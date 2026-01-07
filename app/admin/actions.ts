@@ -7,6 +7,8 @@ import { revalidatePath } from "next/cache"
 import { createWorkshopSlug } from "@/lib/utils"
 
 export async function createWorkshop(formData: FormData) {
+  const sql = neon(process.env.DATABASE_URL!)
+
   const title = formData.get("title") as string
   const description = formData.get("description") as string
   const instructor = formData.get("instructor") as string
