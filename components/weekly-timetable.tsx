@@ -45,6 +45,14 @@ export function WeeklyTimetable() {
     loadWeekData();
   }, [currentWeek]);
 
+  // Helper function to format date as YYYY-MM-DD in local timezone
+  const formatLocalDate = (date: Date): string => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  };
+
   const loadWeekData = async () => {
     setIsLoading(true);
     const dates = getWeekDates(currentWeek);
@@ -52,8 +60,8 @@ export function WeeklyTimetable() {
 
     try {
       // Fetch workshops for the current week
-      const startDate = dates[0].toISOString().split("T")[0];
-      const endDate = dates[6].toISOString().split("T")[0];
+      const startDate = formatLocalDate(dates[0]);
+      const endDate = formatLocalDate(dates[6]);
 
       const response = await fetch(
         `/api/timetable?start=${startDate}&end=${endDate}`,
