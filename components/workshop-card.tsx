@@ -3,6 +3,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Calendar, Clock, MapPin, Users } from "lucide-react"
 import Link from "next/link"
+import { isWorkshopPast } from "@/lib/utils"
 
 type Workshop = {
   id: number
@@ -17,6 +18,7 @@ type Workshop = {
 }
 
 export function WorkshopCard({ workshop }: { workshop: Workshop }) {
+  const isPast = isWorkshopPast(workshop.date, workshop.end_time)
 
   // Format date
   const date = new Date(workshop.date)
@@ -41,9 +43,16 @@ export function WorkshopCard({ workshop }: { workshop: Workshop }) {
       <CardHeader>
         <div className="flex items-start justify-between gap-2 mb-2">
           <CardTitle className="text-xl text-balance">{workshop.title}</CardTitle>
-          <Badge variant="outline" className="shrink-0">
-            {workshop.current_bookings} {workshop.current_bookings === 1 ? 'participant' : 'participants'}
-          </Badge>
+          <div className="flex flex-col items-end gap-2 shrink-0">
+            {isPast && (
+              <Badge variant="secondary" className="bg-muted text-muted-foreground">
+                Past Workshop
+              </Badge>
+            )}
+            <Badge variant="outline">
+              {workshop.current_bookings} {workshop.current_bookings === 1 ? 'participant' : 'participants'}
+            </Badge>
+          </div>
         </div>
         <CardDescription className="text-pretty">{workshop.description}</CardDescription>
       </CardHeader>
@@ -69,9 +78,17 @@ export function WorkshopCard({ workshop }: { workshop: Workshop }) {
           </div>
         </div>
 
-        <Link href={`/book/${workshop.id}`} className="mt-auto">
-          <Button className="w-full">Book Now</Button>
-        </Link>
+        {isPast ? (
+          <div className="mt-auto">
+            <Button className="w-full" disabled>
+              Workshop Ended
+            </Button>
+          </div>
+        ) : (
+          <Link href={`/book/${workshop.id}`} className="mt-auto">
+            <Button className="w-full">Book Now</Button>
+          </Link>
+        )}
       </CardContent>
     </Card>
   )

@@ -8,6 +8,7 @@ import { Calendar, Clock, MapPin, Users, ArrowLeft } from "lucide-react"
 import { notFound } from "next/navigation"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
+import { isWorkshopPast } from "@/lib/utils"
 
 type Workshop = {
   id: number
@@ -64,6 +65,8 @@ export default async function BookWorkshopPage({ params }: { params: Promise<{ i
     return `${displayHour}:${minutes} ${ampm}`
   }
 
+  const isPast = isWorkshopPast(workshop.date, workshop.end_time)
+
   return (
     <div className="min-h-screen bg-background">
       <header className="border-b border-border bg-card">
@@ -85,9 +88,16 @@ export default async function BookWorkshopPage({ params }: { params: Promise<{ i
             <CardHeader>
               <div className="flex items-start justify-between gap-2 mb-2">
                 <CardTitle className="text-2xl text-balance">{workshop.title}</CardTitle>
-                <Badge variant="outline">
-                  {workshop.current_bookings} {workshop.current_bookings === 1 ? 'participant' : 'participants'}
-                </Badge>
+                <div className="flex flex-col items-end gap-2">
+                  {isPast && (
+                    <Badge variant="secondary" className="bg-muted text-muted-foreground">
+                      Past Workshop
+                    </Badge>
+                  )}
+                  <Badge variant="outline">
+                    {workshop.current_bookings} {workshop.current_bookings === 1 ? 'participant' : 'participants'}
+                  </Badge>
+                </div>
               </div>
               <CardDescription className="text-pretty">{workshop.description}</CardDescription>
             </CardHeader>
@@ -136,17 +146,31 @@ export default async function BookWorkshopPage({ params }: { params: Promise<{ i
             </CardContent>
           </Card>
 
-          {/* Booking Form */}
+          {/* Booking Form or Past Workshop Message */}
           <div>
-            <Card>
-              <CardHeader>
-                <CardTitle>Complete Your Booking</CardTitle>
-                <CardDescription>Fill in your details to secure your spot</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <BookingForm workshopId={workshop.id} />
-              </CardContent>
-            </Card>
+            {isPast ? (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Workshop Ended</CardTitle>
+                  <CardDescription>This workshop has already taken place</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-muted-foreground">
+                    Unfortunately, this workshop has already ended and bookings are no longer available.
+                  </p>
+                </CardContent>
+              </Card>
+            ) : (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Complete Your Booking</CardTitle>
+                  <CardDescription>Fill in your details to secure your spot</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <BookingForm workshopId={workshop.id} />
+                </CardContent>
+              </Card>
+            )}
           </div>
         </div>
       </main>
