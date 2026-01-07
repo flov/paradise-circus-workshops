@@ -4,12 +4,12 @@ import { Button } from "@/components/ui/button";
 import { Calendar } from "lucide-react";
 
 interface AddToCalendarButtonProps {
-  bookingId: number;
+  confirmationToken: string;
   className?: string;
 }
 
 export function AddToCalendarButton({
-  bookingId,
+  confirmationToken,
   className,
 }: AddToCalendarButtonProps) {
   return (
@@ -18,7 +18,7 @@ export function AddToCalendarButton({
       variant="outline"
       className={className}
     >
-      <a href={`/api/calendar/${bookingId}`}>
+      <a href={`/api/calendar/${confirmationToken}`}>
         <Calendar className="h-4 w-4" />
         Add to Calendar
       </a>

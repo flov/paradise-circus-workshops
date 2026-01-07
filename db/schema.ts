@@ -34,11 +34,13 @@ export const bookings = pgTable(
     notes: text("notes"),
     bookingDate: timestamp("booking_date").defaultNow().notNull(),
     status: varchar("status", { length: 50 }).default("confirmed").notNull(),
+    confirmationToken: varchar("confirmation_token", { length: 36 }).notNull().unique(),
     createdAt: timestamp("created_at").defaultNow().notNull(),
   },
   (table) => ({
     workshopIdIdx: index("idx_bookings_workshop_id").on(table.workshopId),
     emailIdx: index("idx_bookings_email").on(table.participantEmail),
+    confirmationTokenIdx: index("idx_bookings_confirmation_token").on(table.confirmationToken),
   })
 );
 

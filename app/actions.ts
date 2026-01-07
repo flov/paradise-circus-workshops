@@ -1,5 +1,6 @@
 "use server"
 
+import { randomUUID } from "crypto"
 import { db } from "@/db"
 import { workshops, bookings } from "@/db/schema"
 import { eq, sql } from "drizzle-orm"
@@ -63,6 +64,9 @@ export async function createBooking(formData: FormData) {
 
     const workshop = workshopResults[0]
 
+    // Generate confirmation token
+    const confirmationToken = randomUUID()
+
     // Create booking
     const bookingResults = await db
       .insert(bookings)
@@ -72,10 +76,12 @@ export async function createBooking(formData: FormData) {
         participantEmail: email,
         phone: phone || null,
         notes: notes || null,
+        confirmationToken,
       })
-      .returning({ id: bookings.id })
+      .returning({ id: bookings.id, confirmationToken: bookings.confirmationToken })
 
     const bookingId = bookingResults[0].id
+    const token = bookingResults[0].confirmationToken
 
     // Update workshop booking count
     await db
@@ -120,7 +126,7 @@ export async function createBooking(formData: FormData) {
     revalidatePath("/")
     revalidatePath(`/book/${workshopId}`)
 
-    return { success: true, bookingId }
+    return { success: true, bookingId, confirmationToken: token }
   } catch (error) {
     console.error("Booking error:", error)
     return { success: false, error: "Failed to create booking" }

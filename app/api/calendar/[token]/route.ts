@@ -6,15 +6,14 @@ import { generateICSFile } from "@/lib/calendar";
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ bookingId: string }> }
+  { params }: { params: Promise<{ token: string }> }
 ) {
   try {
-    const { bookingId } = await params;
-    const bookingIdNum = Number.parseInt(bookingId);
+    const { token } = await params;
 
-    if (Number.isNaN(bookingIdNum)) {
+    if (!token || token.length === 0) {
       return NextResponse.json(
-        { error: "Invalid booking ID" },
+        { error: "Invalid booking token" },
         { status: 400 }
       );
     }
@@ -23,7 +22,7 @@ export async function GET(
     const bookingResults = await db
       .select()
       .from(bookings)
-      .where(eq(bookings.id, bookingIdNum));
+      .where(eq(bookings.confirmationToken, token));
 
     if (bookingResults.length === 0) {
       return NextResponse.json(
@@ -69,6 +68,7 @@ export async function GET(
       description: workshop.description,
       whatToBring: workshop.whatToBring,
       bookingId: booking.id,
+      confirmationToken: booking.confirmationToken,
     });
 
     // Sanitize title for filename

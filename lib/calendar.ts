@@ -13,6 +13,7 @@ type WorkshopCalendarData = {
   description?: string | null;
   whatToBring?: string | null;
   bookingId: number;
+  confirmationToken: string;
 };
 
 /**
@@ -67,6 +68,7 @@ export function generateICSFile(data: WorkshopCalendarData): string {
     description,
     whatToBring,
     bookingId,
+    confirmationToken,
   } = data;
 
   // Format dates/times
@@ -119,7 +121,7 @@ export function generateICSFile(data: WorkshopCalendarData): string {
 
   // Add URL to booking confirmation page
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://paradisecircus.com";
-  lines.push(`URL:${siteUrl}/booking-confirmation/${bookingId}`);
+  lines.push(`URL:${siteUrl}/booking-confirmation/${confirmationToken}`);
 
   // Set status
   lines.push("STATUS:CONFIRMED");

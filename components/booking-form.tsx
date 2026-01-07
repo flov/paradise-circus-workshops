@@ -60,8 +60,8 @@ export function BookingForm({
     try {
       const result = await createBooking(formData);
 
-      if (result.success) {
-        router.push(`/booking-confirmation/${result.bookingId}`);
+      if (result.success && result.confirmationToken) {
+        router.push(`/booking-confirmation/${result.confirmationToken}`);
       } else {
         setError(result.error || "Failed to create booking. Please try again.");
       }

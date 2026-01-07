@@ -15,6 +15,13 @@
       "when": 1767682754189,
       "tag": "0001_abandoned_starfox",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1767802574366,
+      "tag": "0002_broad_wild_pack",
+      "breakpoints": true
     }
   ]
 }

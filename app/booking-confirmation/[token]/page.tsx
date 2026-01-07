@@ -41,14 +41,14 @@ type Workshop = {
 export default async function BookingConfirmationPage({
   params,
 }: {
-  params: Promise<{ id: string }>;
+  params: Promise<{ token: string }>;
 }) {
-  const { id } = await params;
+  const { token } = await params;
 
   const bookingResults = await db
     .select()
     .from(bookings)
-    .where(eq(bookings.id, parseInt(id)));
+    .where(eq(bookings.confirmationToken, token));
 
   if (bookingResults.length === 0) {
     notFound();
@@ -203,7 +203,7 @@ export default async function BookingConfirmationPage({
         </Card>
 
         <div className="space-y-3">
-          <AddToCalendarButton bookingId={booking.id} className="w-full" />
+          <AddToCalendarButton confirmationToken={bookingData.confirmationToken} className="w-full" />
           <Link href="/">
             <Button className="w-full">Browse More Workshops</Button>
           </Link>
