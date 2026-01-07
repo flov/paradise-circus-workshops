@@ -162,7 +162,7 @@ export function EditWorkshopButton({ workshop }: { workshop: Workshop }) {
               rows={4}
             />
             <p className="text-xs text-muted-foreground">
-              Each line will be displayed as a separate item. "Enthusiasm and a willingness to learn!" will always be included.
+              Each line will be displayed as a separate item. Leave blank if no items are needed.
             </p>
           </div>
 

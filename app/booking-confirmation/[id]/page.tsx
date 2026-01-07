@@ -185,21 +185,20 @@ export default async function BookingConfirmationPage({
               </div>
             )}
 
-            <div className="pt-4 border-t border-border">
-              <h4 className="font-semibold text-foreground mb-2">
-                What to Bring
-              </h4>
-              <ul className="text-sm text-muted-foreground space-y-1 list-disc list-inside">
-                {workshop.what_to_bring
-                  ? workshop.what_to_bring
-                      .split("\n")
-                      .map((item) => item.trim())
-                      .filter((item) => item.length > 0)
-                      .map((item, index) => <li key={index}>{item}</li>)
-                  : null}
-                <li>Enthusiasm and a willingness to learn!</li>
-              </ul>
-            </div>
+            {workshop.what_to_bring && (
+              <div className="pt-4 border-t border-border">
+                <h4 className="font-semibold text-foreground mb-2">
+                  What to Bring
+                </h4>
+                <ul className="text-sm text-muted-foreground space-y-1 list-disc list-inside">
+                  {workshop.what_to_bring
+                    .split("\n")
+                    .map((item) => item.trim())
+                    .filter((item) => item.length > 0)
+                    .map((item, index) => <li key={index}>{item}</li>)}
+                </ul>
+              </div>
+            )}
           </CardContent>
         </Card>
 

@@ -52,9 +52,6 @@ export async function sendBookingConfirmationEmail(
     whatToBringItems.push(...customItems);
   }
 
-  // Always add the required item
-  whatToBringItems.push("Enthusiasm and a willingness to learn!");
-
   // Format date
   const date = new Date(workshopDate);
   const formattedDate = date.toLocaleDateString("en-US", {
@@ -202,12 +199,14 @@ export async function sendBookingConfirmationEmail(
               </div>
             </div>
             
+            ${whatToBringItems.length > 0 ? `
             <div class="info-box">
               <h3>What to Bring:</h3>
               <ul>
                 ${whatToBringItems.map((item) => `<li>${item}</li>`).join("\n                ")}
               </ul>
             </div>
+            ` : ""}
             
             <div class="info-box">
               <h3>Important Information:</h3>
@@ -252,10 +251,10 @@ Workshop Details:
 - Time: ${formatTime(workshopStartTime)} - ${formatTime(workshopEndTime)}
 - Location: ${workshopLocation}
 - Instructor: ${instructorName}
-
+${whatToBringItems.length > 0 ? `
 What to Bring:
 ${whatToBringItems.map((item) => `- ${item}`).join("\n")}
-
+` : ""}
 Important Information:
 - All equipment will be provided
 - Contact us if you need to make any changes
