@@ -148,7 +148,9 @@ export function WeeklyTimetable() {
           <h2 className="text-3xl font-bold text-foreground text-balance">
             Weekly Workshop Timetable
           </h2>
-          <p className="text-muted-foreground mt-1">{formatDateRange()}</p>
+          <p className="text-muted-foreground mt-1">
+            {formatDateRange()} • All of our workshops are hosted at no cost.
+          </p>
         </div>
 
         <div className="flex items-center gap-2">
@@ -229,9 +231,12 @@ export function WeeklyTimetable() {
                       const slots = timetableData[day]?.[time] || [];
                       // Create a deterministic hash to show skeletons in various cells
                       // Using modulo 8 and showing when hash < 4 gives ~50% coverage
-                      const cellHash = (dayIndex * TIME_SLOTS.length + TIME_SLOTS.indexOf(time)) % 8;
+                      const cellHash =
+                        (dayIndex * TIME_SLOTS.length +
+                          TIME_SLOTS.indexOf(time)) %
+                        8;
                       const showSkeleton = isLoading && cellHash < 4;
-                      
+
                       return (
                         <td key={`${day}-${time}`} className="p-1.5">
                           {isLoading ? (
@@ -248,7 +253,12 @@ export function WeeklyTimetable() {
                           ) : slots.length > 0 ? (
                             <div className="space-y-1">
                               {slots.map((slot) => {
-                                const isParadiseRiver = slot.location?.toLowerCase().includes("paradise river") || slot.location?.toLowerCase() === "paradise river";
+                                const isParadiseRiver =
+                                  slot.location
+                                    ?.toLowerCase()
+                                    .includes("paradise river") ||
+                                  slot.location?.toLowerCase() ===
+                                    "paradise river";
                                 return (
                                   <a
                                     key={slot.workshop_id}
@@ -309,11 +319,15 @@ export function WeeklyTimetable() {
                     // Show skeleton entries for mobile view using modulo 8 for ~50% coverage
                     <>
                       {TIME_SLOTS.map((time, timeIndex) => {
-                        const cellHash = (dayIndex * TIME_SLOTS.length + timeIndex) % 8;
+                        const cellHash =
+                          (dayIndex * TIME_SLOTS.length + timeIndex) % 8;
                         if (cellHash >= 4) return null;
-                        
+
                         return (
-                          <div key={`${day}-${time}`} className="p-4 rounded-lg border-2 border-border animate-pulse bg-muted/40">
+                          <div
+                            key={`${day}-${time}`}
+                            className="p-4 rounded-lg border-2 border-border animate-pulse bg-muted/40"
+                          >
                             <div className="flex justify-between items-start gap-2 mb-1">
                               <div className="h-5 bg-muted-foreground/20 rounded w-3/4"></div>
                               <div className="h-4 bg-muted-foreground/20 rounded w-12"></div>
@@ -323,7 +337,8 @@ export function WeeklyTimetable() {
                         );
                       })}
                       {TIME_SLOTS.filter((_, timeIndex) => {
-                        const cellHash = (dayIndex * TIME_SLOTS.length + timeIndex) % 8;
+                        const cellHash =
+                          (dayIndex * TIME_SLOTS.length + timeIndex) % 8;
                         return cellHash < 4;
                       }).length === 0 && (
                         <div className="text-sm text-muted-foreground text-center py-4">
@@ -339,7 +354,11 @@ export function WeeklyTimetable() {
                       return (
                         <div key={time} className="space-y-2">
                           {slots.map((slot) => {
-                            const isParadiseRiver = slot.location?.toLowerCase().includes("paradise river") || slot.location?.toLowerCase() === "paradise river";
+                            const isParadiseRiver =
+                              slot.location
+                                ?.toLowerCase()
+                                .includes("paradise river") ||
+                              slot.location?.toLowerCase() === "paradise river";
                             return (
                               <a
                                 key={slot.workshop_id}
@@ -356,7 +375,15 @@ export function WeeklyTimetable() {
                                   </div>
                                   <div className="text-sm text-muted-foreground whitespace-nowrap flex-shrink-0 flex items-center gap-1">
                                     {time}
-                                    <span className={isParadiseRiver ? "text-blue-600 dark:text-blue-400" : "text-red-600 dark:text-red-400"}>→</span>
+                                    <span
+                                      className={
+                                        isParadiseRiver
+                                          ? "text-blue-600 dark:text-blue-400"
+                                          : "text-red-600 dark:text-red-400"
+                                      }
+                                    >
+                                      →
+                                    </span>
                                   </div>
                                 </div>
                                 <div className="text-sm text-muted-foreground">
