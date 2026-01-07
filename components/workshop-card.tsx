@@ -3,7 +3,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Calendar, Clock, MapPin, Users } from "lucide-react"
 import Link from "next/link"
-import { isWorkshopPast } from "@/lib/utils"
+import { isWorkshopPast, createWorkshopSlug } from "@/lib/utils"
 
 type Workshop = {
   id: number
@@ -85,7 +85,7 @@ export function WorkshopCard({ workshop }: { workshop: Workshop }) {
             </Button>
           </div>
         ) : (
-          <Link href={`/book/${workshop.id}`} className="mt-auto">
+          <Link href={`/book/${createWorkshopSlug(workshop.id, workshop.title, workshop.instructor)}`} className="mt-auto">
             <Button className="w-full">Book Now</Button>
           </Link>
         )}

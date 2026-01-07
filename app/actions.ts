@@ -7,7 +7,7 @@ import { eq, sql } from "drizzle-orm"
 import { revalidatePath } from "next/cache"
 import { sendBookingConfirmationEmail, sendAdminNotificationEmail } from "@/lib/email"
 import { auth, currentUser } from "@clerk/nextjs/server"
-import { getUserName, getUserEmail } from "@/lib/utils"
+import { getUserName, getUserEmail, createWorkshopSlug } from "@/lib/utils"
 
 export async function createBooking(formData: FormData) {
   // Get authenticated user
@@ -124,7 +124,7 @@ export async function createBooking(formData: FormData) {
 
     // Revalidate relevant pages
     revalidatePath("/")
-    revalidatePath(`/book/${workshopId}`)
+    revalidatePath(`/book/${createWorkshopSlug(parseInt(workshopId), workshop.title, workshop.instructor)}`)
 
     return { success: true, bookingId, confirmationToken: token }
   } catch (error) {

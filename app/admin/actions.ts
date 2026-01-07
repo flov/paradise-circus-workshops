@@ -4,6 +4,7 @@ import { db } from "@/db"
 import { workshops, bookings } from "@/db/schema"
 import { eq, sql } from "drizzle-orm"
 import { revalidatePath } from "next/cache"
+import { createWorkshopSlug } from "@/lib/utils"
 
 export async function createWorkshop(formData: FormData) {
   const title = formData.get("title") as string
@@ -72,7 +73,7 @@ export async function updateWorkshop(formData: FormData) {
 
     revalidatePath("/admin")
     revalidatePath("/")
-    revalidatePath(`/book/${id}`)
+    revalidatePath(`/book/${createWorkshopSlug(parseInt(id), title, instructor)}`)
 
     return { success: true }
   } catch (error) {
@@ -95,6 +96,12 @@ export async function deleteWorkshop(workshopId: number) {
 
 export async function deleteBooking(bookingId: number, workshopId: number) {
   try {
+    // Fetch workshop title and instructor for revalidation
+    const workshopResults = await db
+      .select({ title: workshops.title, instructor: workshops.instructor })
+      .from(workshops)
+      .where(eq(workshops.id, workshopId))
+
     await db.delete(bookings).where(eq(bookings.id, bookingId))
 
     // Update workshop booking count
@@ -105,7 +112,9 @@ export async function deleteBooking(bookingId: number, workshopId: number) {
 
     revalidatePath("/admin")
     revalidatePath("/")
-    revalidatePath(`/book/${workshopId}`)
+    if (workshopResults.length > 0) {
+      revalidatePath(`/book/${createWorkshopSlug(workshopId, workshopResults[0].title, workshopResults[0].instructor)}`)
+    }
   } catch (error) {
     console.error("Error deleting booking:", error)
     throw error

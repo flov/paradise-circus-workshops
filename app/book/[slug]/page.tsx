@@ -5,10 +5,10 @@ import { BookWorkshopButton } from "@/components/book-workshop-button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Calendar, Clock, MapPin, Users, ArrowLeft } from "lucide-react"
-import { notFound } from "next/navigation"
+import { notFound, redirect } from "next/navigation"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
-import { isWorkshopPast, getUserName, getUserEmail } from "@/lib/utils"
+import { isWorkshopPast, getUserName, getUserEmail, parseWorkshopSlug, createWorkshopSlug } from "@/lib/utils"
 import { auth, currentUser } from "@clerk/nextjs/server"
 
 type Workshop = {
@@ -23,13 +23,20 @@ type Workshop = {
   location: string
 }
 
-export default async function BookWorkshopPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params
+export default async function BookWorkshopPage({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = await params
+
+  // Parse the slug to extract the workshop ID
+  const workshopId = parseWorkshopSlug(slug)
+  
+  if (!workshopId) {
+    notFound()
+  }
 
   const workshopResults = await db
     .select()
     .from(workshops)
-    .where(eq(workshops.id, parseInt(id)))
+    .where(eq(workshops.id, workshopId))
 
   if (workshopResults.length === 0) {
     notFound()
@@ -46,6 +53,12 @@ export default async function BookWorkshopPage({ params }: { params: Promise<{ i
     end_time: workshopData.endTime,
     current_bookings: workshopData.currentBookings,
     location: workshopData.location || "",
+  }
+
+  // If the slug is in old format (numeric only), redirect to new format for SEO
+  if (/^\d+$/.test(slug)) {
+    const newSlug = createWorkshopSlug(workshop.id, workshop.title, workshop.instructor)
+    redirect(`/book/${newSlug}`)
   }
 
   // Format date
@@ -165,3 +178,4 @@ export default async function BookWorkshopPage({ params }: { params: Promise<{ i
     </div>
   )
 }
+

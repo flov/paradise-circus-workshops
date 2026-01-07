@@ -81,3 +81,55 @@ export function isWorkshopPast(date: string | Date, endTime: string): boolean {
   
   return now > workshopEndDate
 }
+
+/**
+ * Create a URL-friendly slug from a workshop title
+ * @param title - Workshop title (e.g., "Hoop Beg-Int")
+ * @returns URL-friendly slug (e.g., "hoop-beg-int")
+ */
+export function createTitleSlug(title: string): string {
+  return title
+    .toLowerCase()
+    .trim()
+    .replace(/[^\w\s-]/g, '') // Remove special characters except hyphens and spaces
+    .replace(/\s+/g, '-') // Replace spaces with hyphens
+    .replace(/-+/g, '-') // Replace multiple hyphens with single hyphen
+    .replace(/^-+|-+$/g, '') // Remove leading/trailing hyphens
+}
+
+/**
+ * Create a workshop URL slug combining ID, title, and instructor
+ * @param id - Workshop ID
+ * @param title - Workshop title
+ * @param instructor - Instructor name
+ * @returns Combined slug (e.g., "40-rope-dart-kit")
+ */
+export function createWorkshopSlug(id: number, title: string, instructor: string): string {
+  const titleSlug = createTitleSlug(title)
+  const instructorSlug = createTitleSlug(instructor)
+  return `${id}-${titleSlug}-${instructorSlug}`
+}
+
+/**
+ * Parse a workshop slug to extract the numeric ID
+ * Supports both old format (numeric only) and new format (id-title-slug)
+ * @param slug - URL slug (e.g., "30-hoop-beg-int" or "30")
+ * @returns Workshop ID as number, or null if invalid
+ */
+export function parseWorkshopSlug(slug: string): number | null {
+  if (!slug) return null
+  
+  // Handle old format: numeric only
+  if (/^\d+$/.test(slug)) {
+    return Number.parseInt(slug, 10)
+  }
+  
+  // Handle new format: id-title-slug
+  // Extract the numeric ID from the beginning
+  const match = slug.match(/^(\d+)/)
+  if (match) {
+    return Number.parseInt(match[1], 10)
+  }
+  
+  return null
+}

@@ -5,6 +5,7 @@ import { format, startOfWeek, addDays, parseISO, isSameDay } from "date-fns";
 import { Fragment, useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { createWorkshopSlug } from "@/lib/utils";
 
 type Workshop = {
   id: number;
@@ -154,7 +155,7 @@ export function WeekCalendar({ workshops }: WeekCalendarProps) {
                             return (
                               <Link
                                 key={workshop.id}
-                                href={`/book/${workshop.id}`}
+                                href={`/book/${createWorkshopSlug(workshop.id, workshop.title, workshop.instructor)}`}
                                 className={`block rounded-lg p-3 text-white transition-colors h-full border ${
                                   isParadiseRiver
                                     ? "bg-blue-600 hover:bg-blue-500 border-blue-500"
