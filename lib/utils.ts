@@ -133,3 +133,25 @@ export function parseWorkshopSlug(slug: string): number | null {
   
   return null
 }
+
+/**
+ * Extract initials from a participant name
+ * @param name - Participant name (e.g., "John Doe" or "Mary Jane Smith")
+ * @returns Initials string (e.g., "JD" or "MJS")
+ */
+export function getInitials(name: string): string {
+  if (!name || name.trim().length === 0) return ""
+  
+  const parts = name.trim().split(/\s+/)
+  if (parts.length === 1) {
+    // Single name: return first two letters
+    return parts[0].substring(0, 2).toUpperCase()
+  }
+  
+  // Multiple names: return first letter of first and last name
+  if (parts.length >= 2) {
+    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
+  }
+  
+  return name.substring(0, 2).toUpperCase()
+}

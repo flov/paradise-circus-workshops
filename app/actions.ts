@@ -72,6 +72,7 @@ export async function createBooking(formData: FormData) {
       .insert(bookings)
       .values({
         workshopId: parseInt(workshopId),
+        clerkUserId: userId,
         participantName: name,
         participantEmail: email,
         phone: phone || null,

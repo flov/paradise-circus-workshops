@@ -1,0 +1,1 @@
+ALTER TABLE "bookings" ADD COLUMN "clerk_user_id" varchar(255);

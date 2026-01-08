@@ -28,6 +28,7 @@ export const bookings = pgTable(
   {
     id: serial("id").primaryKey(),
     workshopId: integer("workshop_id").notNull().references(() => workshops.id, { onDelete: "cascade" }),
+    clerkUserId: varchar("clerk_user_id", { length: 255 }),
     participantName: varchar("participant_name", { length: 255 }).notNull(),
     participantEmail: varchar("participant_email", { length: 255 }).notNull(),
     phone: varchar("phone", { length: 50 }),
