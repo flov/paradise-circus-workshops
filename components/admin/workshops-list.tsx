@@ -5,6 +5,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge"
 import { EditWorkshopButton } from "./edit-workshop-button"
 import { DeleteWorkshopButton } from "./delete-workshop-button"
+import Link from "next/link"
+import { createWorkshopSlug } from "@/lib/utils"
 
 type Workshop = {
   id: number
@@ -85,7 +87,14 @@ export async function WorkshopsList() {
 
             return (
               <TableRow key={workshop.id}>
-                <TableCell className="font-medium">{workshop.title}</TableCell>
+                <TableCell className="font-medium">
+                  <Link 
+                    href={`/book/${createWorkshopSlug(workshop.id, workshop.title, workshop.instructor)}`}
+                    className="hover:underline text-primary"
+                  >
+                    {workshop.title}
+                  </Link>
+                </TableCell>
                 <TableCell>
                   <div className="text-sm">
                     <div>{formatDate(workshop.date)}</div>
