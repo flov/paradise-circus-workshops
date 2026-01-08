@@ -68,7 +68,7 @@ export default async function Home() {
         suppressHydrationWarning
       >
         <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
             {/* Navigation Links */}
             <div>
               <h3 className="text-sm font-semibold text-foreground mb-4">
@@ -94,33 +94,6 @@ export default async function Home() {
                   FAQ
                 </Link>
               </nav>
-            </div>
-
-            {/* Contact Information */}
-            <div>
-              <h3 className="text-sm font-semibold text-foreground mb-4">
-                Contact Us
-              </h3>
-              <div className="space-y-2 text-sm text-muted-foreground">
-                <p>220 Mae Hi</p>
-                <p>Pai, Thailand 58130</p>
-                <p className="mt-2">
-                  <a
-                    href="tel:+66892655535"
-                    className="hover:text-primary transition-colors"
-                  >
-                    Tel: 089 265 5535
-                  </a>
-                </p>
-                <p>
-                  <a
-                    href="mailto:contact@paradisepai.com"
-                    className="hover:text-primary transition-colors"
-                  >
-                    contact@paradisepai.com
-                  </a>
-                </p>
-              </div>
             </div>
 
             {/* Hours */}
