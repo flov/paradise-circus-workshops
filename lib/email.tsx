@@ -342,7 +342,7 @@ export async function sendAdminNotificationEmail(
     return `${displayHour}:${minutes} ${ampm}`;
   };
 
-  const adminEmail = process.env.ADMIN_EMAIL || "admin@paradisecircus.com";
+  const adminEmail = process.env.ADMIN_EMAIL || "no-reply@paradisecircus.com";
 
   const emailHtml = `
     <!DOCTYPE html>

@@ -50,7 +50,7 @@ function formatICSDateTime(dateStr: string, timeStr: string): string {
  * Generates a unique UID for the calendar event
  */
 function generateUID(bookingId: number, date: string): string {
-  const domain = process.env.NEXT_PUBLIC_SITE_URL || "paradisecircus.com";
+  const domain = process.env.NEXT_PUBLIC_SITE_URL || "paradise-circus-workshops.vercel.app";
   return `workshop-${bookingId}-${date.replace(/-/g, "")}@${domain}`;
 }
 
