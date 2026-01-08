@@ -1,4 +1,8 @@
 import { Resend } from "resend";
+import { render } from "@react-email/render";
+import React from "react";
+import { BookingConfirmationEmail } from "@/emails/booking-confirmation";
+import { AdminNotificationEmail } from "@/emails/admin-notification";
 
 type BookingConfirmationEmailProps = {
   participantName: string;
@@ -14,12 +18,10 @@ type BookingConfirmationEmailProps = {
   whatToBring?: string | null;
 };
 
-export async function sendBookingConfirmationEmail(
-  props: BookingConfirmationEmailProps,
-) {
+// Helper function to generate plain text version
+const generatePlainText = (props: BookingConfirmationEmailProps) => {
   const {
     participantName,
-    participantEmail,
     workshopTitle,
     workshopDate,
     workshopStartTime,
@@ -30,29 +32,6 @@ export async function sendBookingConfirmationEmail(
     confirmationToken,
     whatToBring,
   } = props;
-
-  // Simple HTML escape function
-  const escapeHtml = (text: string) => {
-    return text
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;")
-      .replace(/"/g, "&quot;")
-      .replace(/'/g, "&#039;");
-  };
-
-  // Build "What to Bring" list
-  const whatToBringItems: string[] = [];
-
-  // Add custom items from workshop if provided
-  if (whatToBring) {
-    const customItems = whatToBring
-      .split("\n")
-      .map((item) => item.trim())
-      .filter((item) => item.length > 0)
-      .map((item) => escapeHtml(item));
-    whatToBringItems.push(...customItems);
-  }
 
   // Format date
   const date = new Date(workshopDate);
@@ -72,201 +51,19 @@ export async function sendBookingConfirmationEmail(
     return `${displayHour}:${minutes} ${ampm}`;
   };
 
-  const emailHtml = `
-    <!DOCTYPE html>
-    <html>
-      <head>
-        <meta charset="utf-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Workshop Booking Confirmation</title>
-        <style>
-          body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-            line-height: 1.6;
-            color: #333;
-            margin: 0;
-            padding: 0;
-            background-color: #f9f9f9;
-          }
-          .container {
-            max-width: 600px;
-            margin: 0 auto;
-            background-color: #ffffff;
-            border-radius: 8px;
-            overflow: hidden;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-          }
-          .header {
-            background: linear-gradient(135deg, #d97706 0%, #dc2626 100%);
-            color: #ffffff;
-            padding: 32px 24px;
-            text-align: center;
-          }
-          .header h1 {
-            margin: 0;
-            font-size: 28px;
-            font-weight: 700;
-          }
-          .content {
-            padding: 32px 24px;
-          }
-          .workshop-details {
-            background-color: #fef3c7;
-            border-left: 4px solid #d97706;
-            padding: 20px;
-            margin: 24px 0;
-            border-radius: 4px;
-          }
-          .workshop-details h2 {
-            margin: 0 0 16px 0;
-            font-size: 20px;
-            color: #92400e;
-          }
-          .detail-row {
-            display: flex;
-            margin: 8px 0;
-            font-size: 14px;
-          }
-          .detail-label {
-            font-weight: 600;
-            color: #92400e;
-            min-width: 120px;
-          }
-          .detail-value {
-            color: #451a03;
-          }
-          .info-box {
-            background-color: #f3f4f6;
-            border-radius: 6px;
-            padding: 16px;
-            margin: 24px 0;
-          }
-          .info-box h3 {
-            margin: 0 0 12px 0;
-            font-size: 16px;
-            color: #374151;
-          }
-          .info-box ul {
-            margin: 0;
-            padding-left: 20px;
-            color: #6b7280;
-          }
-          .info-box li {
-            margin: 6px 0;
-          }
-          .footer {
-            background-color: #f9fafb;
-            padding: 24px;
-            text-align: center;
-            color: #6b7280;
-            font-size: 14px;
-            border-top: 1px solid #e5e7eb;
-          }
-          .booking-number {
-            font-size: 12px;
-            color: #9ca3af;
-            margin-top: 8px;
-          }
-          .cancel-button {
-            display: inline-block;
-            margin: 24px 0;
-            padding: 12px 24px;
-            background-color: #dc2626;
-            color: #ffffff;
-            text-decoration: none;
-            border-radius: 6px;
-            font-weight: 600;
-            text-align: center;
-          }
-          .cancel-button:hover {
-            background-color: #b91c1c;
-          }
-        </style>
-      </head>
-      <body>
-        <div class="container">
-          <div class="header">
-            <h1>🎪 Paradise Circus</h1>
-            <p style="margin: 8px 0 0 0; font-size: 16px;">Workshop Booking Confirmation</p>
-          </div>
-          
-          <div class="content">
-            <p>Dear ${participantName},</p>
-            
-            <p>Thank you for booking a workshop with Paradise Circus! Your spot has been confirmed.</p>
-            
-            <div class="workshop-details">
-              <h2>${workshopTitle}</h2>
-              <div class="detail-row">
-                <span class="detail-label">Date:</span>
-                <span class="detail-value">${formattedDate}</span>
-              </div>
-              <div class="detail-row">
-                <span class="detail-label">Time:</span>
-                <span class="detail-value">${formatTime(workshopStartTime)} - ${formatTime(workshopEndTime)}</span>
-              </div>
-              <div class="detail-row">
-                <span class="detail-label">Location:</span>
-                <span class="detail-value">${workshopLocation}</span>
-              </div>
-              <div class="detail-row">
-                <span class="detail-label">Instructor:</span>
-                <span class="detail-value">${instructorName}</span>
-              </div>
-            </div>
-            
-            ${whatToBringItems.length > 0 ? `
-            <div class="info-box">
-              <h3>What to Bring:</h3>
-              <ul>
-                ${whatToBringItems.map((item) => `<li>${item}</li>`).join("\n                ")}
-              </ul>
-            </div>
-            ` : ""}
-            
-            <div class="info-box">
-              <h3>Important Information:</h3>
-              <ul>
-                <li>All equipment will be provided</li>
-                <li>Contact us if you need to make any changes</li>
-              </ul>
-            </div>
-            
-            <div style="text-align: center; margin: 24px 0;">
-              <a href="${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/booking-confirmation/${confirmationToken}" class="cancel-button" style="display: inline-block; margin: 24px 0; padding: 12px 24px; background-color: #dc2626; color: #ffffff; text-decoration: none; border-radius: 6px; font-weight: 600;">
-                View Booking Details
-              </a>
-            </div>
-            
-            <div style="text-align: center; margin: 16px 0;">
-              <a href="${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/cancel-booking?id=${bookingId}" style="color: #dc2626; text-decoration: underline; font-size: 14px;">
-                Cancel this booking
-              </a>
-            </div>
-            
-            <p>We're excited to see you at the workshop! If you have any questions or need to make changes to your booking, please don't hesitate to reach out.</p>
-            
-            <p>See you under the big top!</p>
-            
-            <p style="margin-top: 24px;">
-              <strong>The Paradise Circus Team</strong>
-            </p>
-            
-            <p class="booking-number">Booking Reference: #${bookingId}</p>
-          </div>
-          
-          <div class="footer">
-            <p style="margin: 0;">Paradise Circus - Where dreams take flight</p>
-            <p style="margin: 8px 0 0 0; font-size: 12px;">
-              This is an automated confirmation email. Please do not reply to this message.
-            </p>
-          </div>
-        </div>
-      </body>
-    </html>
-  `;
+  // Build "What to Bring" list
+  const whatToBringItems: string[] = [];
+  if (whatToBring) {
+    const customItems = whatToBring
+      .split("\n")
+      .map((item) => item.trim())
+      .filter((item) => item.length > 0);
+    whatToBringItems.push(...customItems);
+  }
 
-  const emailText = `
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+
+  return `
 Paradise Circus - Workshop Booking Confirmation
 
 Dear ${participantName},
@@ -287,9 +84,9 @@ Important Information:
 - All equipment will be provided
 - Contact us if you need to make any changes
 
-View your booking details: ${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/booking-confirmation/${confirmationToken}
+View your booking details: ${appUrl}/booking-confirmation/${confirmationToken}
 
-Cancel this booking: ${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/cancel-booking?id=${bookingId}
+Cancel this booking: ${appUrl}/api/cancel-booking?id=${bookingId}
 
 We're excited to see you at the workshop!
 
@@ -297,7 +94,24 @@ Booking Reference: #${bookingId}
 
 The Paradise Circus Team
 Where dreams take flight
-  `;
+  `.trim();
+};
+
+export async function sendBookingConfirmationEmail(
+  props: BookingConfirmationEmailProps,
+) {
+  const {
+    participantEmail,
+    workshopTitle,
+  } = props;
+
+  // Render React Email component to HTML
+  const emailHtml = await render(
+    <BookingConfirmationEmail {...props} />
+  );
+
+  // Generate plain text version
+  const emailText = generatePlainText(props);
 
   // Send email via Resend
   if (!process.env.RESEND_API_KEY) {
@@ -348,125 +162,12 @@ type AdminNotificationEmailProps = {
 export async function sendAdminNotificationEmail(
   props: AdminNotificationEmailProps,
 ) {
-  const {
-    participantName,
-    participantEmail,
-    participantPhone,
-    workshopTitle,
-    workshopDate,
-    workshopStartTime,
-    bookingId,
-  } = props;
+  const { workshopTitle } = props;
 
-  const date = new Date(workshopDate);
-  const formattedDate = date.toLocaleDateString("en-US", {
-    weekday: "long",
-    month: "long",
-    day: "numeric",
-    year: "numeric",
-  });
-
-  const formatTime = (time: string) => {
-    const [hours, minutes] = time.split(":");
-    const hour = Number.parseInt(hours);
-    const ampm = hour >= 12 ? "PM" : "AM";
-    const displayHour = hour % 12 || 12;
-    return `${displayHour}:${minutes} ${ampm}`;
-  };
+  // Render React Email component to HTML
+  const emailHtml = await render(<AdminNotificationEmail {...props} />);
 
   const adminEmail = process.env.ADMIN_EMAIL || "no-reply@paradisecircus.com";
-
-  const emailHtml = `
-    <!DOCTYPE html>
-    <html>
-      <head>
-        <meta charset="utf-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>New Workshop Booking</title>
-        <style>
-          body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            line-height: 1.6;
-            color: #333;
-            background-color: #f9f9f9;
-            margin: 0;
-            padding: 0;
-          }
-          .container {
-            max-width: 600px;
-            margin: 20px auto;
-            background-color: #ffffff;
-            border-radius: 8px;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-          }
-          .header {
-            background-color: #374151;
-            color: #ffffff;
-            padding: 24px;
-            border-radius: 8px 8px 0 0;
-          }
-          .header h1 {
-            margin: 0;
-            font-size: 20px;
-          }
-          .content {
-            padding: 24px;
-          }
-          .booking-info {
-            background-color: #f3f4f6;
-            border-radius: 6px;
-            padding: 16px;
-            margin: 16px 0;
-          }
-          .info-row {
-            margin: 8px 0;
-            font-size: 14px;
-          }
-          .label {
-            font-weight: 600;
-            color: #374151;
-          }
-          .value {
-            color: #6b7280;
-          }
-        </style>
-      </head>
-      <body>
-        <div class="container">
-          <div class="header">
-            <h1>🔔 New Workshop Booking Received</h1>
-          </div>
-          <div class="content">
-            <p>A new booking has been made for <strong>${workshopTitle}</strong>.</p>
-            
-            <div class="booking-info">
-              <div class="info-row">
-                <span class="label">Participant:</span> 
-                <span class="value">${participantName}</span>
-              </div>
-              <div class="info-row">
-                <span class="label">Email:</span> 
-                <span class="value">${participantEmail}</span>
-              </div>
-              ${participantPhone ? `<div class="info-row"><span class="label">Phone:</span> <span class="value">${participantPhone}</span></div>` : ""}
-              <div class="info-row">
-                <span class="label">Workshop Date:</span> 
-                <span class="value">${formattedDate} at ${formatTime(workshopStartTime)}</span>
-              </div>
-              <div class="info-row">
-                <span class="label">Booking ID:</span> 
-                <span class="value">#${bookingId}</span>
-              </div>
-            </div>
-            
-            <p style="font-size: 14px; color: #6b7280;">
-              View and manage this booking in your admin dashboard.
-            </p>
-          </div>
-        </div>
-      </body>
-    </html>
-  `;
 
   // Send admin notification email via Resend
   if (!process.env.RESEND_API_KEY) {

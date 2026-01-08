@@ -7,7 +7,8 @@
     "dev": "next dev",
     "lint": "eslint .",
     "start": "next start",
-    "seed:river": "tsx scripts/seed-river-workshops.ts"
+    "seed:river": "tsx scripts/seed-river-workshops.ts",
+    "email:dev": "email dev"
   },
   "dependencies": {
     "@clerk/nextjs": "^6.36.5",
@@ -40,6 +41,8 @@
     "@radix-ui/react-toggle": "1.1.1",
     "@radix-ui/react-toggle-group": "1.1.1",
     "@radix-ui/react-tooltip": "1.1.6",
+    "@react-email/components": "^1.0.4",
+    "@react-email/render": "^2.0.2",
     "@vercel/analytics": "1.3.1",
     "autoprefixer": "^10.4.20",
     "class-variance-authority": "^0.7.1",
@@ -55,6 +58,7 @@
     "react": "19.2.0",
     "react-day-picker": "9.8.0",
     "react-dom": "19.2.0",
+    "react-email": "^5.2.1",
     "react-hook-form": "^7.60.0",
     "react-markdown": "^10.1.0",
     "react-resizable-panels": "^2.1.7",
@@ -67,6 +71,7 @@
     "zod": "3.25.76"
   },
   "devDependencies": {
+    "@react-email/preview-server": "^5.2.1",
     "@tailwindcss/postcss": "^4.1.9",
     "@tailwindcss/typography": "^0.5.19",
     "@types/node": "^22",
@@ -80,5 +85,6 @@
     "tsx": "^4.19.2",
     "tw-animate-css": "1.3.3",
     "typescript": "^5.9.3"
-  }
+  },
+  "packageManager": "pnpm@9.15.4+sha512.b2dc20e2fc72b3e18848459b37359a32064663e5627a51e4c74b2c29dd8e8e0491483c3abb40789cfd578bf362fb6ba8261b05f0387d76792ed6e23ea3b1b6a0"
 }
