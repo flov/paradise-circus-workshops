@@ -78,7 +78,9 @@ export async function BookingsList() {
         </TableHeader>
         <TableBody>
           {bookingsList.map((booking) => {
-            const isPast = new Date(booking.workshop_date) < new Date()
+            // Combine date and start time to create a proper datetime for comparison
+            const workshopDateTime = new Date(`${booking.workshop_date}T${booking.workshop_start_time}`)
+            const isPast = workshopDateTime < new Date()
 
             return (
               <TableRow key={booking.id}>
