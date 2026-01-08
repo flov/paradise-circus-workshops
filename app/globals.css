@@ -123,3 +123,89 @@
     @apply bg-background text-foreground;
   }
 }
+
+@layer components {
+  .prose {
+    @apply text-muted-foreground;
+  }
+  .prose p {
+    @apply mb-4 last:mb-0;
+  }
+  .prose p:has(+ p) {
+    @apply mb-2;
+  }
+  .prose h1,
+  .prose h2,
+  .prose h3,
+  .prose h4,
+  .prose h5,
+  .prose h6 {
+    @apply font-semibold text-foreground mt-6 mb-2;
+  }
+  .prose h1 {
+    @apply text-2xl;
+  }
+  .prose h2 {
+    @apply text-xl;
+  }
+  .prose h3 {
+    @apply text-lg;
+  }
+  .prose ul,
+  .prose ol {
+    @apply my-4 ml-6 list-disc;
+  }
+  .prose li {
+    @apply mb-1;
+  }
+  .prose strong {
+    @apply font-semibold text-foreground;
+  }
+  .prose em {
+    @apply italic;
+  }
+  .prose code {
+    @apply bg-muted px-1.5 py-0.5 rounded text-sm font-mono;
+  }
+  .prose pre {
+    @apply bg-muted p-4 rounded-lg overflow-x-auto my-4;
+  }
+  .prose pre code {
+    @apply bg-transparent p-0;
+  }
+  .prose a {
+    @apply text-primary underline;
+  }
+  .prose blockquote {
+    @apply border-l-4 border-muted-foreground pl-4 italic my-4;
+  }
+  .prose hr {
+    @apply border-border my-6;
+  }
+  .prose-sm {
+    @apply text-sm;
+  }
+  .prose-sm p {
+    @apply mb-2 last:mb-0;
+  }
+  .prose-sm h1 {
+    @apply text-xl;
+  }
+  .prose-sm h2 {
+    @apply text-lg;
+  }
+  .prose-sm h3 {
+    @apply text-base;
+  }
+  .dark .prose {
+    @apply text-muted-foreground;
+  }
+  .dark .prose h1,
+  .dark .prose h2,
+  .dark .prose h3,
+  .dark .prose h4,
+  .dark .prose h5,
+  .dark .prose h6 {
+    @apply text-foreground;
+  }
+}

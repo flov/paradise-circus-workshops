@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button"
 import { Calendar, Clock, MapPin, Users } from "lucide-react"
 import Link from "next/link"
 import { isWorkshopPast, createWorkshopSlug } from "@/lib/utils"
+import ReactMarkdown from "react-markdown"
 
 type Workshop = {
   id: number
@@ -54,7 +55,11 @@ export function WorkshopCard({ workshop }: { workshop: Workshop }) {
             </Badge>
           </div>
         </div>
-        <CardDescription className="text-pretty">{workshop.description}</CardDescription>
+        <CardDescription className="text-pretty">
+          <div className="prose prose-sm dark:prose-invert max-w-none">
+            <ReactMarkdown>{workshop.description}</ReactMarkdown>
+          </div>
+        </CardDescription>
       </CardHeader>
       <CardContent className="flex-1 flex flex-col gap-4">
         <div className="space-y-2 text-sm">

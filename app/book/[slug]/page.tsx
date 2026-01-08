@@ -30,6 +30,7 @@ import {
 } from '@/lib/utils';
 import { auth, currentUser, clerkClient } from '@clerk/nextjs/server';
 import { AvatarStack } from '@/components/avatar-stack';
+import ReactMarkdown from 'react-markdown';
 
 type Workshop = {
   id: number;
@@ -196,7 +197,9 @@ export default async function BookWorkshopPage({
                 )}
               </div>
               <CardDescription className='text-pretty'>
-                {workshop.description}
+                <div className="prose prose-sm dark:prose-invert max-w-none">
+                  <ReactMarkdown>{workshop.description}</ReactMarkdown>
+                </div>
               </CardDescription>
             </CardHeader>
             <CardContent className='space-y-4'>
