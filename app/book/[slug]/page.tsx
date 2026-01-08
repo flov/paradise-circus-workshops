@@ -1,15 +1,16 @@
-import { db } from '@/db';
-import { workshops, bookings } from '@/db/schema';
-import { eq } from 'drizzle-orm';
-import { BookWorkshopButton } from '@/components/book-workshop-button';
+import { db } from "@/db";
+import { workshops, bookings } from "@/db/schema";
+import { eq } from "drizzle-orm";
+import { BookWorkshopButton } from "@/components/book-workshop-button";
+import { CancelBookingButton } from "@/components/cancel-booking-button";
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
+} from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import {
   Calendar,
   Clock,
@@ -17,20 +18,20 @@ import {
   Users,
   ArrowLeft,
   UserCheck,
-} from 'lucide-react';
-import { notFound, redirect } from 'next/navigation';
-import Link from 'next/link';
-import { Button } from '@/components/ui/button';
+} from "lucide-react";
+import { notFound, redirect } from "next/navigation";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
 import {
   isWorkshopPast,
   getUserName,
   getUserEmail,
   parseWorkshopSlug,
   createWorkshopSlug,
-} from '@/lib/utils';
-import { auth, currentUser, clerkClient } from '@clerk/nextjs/server';
-import { AvatarStack } from '@/components/avatar-stack';
-import ReactMarkdown from 'react-markdown';
+} from "@/lib/utils";
+import { auth, currentUser, clerkClient } from "@clerk/nextjs/server";
+import { AvatarStack } from "@/components/avatar-stack";
+import ReactMarkdown from "react-markdown";
 
 type Workshop = {
   id: number;
@@ -71,13 +72,13 @@ export default async function BookWorkshopPage({
   const workshop: Workshop = {
     id: workshopData.id,
     title: workshopData.title,
-    description: workshopData.description || '',
+    description: workshopData.description || "",
     instructor: workshopData.instructor,
     date: workshopData.date,
     start_time: workshopData.startTime,
     end_time: workshopData.endTime,
     current_bookings: workshopData.currentBookings,
-    location: workshopData.location || '',
+    location: workshopData.location || "",
   };
 
   // If the slug is in old format (numeric only), redirect to new format for SEO
@@ -85,25 +86,25 @@ export default async function BookWorkshopPage({
     const newSlug = createWorkshopSlug(
       workshop.id,
       workshop.title,
-      workshop.instructor
+      workshop.instructor,
     );
     redirect(`/book/${newSlug}`);
   }
 
   // Format date
   const date = new Date(workshop.date);
-  const formattedDate = date.toLocaleDateString('en-US', {
-    weekday: 'long',
-    month: 'long',
-    day: 'numeric',
-    year: 'numeric',
+  const formattedDate = date.toLocaleDateString("en-US", {
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+    year: "numeric",
   });
 
   // Format time
   const formatTime = (time: string) => {
-    const [hours, minutes] = time.split(':');
+    const [hours, minutes] = time.split(":");
     const hour = Number.parseInt(hours);
-    const ampm = hour >= 12 ? 'PM' : 'AM';
+    const ampm = hour >= 12 ? "PM" : "AM";
     const displayHour = hour % 12 || 12;
     return `${displayHour}:${minutes} ${ampm}`;
   };
@@ -112,8 +113,8 @@ export default async function BookWorkshopPage({
 
   // Get user data on server side for faster loading
   const { userId } = await auth();
-  let initialUserName = '';
-  let initialUserEmail = '';
+  let initialUserName = "";
+  let initialUserEmail = "";
 
   if (userId) {
     const user = await currentUser();
@@ -126,12 +127,24 @@ export default async function BookWorkshopPage({
   // Fetch bookings for this workshop with Clerk user IDs
   const bookingsData = await db
     .select({
+      id: bookings.id,
       participantName: bookings.participantName,
       participantEmail: bookings.participantEmail,
       clerkUserId: bookings.clerkUserId,
     })
     .from(bookings)
     .where(eq(bookings.workshopId, workshopId));
+
+  // Check if current user has a booking and get the bookingId
+  let userBookingId: number | null = null;
+  if (userId) {
+    const userBooking = bookingsData.find(
+      (booking) => booking.clerkUserId === userId,
+    );
+    if (userBooking) {
+      userBookingId = userBooking.id;
+    }
+  }
 
   // Fetch Clerk user data for participants with userIds
   const clerk = await clerkClient();
@@ -147,7 +160,7 @@ export default async function BookWorkshopPage({
           // If user fetch fails, continue without image
           console.error(
             `Failed to fetch Clerk user ${booking.clerkUserId}:`,
-            error
+            error,
           );
         }
       }
@@ -157,113 +170,127 @@ export default async function BookWorkshopPage({
         email: booking.participantEmail,
         imageUrl,
       };
-    })
+    }),
   );
 
   return (
-    <div className='min-h-screen bg-background'>
-      <div className='border-b border-border bg-card'>
-        <div className='mx-auto max-w-7xl px-4 py-3 sm:px-6 lg:px-8'>
-          <div className='flex items-center gap-4'>
-            <Link href='/'>
-              <Button variant='ghost' size='sm'>
-                <ArrowLeft className='h-4 w-4 mr-2' />
+    <div className="min-h-screen bg-background">
+      <div className="border-b border-border bg-card">
+        <div className="mx-auto max-w-7xl px-4 py-3 sm:px-6 lg:px-8">
+          <div className="flex items-center gap-4">
+            <Link href="/">
+              <Button variant="ghost" size="sm">
+                <ArrowLeft className="h-4 w-4 mr-2" />
                 Back to Timetable
               </Button>
             </Link>
-            <h1 className='text-2xl font-bold text-foreground text-balance'>
+            <h1 className="text-2xl font-bold text-foreground text-balance">
               Book Your Workshop
             </h1>
           </div>
         </div>
       </div>
 
-      <main className='mx-auto max-w-3xl px-4 py-8 sm:px-6 lg:px-8'>
+      <main className="mx-auto max-w-3xl px-4 py-8 sm:px-6 lg:px-8">
         <div>
           {/* Workshop Details */}
           <Card>
             <CardHeader>
-              <div className='flex items-start justify-between gap-2 mb-2'>
-                <CardTitle className='text-2xl text-balance'>
+              <div className="flex items-start justify-between gap-2 mb-2">
+                <CardTitle className="text-2xl text-balance">
                   {workshop.title}
                 </CardTitle>
                 {isPast && (
                   <Badge
-                    variant='secondary'
-                    className='bg-muted text-muted-foreground'
+                    variant="secondary"
+                    className="bg-muted text-muted-foreground"
                   >
                     Past Workshop
                   </Badge>
                 )}
               </div>
-              <CardDescription className='text-pretty'>
+              <CardDescription className="text-pretty">
                 <div className="prose prose-sm dark:prose-invert max-w-none">
                   <ReactMarkdown>{workshop.description}</ReactMarkdown>
                 </div>
               </CardDescription>
             </CardHeader>
-            <CardContent className='space-y-4'>
-              <div className='space-y-3'>
-                <div className='flex items-center gap-3 text-sm'>
-                  <Calendar className='h-5 w-5 text-primary' />
+            <CardContent className="space-y-4">
+              <div className="space-y-3">
+                <div className="flex items-center gap-3 text-sm">
+                  <Calendar className="h-5 w-5 text-primary" />
                   <div>
-                    <div className='font-medium text-foreground'>Date</div>
-                    <div className='text-muted-foreground'>{formattedDate}</div>
+                    <div className="font-medium text-foreground">Date</div>
+                    <div className="text-muted-foreground">{formattedDate}</div>
                   </div>
                 </div>
-                <div className='flex items-center gap-3 text-sm'>
-                  <Clock className='h-5 w-5 text-primary' />
+                <div className="flex items-center gap-3 text-sm">
+                  <Clock className="h-5 w-5 text-primary" />
                   <div>
-                    <div className='font-medium text-foreground'>Time</div>
-                    <div className='text-muted-foreground'>
-                      {formatTime(workshop.start_time)} -{' '}
+                    <div className="font-medium text-foreground">Time</div>
+                    <div className="text-muted-foreground">
+                      {formatTime(workshop.start_time)} -{" "}
                       {formatTime(workshop.end_time)}
                     </div>
                   </div>
                 </div>
-                <div className='flex items-center gap-3 text-sm'>
-                  <MapPin className='h-5 w-5 text-primary' />
+                <div className="flex items-center gap-3 text-sm">
+                  <MapPin className="h-5 w-5 text-primary" />
                   <div>
-                    <div className='font-medium text-foreground'>Location</div>
-                    <div className='text-muted-foreground'>
+                    <div className="font-medium text-foreground">Location</div>
+                    <div className="text-muted-foreground">
                       {workshop.location}
                     </div>
                   </div>
                 </div>
-                <div className='flex items-center gap-3 text-sm'>
-                  <Users className='h-5 w-5 text-primary' />
+                <div className="flex items-center gap-3 text-sm">
+                  <Users className="h-5 w-5 text-primary" />
                   <div>
-                    <div className='font-medium text-foreground'>
+                    <div className="font-medium text-foreground">
                       Instructor
                     </div>
-                    <div className='text-muted-foreground'>
+                    <div className="text-muted-foreground">
                       {workshop.instructor}
                     </div>
                   </div>
                 </div>
-                <div className='flex items-center gap-3 text-sm'>
-                  <UserCheck className='h-5 w-5 text-primary' />
-                  <div className='font-medium text-foreground'>
-                      {workshop.current_bookings}{' '}
-                      {workshop.current_bookings === 1
-                        ? 'Participant'
-                        : 'Participants'}
+                <div className="flex items-center gap-3 text-sm">
+                  <UserCheck className="h-5 w-5 text-primary" />
+                  <div className="font-medium text-foreground">
+                    {workshop.current_bookings}{" "}
+                    {workshop.current_bookings === 1
+                      ? "Participant"
+                      : "Participants"}
                   </div>
                   {participants.length > 0 && (
-                    <div className='mt-1'>
-                      <AvatarStack participants={participants} size='sm' />
+                    <div className="mt-1">
+                      <AvatarStack participants={participants} size="sm" />
                     </div>
                   )}
                 </div>
               </div>
 
-              <BookWorkshopButton
-                workshopId={workshop.id}
-                isPast={isPast}
-                isAuthenticated={!!userId}
-                userName={initialUserName}
-                userEmail={initialUserEmail}
-              />
+              {userBookingId ? (
+                <div className="space-y-3">
+                  <div className="rounded-md bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800 p-4">
+                    <p className="text-sm font-medium text-green-800 dark:text-green-200 mb-2">
+                      ✓ You have made a booking for this workshop
+                    </p>
+                    <CancelBookingButton
+                      bookingId={userBookingId}
+                      variant="outline"
+                    />
+                  </div>
+                </div>
+              ) : (
+                <BookWorkshopButton
+                  workshopId={workshop.id}
+                  isPast={isPast}
+                  isAuthenticated={!!userId}
+                  userName={initialUserName}
+                  userEmail={initialUserEmail}
+                />
+              )}
             </CardContent>
           </Card>
         </div>

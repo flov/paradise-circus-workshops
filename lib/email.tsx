@@ -10,6 +10,7 @@ type BookingConfirmationEmailProps = {
   workshopLocation: string;
   instructorName: string;
   bookingId: number;
+  confirmationToken: string;
   whatToBring?: string | null;
 };
 
@@ -26,6 +27,7 @@ export async function sendBookingConfirmationEmail(
     workshopLocation,
     instructorName,
     bookingId,
+    confirmationToken,
     whatToBring,
   } = props;
 
@@ -165,6 +167,20 @@ export async function sendBookingConfirmationEmail(
             color: #9ca3af;
             margin-top: 8px;
           }
+          .cancel-button {
+            display: inline-block;
+            margin: 24px 0;
+            padding: 12px 24px;
+            background-color: #dc2626;
+            color: #ffffff;
+            text-decoration: none;
+            border-radius: 6px;
+            font-weight: 600;
+            text-align: center;
+          }
+          .cancel-button:hover {
+            background-color: #b91c1c;
+          }
         </style>
       </head>
       <body>
@@ -216,6 +232,18 @@ export async function sendBookingConfirmationEmail(
               </ul>
             </div>
             
+            <div style="text-align: center; margin: 24px 0;">
+              <a href="${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/booking-confirmation/${confirmationToken}" class="cancel-button" style="display: inline-block; margin: 24px 0; padding: 12px 24px; background-color: #dc2626; color: #ffffff; text-decoration: none; border-radius: 6px; font-weight: 600;">
+                View Booking Details
+              </a>
+            </div>
+            
+            <div style="text-align: center; margin: 16px 0;">
+              <a href="${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/cancel-booking?id=${bookingId}" style="color: #dc2626; text-decoration: underline; font-size: 14px;">
+                Cancel this booking
+              </a>
+            </div>
+            
             <p>We're excited to see you at the workshop! If you have any questions or need to make changes to your booking, please don't hesitate to reach out.</p>
             
             <p>See you under the big top!</p>
@@ -258,6 +286,10 @@ ${whatToBringItems.map((item) => `- ${item}`).join("\n")}
 Important Information:
 - All equipment will be provided
 - Contact us if you need to make any changes
+
+View your booking details: ${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/booking-confirmation/${confirmationToken}
+
+Cancel this booking: ${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/cancel-booking?id=${bookingId}
 
 We're excited to see you at the workshop!
 

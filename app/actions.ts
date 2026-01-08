@@ -3,7 +3,7 @@
 import { randomUUID } from "crypto"
 import { db } from "@/db"
 import { workshops, bookings } from "@/db/schema"
-import { eq, sql } from "drizzle-orm"
+import { eq, sql, and } from "drizzle-orm"
 import { revalidatePath } from "next/cache"
 import { sendBookingConfirmationEmail, sendAdminNotificationEmail } from "@/lib/email"
 import { auth, currentUser } from "@clerk/nextjs/server"
@@ -101,6 +101,7 @@ export async function createBooking(formData: FormData) {
         workshopLocation: workshop.location || "",
         instructorName: workshop.instructor,
         bookingId,
+        confirmationToken: token,
         whatToBring: workshop.whatToBring,
       })
     } catch (emailError) {
@@ -131,5 +132,124 @@ export async function createBooking(formData: FormData) {
   } catch (error) {
     console.error("Booking error:", error)
     return { success: false, error: "Failed to create booking" }
+  }
+}
+
+export async function cancelBooking(bookingId: number) {
+  const { userId } = await auth()
+  
+  if (!userId) {
+    return { success: false, error: "You must be signed in to cancel a booking" }
+  }
+
+  try {
+    // Find the booking and verify ownership
+    const bookingResults = await db
+      .select({
+        id: bookings.id,
+        workshopId: bookings.workshopId,
+        clerkUserId: bookings.clerkUserId,
+      })
+      .from(bookings)
+      .where(eq(bookings.id, bookingId))
+
+    if (bookingResults.length === 0) {
+      return { success: false, error: "Booking not found" }
+    }
+
+    const booking = bookingResults[0]
+
+    // Verify ownership via clerkUserId
+    if (!booking.clerkUserId || booking.clerkUserId !== userId) {
+      return { success: false, error: "Unauthorized. You can only cancel your own bookings." }
+    }
+
+    // Fetch workshop details for revalidation
+    const workshopResults = await db
+      .select({
+        title: workshops.title,
+        instructor: workshops.instructor,
+      })
+      .from(workshops)
+      .where(eq(workshops.id, booking.workshopId))
+
+    // Delete the booking
+    await db.delete(bookings).where(eq(bookings.id, bookingId))
+
+    // Update workshop booking count
+    await db
+      .update(workshops)
+      .set({ currentBookings: sql`${workshops.currentBookings} - 1` })
+      .where(eq(workshops.id, booking.workshopId))
+
+    // Revalidate relevant pages
+    revalidatePath("/")
+    if (workshopResults.length > 0) {
+      revalidatePath(`/book/${createWorkshopSlug(booking.workshopId, workshopResults[0].title, workshopResults[0].instructor)}`)
+    }
+
+    return { success: true }
+  } catch (error) {
+    console.error("Cancel booking error:", error)
+    return { success: false, error: "Failed to cancel booking" }
+  }
+}
+
+export async function cancelBookingByWorkshop(workshopId: number) {
+  const { userId } = await auth()
+  
+  if (!userId) {
+    return { success: false, error: "You must be signed in to cancel a booking" }
+  }
+
+  try {
+    // Find the user's booking for this workshop
+    const bookingResults = await db
+      .select({
+        id: bookings.id,
+        workshopId: bookings.workshopId,
+      })
+      .from(bookings)
+      .where(
+        and(
+          eq(bookings.workshopId, workshopId),
+          eq(bookings.clerkUserId, userId)
+        )
+      )
+
+    if (bookingResults.length === 0) {
+      return { success: false, error: "Booking not found" }
+    }
+
+    const booking = bookingResults[0]
+
+    // Fetch workshop details for revalidation
+    const workshopResults = await db
+      .select({
+        title: workshops.title,
+        instructor: workshops.instructor,
+      })
+      .from(workshops)
+      .where(eq(workshops.id, workshopId))
+
+    // Delete the booking
+    await db.delete(bookings).where(eq(bookings.id, booking.id))
+
+    // Update workshop booking count
+    await db
+      .update(workshops)
+      .set({ currentBookings: sql`${workshops.currentBookings} - 1` })
+      .where(eq(workshops.id, workshopId))
+
+    // Revalidate relevant pages
+    revalidatePath("/")
+    if (workshopResults.length > 0) {
+      revalidatePath(`/book/${createWorkshopSlug(workshopId, workshopResults[0].title, workshopResults[0].instructor)}`)
+    }
+
+    return { success: true }
+  } catch (error) {
+    console.error("Cancel booking error:", error)
+    return { success: false, error: "Failed to cancel booking" }
   }
 }
