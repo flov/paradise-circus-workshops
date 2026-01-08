@@ -5,8 +5,16 @@ import { workshops, bookings } from "@/db/schema"
 import { eq, sql } from "drizzle-orm"
 import { revalidatePath } from "next/cache"
 import { createWorkshopSlug } from "@/lib/utils"
+import { auth } from "@clerk/nextjs/server"
 
 export async function createWorkshop(formData: FormData) {
+  // Check authentication
+  const { userId } = await auth()
+  
+  if (!userId) {
+    return { success: false, error: "Unauthorized. You must be signed in to create workshops." }
+  }
+
   const title = formData.get("title") as string
   const description = formData.get("description") as string
   const instructor = formData.get("instructor") as string
@@ -42,6 +50,13 @@ export async function createWorkshop(formData: FormData) {
 }
 
 export async function updateWorkshop(formData: FormData) {
+  // Check authentication
+  const { userId } = await auth()
+  
+  if (!userId) {
+    return { success: false, error: "Unauthorized. You must be signed in to update workshops." }
+  }
+
   const id = formData.get("id") as string
   const title = formData.get("title") as string
   const description = formData.get("description") as string
@@ -83,6 +98,13 @@ export async function updateWorkshop(formData: FormData) {
 }
 
 export async function deleteWorkshop(workshopId: number) {
+  // Check authentication
+  const { userId } = await auth()
+  
+  if (!userId) {
+    throw new Error("Unauthorized. You must be signed in to delete workshops.")
+  }
+
   try {
     await db.delete(workshops).where(eq(workshops.id, workshopId))
 
@@ -95,6 +117,13 @@ export async function deleteWorkshop(workshopId: number) {
 }
 
 export async function deleteBooking(bookingId: number, workshopId: number) {
+  // Check authentication
+  const { userId } = await auth()
+  
+  if (!userId) {
+    throw new Error("Unauthorized. You must be signed in to delete bookings.")
+  }
+
   try {
     // Fetch workshop title and instructor for revalidation
     const workshopResults = await db

@@ -7,6 +7,8 @@ import { WorkshopsList } from "@/components/admin/workshops-list"
 import { BookingsList } from "@/components/admin/bookings-list"
 import { AddWorkshopButton } from "@/components/admin/add-workshop-button"
 import { Calendar, Users, TrendingUp, UserCheck } from "lucide-react"
+import { auth } from "@clerk/nextjs/server"
+import { redirect } from "next/navigation"
 
 // Helper function to calculate current week date range (Monday-Sunday)
 function getCurrentWeekRange(): { startDate: string; endDate: string } {
@@ -29,6 +31,13 @@ function getCurrentWeekRange(): { startDate: string; endDate: string } {
 }
 
 export default async function AdminPage() {
+  // Check authentication
+  const { userId } = await auth()
+  
+  if (!userId) {
+    redirect("/sign-in")
+  }
+
   // Fetch statistics
   const today = new Date().toISOString().split('T')[0] // Get today's date in YYYY-MM-DD format
   const { startDate: weekStart, endDate: weekEnd } = getCurrentWeekRange()
