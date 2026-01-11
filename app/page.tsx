@@ -96,10 +96,10 @@ export default async function Home() {
               </nav>
             </div>
 
-            {/* Hours */}
+            {/* Open Hours */}
             <div>
               <h3 className="text-sm font-semibold text-foreground mb-4">
-                Hours
+                Open Hours
               </h3>
               <div className="space-y-2 text-sm text-muted-foreground">
                 <p>Monday – Sunday</p>
