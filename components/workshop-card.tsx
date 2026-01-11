@@ -90,7 +90,7 @@ export function WorkshopCard({ workshop }: { workshop: Workshop }) {
             </Button>
           </div>
         ) : (
-          <Link href={`/book/${createWorkshopSlug(workshop.id, workshop.title, workshop.instructor)}`} className="mt-auto">
+          <Link href={`/event/${createWorkshopSlug(workshop.id, workshop.title, workshop.instructor)}`} className="mt-auto">
             <Button className="w-full">Book Now</Button>
           </Link>
         )}

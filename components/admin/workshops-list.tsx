@@ -89,7 +89,7 @@ export async function WorkshopsList() {
               <TableRow key={workshop.id}>
                 <TableCell className="font-medium">
                   <Link 
-                    href={`/book/${createWorkshopSlug(workshop.id, workshop.title, workshop.instructor)}`}
+                    href={`/event/${createWorkshopSlug(workshop.id, workshop.title, workshop.instructor)}`}
                     className="hover:underline text-primary"
                   >
                     {workshop.title}

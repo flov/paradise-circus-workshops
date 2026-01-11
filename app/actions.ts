@@ -126,7 +126,7 @@ export async function createBooking(formData: FormData) {
 
     // Revalidate relevant pages
     revalidatePath("/")
-    revalidatePath(`/book/${createWorkshopSlug(parseInt(workshopId), workshop.title, workshop.instructor)}`)
+    revalidatePath(`/event/${createWorkshopSlug(parseInt(workshopId), workshop.title, workshop.instructor)}`)
 
     return { success: true, bookingId, confirmationToken: token }
   } catch (error) {
@@ -185,7 +185,7 @@ export async function cancelBooking(bookingId: number) {
     // Revalidate relevant pages
     revalidatePath("/")
     if (workshopResults.length > 0) {
-      revalidatePath(`/book/${createWorkshopSlug(booking.workshopId, workshopResults[0].title, workshopResults[0].instructor)}`)
+      revalidatePath(`/event/${createWorkshopSlug(booking.workshopId, workshopResults[0].title, workshopResults[0].instructor)}`)
     }
 
     return { success: true }
@@ -244,7 +244,7 @@ export async function cancelBookingByWorkshop(workshopId: number) {
     // Revalidate relevant pages
     revalidatePath("/")
     if (workshopResults.length > 0) {
-      revalidatePath(`/book/${createWorkshopSlug(workshopId, workshopResults[0].title, workshopResults[0].instructor)}`)
+      revalidatePath(`/event/${createWorkshopSlug(workshopId, workshopResults[0].title, workshopResults[0].instructor)}`)
     }
 
     return { success: true }

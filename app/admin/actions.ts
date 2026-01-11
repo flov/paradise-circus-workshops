@@ -88,7 +88,7 @@ export async function updateWorkshop(formData: FormData) {
 
     revalidatePath("/admin")
     revalidatePath("/")
-    revalidatePath(`/book/${createWorkshopSlug(parseInt(id), title, instructor)}`)
+    revalidatePath(`/event/${createWorkshopSlug(parseInt(id), title, instructor)}`)
 
     return { success: true }
   } catch (error) {
@@ -142,7 +142,7 @@ export async function deleteBooking(bookingId: number, workshopId: number) {
     revalidatePath("/admin")
     revalidatePath("/")
     if (workshopResults.length > 0) {
-      revalidatePath(`/book/${createWorkshopSlug(workshopId, workshopResults[0].title, workshopResults[0].instructor)}`)
+      revalidatePath(`/event/${createWorkshopSlug(workshopId, workshopResults[0].title, workshopResults[0].instructor)}`)
     }
   } catch (error) {
     console.error("Error deleting booking:", error)

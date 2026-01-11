@@ -354,7 +354,7 @@ export function WeeklyTimetable() {
                                 return (
                                   <a
                                     key={slot.workshop_id}
-                                    href={`/book/${createWorkshopSlug(slot.workshop_id, slot.title, slot.instructor)}`}
+                                    href={`/event/${createWorkshopSlug(slot.workshop_id, slot.title, slot.instructor)}`}
                                     className={`block p-2 rounded transition-colors h-full ${
                                       isParadiseRiver
                                         ? "bg-blue-500/20 hover:bg-blue-500/30 border border-blue-500/40"
@@ -470,7 +470,7 @@ export function WeeklyTimetable() {
                             return (
                               <a
                                 key={slot.workshop_id}
-                                href={`/book/${createWorkshopSlug(slot.workshop_id, slot.title, slot.instructor)}`}
+                                href={`/event/${createWorkshopSlug(slot.workshop_id, slot.title, slot.instructor)}`}
                                 className={`block p-4 rounded-lg border-2 shadow-sm hover:shadow-md active:shadow-sm transition-all duration-150 cursor-pointer ${
                                   isParadiseRiver
                                     ? "bg-blue-500/15 hover:bg-blue-500/25 active:bg-blue-500/30 border-blue-500/40 hover:border-blue-500/50 active:border-blue-500/60"

@@ -94,7 +94,7 @@ The system will automatically send:
 
 ### Public Routes
 - `/` - Workshop timetable (homepage)
-- `/book/[id]` - Individual workshop booking page
+- `/event/[slug]` - Individual event/workshop booking page
 - `/booking-confirmation/[id]` - Booking confirmation page
 
 ### Admin Routes
