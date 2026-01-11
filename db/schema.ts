@@ -45,13 +45,39 @@ export const bookings = pgTable(
   })
 );
 
+export const comments = pgTable(
+  "comments",
+  {
+    id: serial("id").primaryKey(),
+    eventId: integer("event_id").notNull().references(() => events.id, { onDelete: "cascade" }),
+    clerkUserId: varchar("clerk_user_id", { length: 255 }).notNull(),
+    authorName: varchar("author_name", { length: 255 }).notNull(),
+    authorImageUrl: varchar("author_image_url", { length: 500 }),
+    content: text("content").notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (table) => ({
+    eventIdIdx: index("idx_comments_event_id").on(table.eventId),
+    createdAtIdx: index("idx_comments_created_at").on(table.createdAt),
+  })
+);
+
 export const eventsRelations = relations(events, ({ many }) => ({
   bookings: many(bookings),
+  comments: many(comments),
 }));
 
 export const bookingsRelations = relations(bookings, ({ one }) => ({
   event: one(events, {
     fields: [bookings.eventId],
+    references: [events.id],
+  }),
+}));
+
+export const commentsRelations = relations(comments, ({ one }) => ({
+  event: one(events, {
+    fields: [comments.eventId],
     references: [events.id],
   }),
 }));
@@ -62,4 +88,3 @@ export const adminSettings = pgTable("admin_settings", {
   settingValue: text("setting_value"),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
-

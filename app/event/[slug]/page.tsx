@@ -1,6 +1,6 @@
 import { db } from "@/db";
-import { events, bookings } from "@/db/schema";
-import { eq } from "drizzle-orm";
+import { events, bookings, comments } from "@/db/schema";
+import { eq, asc } from "drizzle-orm";
 import { BookEventButton } from "@/components/book-event-button";
 import { CancelBookingButton } from "@/components/cancel-booking-button";
 import {
@@ -33,6 +33,7 @@ import { auth, currentUser, clerkClient } from "@clerk/nextjs/server";
 import { AvatarStack } from "@/components/avatar-stack";
 import ReactMarkdown from "react-markdown";
 import { EventCalendarButtons } from "@/components/event-calendar-buttons";
+import { EventComments } from "@/components/event-comments";
 
 type Event = {
   id: number;
@@ -118,12 +119,14 @@ export default async function BookEventPage({
   const { userId } = await auth();
   let initialUserName = "";
   let initialUserEmail = "";
+  let currentUserImageUrl: string | null = null;
 
   if (userId) {
     const user = await currentUser();
     if (user) {
       initialUserName = getUserName(user);
       initialUserEmail = getUserEmail(user);
+      currentUserImageUrl = user.imageUrl || null;
     }
   }
 
@@ -175,6 +178,20 @@ export default async function BookEventPage({
       };
     }),
   );
+
+  // Fetch comments for this event
+  const commentsData = await db
+    .select({
+      id: comments.id,
+      authorName: comments.authorName,
+      authorImageUrl: comments.authorImageUrl,
+      content: comments.content,
+      createdAt: comments.createdAt,
+      clerkUserId: comments.clerkUserId,
+    })
+    .from(comments)
+    .where(eq(comments.eventId, eventId))
+    .orderBy(asc(comments.createdAt));
 
   return (
     <div className="min-h-screen bg-background">
@@ -317,6 +334,15 @@ export default async function BookEventPage({
                   />
                 )}
               </div>
+
+              {/* Conversation Section */}
+              <EventComments
+                eventId={event.id}
+                comments={commentsData}
+                currentUserId={userId}
+                currentUserName={initialUserName}
+                currentUserImageUrl={currentUserImageUrl}
+              />
             </CardContent>
           </Card>
         </div>

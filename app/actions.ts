@@ -253,3 +253,120 @@ export async function cancelBookingByEvent(eventId: number) {
     return { success: false, error: "Failed to cancel booking" }
   }
 }
+
+export async function addComment(eventId: number, content: string) {
+  const { userId } = await auth()
+  
+  if (!userId) {
+    return { success: false, error: "You must be signed in to comment" }
+  }
+
+  const user = await currentUser()
+  if (!user) {
+    return { success: false, error: "Unable to retrieve user information" }
+  }
+
+  const authorName = getUserName(user)
+  const authorImageUrl = user.imageUrl || null
+
+  if (!content.trim()) {
+    return { success: false, error: "Comment cannot be empty" }
+  }
+
+  try {
+    // Check if event exists
+    const eventResults = await db
+      .select({
+        id: events.id,
+        title: events.title,
+        instructor: events.instructor,
+      })
+      .from(events)
+      .where(eq(events.id, eventId))
+
+    if (eventResults.length === 0) {
+      return { success: false, error: "Event not found" }
+    }
+
+    const event = eventResults[0]
+
+    // Import comments here to avoid circular import issues
+    const { comments } = await import("@/db/schema")
+
+    // Create comment
+    const commentResults = await db
+      .insert(comments)
+      .values({
+        eventId,
+        clerkUserId: userId,
+        authorName,
+        authorImageUrl,
+        content: content.trim(),
+      })
+      .returning({ id: comments.id })
+
+    // Revalidate event page
+    revalidatePath(`/event/${createEventSlug(eventId, event.title, event.instructor)}`)
+
+    return { success: true, commentId: commentResults[0].id }
+  } catch (error) {
+    console.error("Add comment error:", error)
+    return { success: false, error: "Failed to add comment" }
+  }
+}
+
+export async function deleteComment(commentId: number) {
+  const { userId } = await auth()
+  
+  if (!userId) {
+    return { success: false, error: "You must be signed in to delete a comment" }
+  }
+
+  try {
+    // Import comments here to avoid circular import issues
+    const { comments } = await import("@/db/schema")
+
+    // Find the comment and verify ownership
+    const commentResults = await db
+      .select({
+        id: comments.id,
+        eventId: comments.eventId,
+        clerkUserId: comments.clerkUserId,
+      })
+      .from(comments)
+      .where(eq(comments.id, commentId))
+
+    if (commentResults.length === 0) {
+      return { success: false, error: "Comment not found" }
+    }
+
+    const comment = commentResults[0]
+
+    // Verify ownership
+    if (comment.clerkUserId !== userId) {
+      return { success: false, error: "Unauthorized. You can only delete your own comments." }
+    }
+
+    // Get event details for revalidation
+    const eventResults = await db
+      .select({
+        title: events.title,
+        instructor: events.instructor,
+      })
+      .from(events)
+      .where(eq(events.id, comment.eventId))
+
+    // Delete the comment
+    await db.delete(comments).where(eq(comments.id, commentId))
+
+    // Revalidate event page
+    if (eventResults.length > 0) {
+      revalidatePath(`/event/${createEventSlug(comment.eventId, eventResults[0].title, eventResults[0].instructor)}`)
+    }
+
+    return { success: true }
+  } catch (error) {
+    console.error("Delete comment error:", error)
+    return { success: false, error: "Failed to delete comment" }
+  }
+}
