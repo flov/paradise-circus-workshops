@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { createWorkshopSlug } from "@/lib/utils";
@@ -40,6 +40,9 @@ export function WeeklyTimetable() {
   const [timetableData, setTimetableData] = useState<TimetableData>({});
   const [weekDates, setWeekDates] = useState<Date[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [shouldScrollToNow, setShouldScrollToNow] = useState(false);
+  const dayCardRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const timeSlotRefs = useRef<Map<string, HTMLDivElement>>(new Map());
 
   useEffect(() => {
     loadWeekData();
@@ -140,6 +143,83 @@ export function WeeklyTimetable() {
   const goToNextWeek = () => setCurrentWeek((prev) => prev + 1);
   const goToCurrentWeek = () => setCurrentWeek(0);
 
+  // Get current time slot based on current hour
+  const getCurrentTimeSlot = (): string | null => {
+    const now = new Date();
+    const hour = now.getHours();
+    
+    // Map hours to time slots
+    // 12pm = hour 12, 1pm = hour 13, ..., 10pm = hour 22
+    if (hour >= 12 && hour <= 22) {
+      if (hour === 12) return "12pm";
+      return `${hour - 12}pm`;
+    }
+    
+    // For times before 12pm or after 10pm, return null to just scroll to day
+    return null;
+  };
+
+  // Scroll to current day and time
+  const scrollToNow = () => {
+    // Switch to current week if not already there
+    if (currentWeek !== 0) {
+      setCurrentWeek(0);
+      setShouldScrollToNow(true);
+      return;
+    }
+    
+    // Perform scroll after a short delay to ensure DOM is ready
+    setTimeout(() => {
+      performScrollToNow();
+    }, 100);
+  };
+
+  const performScrollToNow = () => {
+    // Only scroll if we're on the current week
+    if (currentWeek !== 0) {
+      return;
+    }
+
+    const now = new Date();
+    const currentDay = now.getDay();
+    // Convert Sunday=0 to Monday=0 (0=Monday, 6=Sunday)
+    const dayIndex = currentDay === 0 ? 6 : currentDay - 1;
+    
+    // Ensure dayIndex is valid
+    if (dayIndex < 0 || dayIndex >= DAYS.length) {
+      return;
+    }
+    
+    // Scroll to the day card
+    const dayCard = dayCardRefs.current[dayIndex];
+    if (dayCard) {
+      dayCard.scrollIntoView({ behavior: "smooth", block: "start" });
+      
+      // Try to scroll to the current time slot within the day
+      const currentTimeSlot = getCurrentTimeSlot();
+      if (currentTimeSlot) {
+        setTimeout(() => {
+          const timeSlotKey = `${dayIndex}-${currentTimeSlot}`;
+          const timeSlotElement = timeSlotRefs.current.get(timeSlotKey);
+          if (timeSlotElement) {
+            timeSlotElement.scrollIntoView({ behavior: "smooth", block: "center" });
+          }
+        }, 300);
+      }
+    }
+  };
+
+  // Effect to scroll when week changes and shouldScrollToNow is true
+  useEffect(() => {
+    if (shouldScrollToNow && !isLoading && weekDates.length > 0 && currentWeek === 0) {
+      setShouldScrollToNow(false);
+      // Add a small delay to ensure refs are set up after DOM update
+      setTimeout(() => {
+        performScrollToNow();
+      }, 150);
+    }
+  }, [shouldScrollToNow, isLoading, weekDates, currentWeek]);
+
   return (
     <div className="space-y-4">
       {/* Header with navigation */}
@@ -166,6 +246,18 @@ export function WeeklyTimetable() {
           {currentWeek !== 0 && (
             <Button variant="outline" onClick={goToCurrentWeek}>
               This Week
+            </Button>
+          )}
+
+          {/* Now button - mobile only, only show when viewing current week */}
+          {currentWeek === 0 && (
+            <Button
+              variant="outline"
+              onClick={scrollToNow}
+              className="md:hidden"
+              aria-label="Scroll to now"
+            >
+              Now
             </Button>
           )}
 
@@ -301,6 +393,10 @@ export function WeeklyTimetable() {
             return (
               <div
                 key={day}
+                ref={(el) => {
+                  dayCardRefs.current[dayIndex] = el;
+                }}
+                data-day-index={dayIndex}
                 className="border border-border rounded-lg overflow-hidden"
               >
                 <div className="bg-muted/50 p-3 font-semibold">
@@ -351,8 +447,20 @@ export function WeeklyTimetable() {
                       const slots = daySlots[time] || [];
                       if (slots.length === 0) return null;
 
+                      const timeSlotKey = `${dayIndex}-${time}`;
+
                       return (
-                        <div key={time} className="space-y-2">
+                        <div
+                          key={time}
+                          ref={(el) => {
+                            if (el) {
+                              timeSlotRefs.current.set(timeSlotKey, el);
+                            }
+                          }}
+                          data-time-slot={time}
+                          data-day-index={dayIndex}
+                          className="space-y-2"
+                        >
                           {slots.map((slot) => {
                             const isParadiseRiver =
                               slot.location
