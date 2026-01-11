@@ -59,28 +59,24 @@ export function BookWorkshopButton({
 
   if (isPast) {
     return (
-      <div className="pt-4 border-t border-border">
-        <p className="text-sm text-muted-foreground text-center">
-          This workshop has already ended and bookings are no longer available.
-        </p>
-      </div>
+      <p className="text-sm text-muted-foreground text-center">
+        This workshop has already ended and bookings are no longer available.
+      </p>
     );
   }
 
   // Show loading state only if we don't have server-side auth data
   if (!isLoaded && !serverIsAuthenticated) {
     return (
-      <div className="pt-4 border-t border-border">
-        <div className="flex items-center justify-center py-2">
-          <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-        </div>
+      <div className="flex items-center justify-center py-2">
+        <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
       </div>
     );
   }
 
   if (!isAuthenticated) {
     return (
-      <div className="pt-4 border-t border-border">
+      <>
         <SignInButton mode="modal">
           <Button className="w-full" size="lg">
             Sign In to Book
@@ -91,12 +87,12 @@ export function BookWorkshopButton({
             {error}
           </div>
         )}
-      </div>
+      </>
     );
   }
 
   return (
-    <div className="pt-4 border-t border-border">
+    <>
       <Button
         onClick={handleBookNow}
         className="w-full"
@@ -117,7 +113,7 @@ export function BookWorkshopButton({
           {error}
         </div>
       )}
-    </div>
+    </>
   );
 }
 

@@ -19,10 +19,12 @@ import { useRouter } from "next/navigation"
 
 export function CancelBookingButton({ 
   bookingId,
-  variant = "default"
+  variant = "default",
+  className
 }: { 
   bookingId: number
   variant?: "default" | "destructive" | "outline" | "ghost"
+  className?: string
 }) {
   const router = useRouter()
   const [open, setOpen] = useState(false)
@@ -54,7 +56,7 @@ export function CancelBookingButton({
   return (
     <AlertDialog open={open} onOpenChange={setOpen}>
       <AlertDialogTrigger asChild>
-        <Button variant={variant} size="sm">
+        <Button variant={variant} className={className}>
           Cancel Booking
         </Button>
       </AlertDialogTrigger>

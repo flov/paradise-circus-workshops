@@ -121,10 +121,16 @@ export function generateICSFile(data: WorkshopCalendarData): string {
     `ORGANIZER;CN=${escapeICS(instructor)}:mailto:${escapeICS(instructor.toLowerCase().replace(/\s+/g, "."))}@paradisecircus.com`,
   );
 
-  // Add URL to booking confirmation page
+  // Add URL - use event page if confirmationToken starts with "workshop-", otherwise use booking confirmation
   const siteUrl =
     process.env.NEXT_PUBLIC_SITE_URL || "https://paradisecircus.com";
-  lines.push(`URL:${siteUrl}/booking-confirmation/${confirmationToken}`);
+  if (confirmationToken.startsWith("workshop-")) {
+    // Extract event slug from token format "workshop-{slug}"
+    const eventSlug = confirmationToken.replace("workshop-", "");
+    lines.push(`URL:${siteUrl}/event/${eventSlug}`);
+  } else {
+    lines.push(`URL:${siteUrl}/booking-confirmation/${confirmationToken}`);
+  }
 
   // Set status
   lines.push("STATUS:CONFIRMED");
@@ -195,10 +201,16 @@ export function generateGoogleCalendarURL(data: WorkshopCalendarData): string {
     eventDescription += items.map((item) => `- ${item}`).join("\n");
   }
 
-  // Add URL to booking confirmation page
+  // Add URL - use event page if confirmationToken starts with "workshop-", otherwise use booking confirmation
   const siteUrl =
     process.env.NEXT_PUBLIC_SITE_URL || "https://www.paradisepai.com/";
-  eventDescription += `\n\nView booking: ${siteUrl}/booking-confirmation/${confirmationToken}`;
+  if (confirmationToken.startsWith("workshop-")) {
+    // Extract event slug from token format "workshop-{slug}"
+    const eventSlug = confirmationToken.replace("workshop-", "");
+    eventDescription += `\n\nView event: ${siteUrl}/event/${eventSlug}`;
+  } else {
+    eventDescription += `\n\nView booking: ${siteUrl}/booking-confirmation/${confirmationToken}`;
+  }
 
   // Build Google Calendar URL with URL-encoded parameters
   const params = new URLSearchParams({

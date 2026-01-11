@@ -32,6 +32,7 @@ import {
 import { auth, currentUser, clerkClient } from "@clerk/nextjs/server";
 import { AvatarStack } from "@/components/avatar-stack";
 import ReactMarkdown from "react-markdown";
+import { WorkshopCalendarButtons } from "@/components/workshop-calendar-buttons";
 
 type Workshop = {
   id: number;
@@ -43,6 +44,7 @@ type Workshop = {
   end_time: string;
   current_bookings: number;
   location: string;
+  whatToBring?: string | null;
 };
 
 export default async function BookWorkshopPage({
@@ -79,6 +81,7 @@ export default async function BookWorkshopPage({
     end_time: workshopData.endTime,
     current_bookings: workshopData.currentBookings,
     location: workshopData.location || "",
+    whatToBring: workshopData.whatToBring || null,
   };
 
   // If the slug is in old format (numeric only), redirect to new format for SEO
@@ -184,7 +187,7 @@ export default async function BookWorkshopPage({
                 Back to Timetable
               </Button>
             </Link>
-            <h1 className="text-2xl font-bold text-foreground text-balance">
+            <h1 className="text-1xl font-bold text-foreground text-balance">
               Book Your Workshop
             </h1>
           </div>
@@ -268,10 +271,33 @@ export default async function BookWorkshopPage({
                     </div>
                   )}
                 </div>
-              </div>
-
-              {userBookingId ? (
-                <div className="space-y-3">
+                <div className="flex items-center gap-3 text-sm">
+                  <WorkshopCalendarButtons
+                    workshopData={{
+                      title: workshop.title,
+                      date: workshop.date,
+                      startTime: workshop.start_time,
+                      endTime: workshop.end_time,
+                      location: workshop.location,
+                      instructor: workshop.instructor,
+                      description: workshop.description,
+                      whatToBring: workshop.whatToBring || null,
+                      bookingId: workshop.id,
+                      confirmationToken: `workshop-${createWorkshopSlug(
+                        workshop.id,
+                        workshop.title,
+                        workshop.instructor
+                      )}`,
+                    }}
+                    eventSlug={createWorkshopSlug(
+                      workshop.id,
+                      workshop.title,
+                      workshop.instructor
+                    )}
+                    className="w-full"
+                  />
+                </div>
+                {userBookingId ? (
                   <div className="rounded-md bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800 p-4">
                     <p className="text-sm font-medium text-green-800 dark:text-green-200 mb-2">
                       ✓ You have made a booking for this workshop
@@ -281,16 +307,16 @@ export default async function BookWorkshopPage({
                       variant="outline"
                     />
                   </div>
-                </div>
-              ) : (
-                <BookWorkshopButton
-                  workshopId={workshop.id}
-                  isPast={isPast}
-                  isAuthenticated={!!userId}
-                  userName={initialUserName}
-                  userEmail={initialUserEmail}
-                />
-              )}
+                ) : (
+                  <BookWorkshopButton
+                    workshopId={workshop.id}
+                    isPast={isPast}
+                    isAuthenticated={!!userId}
+                    userName={initialUserName}
+                    userEmail={initialUserEmail}
+                  />
+                )}
+              </div>
             </CardContent>
           </Card>
         </div>

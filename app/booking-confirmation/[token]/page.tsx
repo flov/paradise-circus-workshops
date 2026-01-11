@@ -4,7 +4,6 @@ import { eq } from 'drizzle-orm';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { PrintButton } from '@/components/print-button';
 import { AddToCalendarButton } from '@/components/add-to-calendar-button';
 import { CancelBookingButton } from '@/components/cancel-booking-button';
 import {
@@ -18,6 +17,8 @@ import {
 } from 'lucide-react';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
+import { createWorkshopSlug } from '@/lib/utils';
+import { ArrowLeft } from 'lucide-react';
 
 type Booking = {
   id: number;
@@ -112,8 +113,27 @@ export default async function BookingConfirmationPage({
     return `${displayHour}:${minutes} ${ampm}`;
   };
 
+  // Create event slug for back button
+  const eventSlug = createWorkshopSlug(
+    workshopData.id,
+    workshopData.title,
+    workshopData.instructor,
+  );
+
   return (
     <div className='min-h-screen bg-background'>
+      <div className='border-b border-border bg-card'>
+        <div className='mx-auto max-w-7xl px-4 py-3 sm:px-6 lg:px-8'>
+          <div className='flex items-center gap-4'>
+            <Link href={`/event/${eventSlug}`}>
+              <Button variant='ghost' size='sm'>
+                <ArrowLeft className='h-4 w-4 mr-2' />
+                Back to Event
+              </Button>
+            </Link>
+          </div>
+        </div>
+      </div>
       <main className='mx-auto max-w-2xl px-4 py-12 sm:px-6 lg:px-8'>
         <div className='text-center mb-8'>
           <div className='inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary/10 mb-4'>
@@ -210,39 +230,34 @@ export default async function BookingConfirmationPage({
               </div>
             )}
 
-            <div className='pt-4 border-t border-border'>
+            <div className='pt-4 border-t border-border space-y-3'>
+              <AddToCalendarButton
+                confirmationToken={bookingData.confirmationToken}
+                workshopData={{
+                  title: workshopData.title,
+                  date: workshopData.date,
+                  startTime: workshopData.startTime,
+                  endTime: workshopData.endTime,
+                  location: workshopData.location,
+                  instructor: workshopData.instructor,
+                  description: workshopData.description,
+                  whatToBring: workshopData.whatToBring,
+                  bookingId: bookingData.id,
+                  confirmationToken: bookingData.confirmationToken,
+                }}
+                className='w-full'
+              />
+              <Link href='/'>
+                <Button className='w-full'>Browse More Workshops</Button>
+              </Link>
               <CancelBookingButton
                 bookingId={bookingData.id}
                 variant='outline'
+                className='w-full mt-2'
               />
             </div>
           </CardContent>
         </Card>
-
-        <div className='space-y-3'>
-          <AddToCalendarButton
-            confirmationToken={bookingData.confirmationToken}
-            workshopData={{
-              title: workshopData.title,
-              date: workshopData.date,
-              startTime: workshopData.startTime,
-              endTime: workshopData.endTime,
-              location: workshopData.location,
-              instructor: workshopData.instructor,
-              description: workshopData.description,
-              whatToBring: workshopData.whatToBring,
-              bookingId: bookingData.id,
-              confirmationToken: bookingData.confirmationToken,
-            }}
-            className='w-full'
-          />
-          <Link href='/'>
-            <Button className='w-full'>Browse More Workshops</Button>
-          </Link>
-          <div className='pt-4'>
-            <PrintButton />
-          </div>
-        </div>
 
         <div className='mt-4 p-4 rounded-lg bg-muted/50 border border-border'>
           <h3 className='font-semibold text-foreground mb-2 text-sm'>
