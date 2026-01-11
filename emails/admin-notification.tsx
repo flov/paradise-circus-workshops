@@ -13,9 +13,9 @@ export type AdminNotificationEmailProps = {
   participantName: string;
   participantEmail: string;
   participantPhone: string | null;
-  workshopTitle: string;
-  workshopDate: string;
-  workshopStartTime: string;
+  eventTitle: string;
+  eventDate: string;
+  eventStartTime: string;
   bookingId: number;
 };
 
@@ -43,12 +43,12 @@ export const AdminNotificationEmail = ({
   participantName,
   participantEmail,
   participantPhone,
-  workshopTitle,
-  workshopDate,
-  workshopStartTime,
+  eventTitle,
+  eventDate,
+  eventStartTime,
   bookingId,
 }: AdminNotificationEmailProps) => {
-  const formattedDate = formatDate(workshopDate);
+  const formattedDate = formatDate(eventDate);
 
   return (
     <Html>
@@ -56,12 +56,12 @@ export const AdminNotificationEmail = ({
       <Body style={main}>
         <Container style={container}>
           <Section style={header}>
-            <Heading style={headerTitle}>🔔 New Workshop Booking Received</Heading>
+            <Heading style={headerTitle}>🔔 New Event Booking Received</Heading>
           </Section>
 
           <Section style={content}>
             <Text style={text}>
-              A new booking has been made for <strong>{workshopTitle}</strong>.
+              A new booking has been made for <strong>{eventTitle}</strong>.
             </Text>
 
             <Section style={bookingInfo}>
@@ -80,9 +80,9 @@ export const AdminNotificationEmail = ({
                 </Section>
               )}
               <Section style={infoRow}>
-                <Text style={label}>Workshop Date:</Text>
+                <Text style={label}>Event Date:</Text>
                 <Text style={value}>
-                  {formattedDate} at {formatTime(workshopStartTime)}
+                  {formattedDate} at {formatTime(eventStartTime)}
                 </Text>
               </Section>
               <Section style={infoRow}>

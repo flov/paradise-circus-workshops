@@ -1,7 +1,7 @@
 import { db } from "@/db";
-import { workshops, bookings } from "@/db/schema";
+import { events, bookings } from "@/db/schema";
 import { eq } from "drizzle-orm";
-import { BookWorkshopButton } from "@/components/book-workshop-button";
+import { BookEventButton } from "@/components/book-event-button";
 import { CancelBookingButton } from "@/components/cancel-booking-button";
 import {
   Card,
@@ -23,18 +23,18 @@ import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import {
-  isWorkshopPast,
+  isEventPast,
   getUserName,
   getUserEmail,
-  parseWorkshopSlug,
-  createWorkshopSlug,
+  parseEventSlug,
+  createEventSlug,
 } from "@/lib/utils";
 import { auth, currentUser, clerkClient } from "@clerk/nextjs/server";
 import { AvatarStack } from "@/components/avatar-stack";
 import ReactMarkdown from "react-markdown";
-import { WorkshopCalendarButtons } from "@/components/workshop-calendar-buttons";
+import { EventCalendarButtons } from "@/components/event-calendar-buttons";
 
-type Workshop = {
+type Event = {
   id: number;
   title: string;
   description: string;
@@ -47,55 +47,55 @@ type Workshop = {
   whatToBring?: string | null;
 };
 
-export default async function BookWorkshopPage({
+export default async function BookEventPage({
   params,
 }: {
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
 
-  // Parse the slug to extract the workshop ID
-  const workshopId = parseWorkshopSlug(slug);
+  // Parse the slug to extract the event ID
+  const eventId = parseEventSlug(slug);
 
-  if (!workshopId) {
+  if (!eventId) {
     notFound();
   }
 
-  const workshopResults = await db
+  const eventResults = await db
     .select()
-    .from(workshops)
-    .where(eq(workshops.id, workshopId));
+    .from(events)
+    .where(eq(events.id, eventId));
 
-  if (workshopResults.length === 0) {
+  if (eventResults.length === 0) {
     notFound();
   }
 
-  const workshopData = workshopResults[0];
-  const workshop: Workshop = {
-    id: workshopData.id,
-    title: workshopData.title,
-    description: workshopData.description || "",
-    instructor: workshopData.instructor,
-    date: workshopData.date,
-    start_time: workshopData.startTime,
-    end_time: workshopData.endTime,
-    current_bookings: workshopData.currentBookings,
-    location: workshopData.location || "",
-    whatToBring: workshopData.whatToBring || null,
+  const eventData = eventResults[0];
+  const event: Event = {
+    id: eventData.id,
+    title: eventData.title,
+    description: eventData.description || "",
+    instructor: eventData.instructor,
+    date: eventData.date,
+    start_time: eventData.startTime,
+    end_time: eventData.endTime,
+    current_bookings: eventData.currentBookings,
+    location: eventData.location || "",
+    whatToBring: eventData.whatToBring || null,
   };
 
   // If the slug is in old format (numeric only), redirect to new format for SEO
   if (/^\d+$/.test(slug)) {
-    const newSlug = createWorkshopSlug(
-      workshop.id,
-      workshop.title,
-      workshop.instructor,
+    const newSlug = createEventSlug(
+      event.id,
+      event.title,
+      event.instructor,
     );
     redirect(`/event/${newSlug}`);
   }
 
   // Format date
-  const date = new Date(workshop.date);
+  const date = new Date(event.date);
   const formattedDate = date.toLocaleDateString("en-US", {
     weekday: "long",
     month: "long",
@@ -112,7 +112,7 @@ export default async function BookWorkshopPage({
     return `${displayHour}:${minutes} ${ampm}`;
   };
 
-  const isPast = isWorkshopPast(workshop.date, workshop.end_time);
+  const isPast = isEventPast(event.date, event.end_time);
 
   // Get user data on server side for faster loading
   const { userId } = await auth();
@@ -127,7 +127,7 @@ export default async function BookWorkshopPage({
     }
   }
 
-  // Fetch bookings for this workshop with Clerk user IDs
+  // Fetch bookings for this event with Clerk user IDs
   const bookingsData = await db
     .select({
       id: bookings.id,
@@ -136,7 +136,7 @@ export default async function BookWorkshopPage({
       clerkUserId: bookings.clerkUserId,
     })
     .from(bookings)
-    .where(eq(bookings.workshopId, workshopId));
+    .where(eq(bookings.eventId, eventId));
 
   // Check if current user has a booking and get the bookingId
   let userBookingId: number | null = null;
@@ -188,7 +188,7 @@ export default async function BookWorkshopPage({
               </Button>
             </Link>
             <h1 className="text-1xl font-bold text-foreground text-balance">
-              Book Your Workshop
+              Book Your Event
             </h1>
           </div>
         </div>
@@ -196,25 +196,25 @@ export default async function BookWorkshopPage({
 
       <main className="mx-auto max-w-3xl px-4 py-8 sm:px-6 lg:px-8">
         <div>
-          {/* Workshop Details */}
+          {/* Event Details */}
           <Card>
             <CardHeader>
               <div className="flex items-start justify-between gap-2 mb-2">
                 <CardTitle className="text-2xl text-balance">
-                  {workshop.title}
+                  {event.title}
                 </CardTitle>
                 {isPast && (
                   <Badge
                     variant="secondary"
                     className="bg-muted text-muted-foreground"
                   >
-                    Past Workshop
+                    Past Event
                   </Badge>
                 )}
               </div>
               <CardDescription className="text-pretty">
                 <div className="prose prose-sm dark:prose-invert max-w-none">
-                  <ReactMarkdown>{workshop.description}</ReactMarkdown>
+                  <ReactMarkdown>{event.description}</ReactMarkdown>
                 </div>
               </CardDescription>
             </CardHeader>
@@ -232,8 +232,8 @@ export default async function BookWorkshopPage({
                   <div>
                     <div className="font-medium text-foreground">Time</div>
                     <div className="text-muted-foreground">
-                      {formatTime(workshop.start_time)} -{" "}
-                      {formatTime(workshop.end_time)}
+                      {formatTime(event.start_time)} -{" "}
+                      {formatTime(event.end_time)}
                     </div>
                   </div>
                 </div>
@@ -242,7 +242,7 @@ export default async function BookWorkshopPage({
                   <div>
                     <div className="font-medium text-foreground">Location</div>
                     <div className="text-muted-foreground">
-                      {workshop.location}
+                      {event.location}
                     </div>
                   </div>
                 </div>
@@ -253,15 +253,15 @@ export default async function BookWorkshopPage({
                       Instructor
                     </div>
                     <div className="text-muted-foreground">
-                      {workshop.instructor}
+                      {event.instructor}
                     </div>
                   </div>
                 </div>
                 <div className="flex items-center gap-3 text-sm">
                   <UserCheck className="h-5 w-5 text-primary" />
                   <div className="font-medium text-foreground">
-                    {workshop.current_bookings}{" "}
-                    {workshop.current_bookings === 1
+                    {event.current_bookings}{" "}
+                    {event.current_bookings === 1
                       ? "Participant"
                       : "Participants"}
                   </div>
@@ -272,27 +272,27 @@ export default async function BookWorkshopPage({
                   )}
                 </div>
                 <div className="flex items-center gap-3 text-sm">
-                  <WorkshopCalendarButtons
-                    workshopData={{
-                      title: workshop.title,
-                      date: workshop.date,
-                      startTime: workshop.start_time,
-                      endTime: workshop.end_time,
-                      location: workshop.location,
-                      instructor: workshop.instructor,
-                      description: workshop.description,
-                      whatToBring: workshop.whatToBring || null,
-                      bookingId: workshop.id,
-                      confirmationToken: `workshop-${createWorkshopSlug(
-                        workshop.id,
-                        workshop.title,
-                        workshop.instructor
+                  <EventCalendarButtons
+                    eventData={{
+                      title: event.title,
+                      date: event.date,
+                      startTime: event.start_time,
+                      endTime: event.end_time,
+                      location: event.location,
+                      instructor: event.instructor,
+                      description: event.description,
+                      whatToBring: event.whatToBring || null,
+                      bookingId: event.id,
+                      confirmationToken: `event-${createEventSlug(
+                        event.id,
+                        event.title,
+                        event.instructor
                       )}`,
                     }}
-                    eventSlug={createWorkshopSlug(
-                      workshop.id,
-                      workshop.title,
-                      workshop.instructor
+                    eventSlug={createEventSlug(
+                      event.id,
+                      event.title,
+                      event.instructor
                     )}
                     className="w-full"
                   />
@@ -300,7 +300,7 @@ export default async function BookWorkshopPage({
                 {userBookingId ? (
                   <div className="rounded-md bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800 p-4">
                     <p className="text-sm font-medium text-green-800 dark:text-green-200 mb-2">
-                      ✓ You have made a booking for this workshop
+                      ✓ You have made a booking for this event
                     </p>
                     <CancelBookingButton
                       bookingId={userBookingId}
@@ -308,8 +308,8 @@ export default async function BookWorkshopPage({
                     />
                   </div>
                 ) : (
-                  <BookWorkshopButton
-                    workshopId={workshop.id}
+                  <BookEventButton
+                    eventId={event.id}
                     isPast={isPast}
                     isAuthenticated={!!userId}
                     userName={initialUserName}

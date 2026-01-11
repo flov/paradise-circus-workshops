@@ -3,10 +3,10 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Calendar, Clock, MapPin, Users } from "lucide-react"
 import Link from "next/link"
-import { isWorkshopPast, createWorkshopSlug } from "@/lib/utils"
+import { isEventPast, createEventSlug } from "@/lib/utils"
 import ReactMarkdown from "react-markdown"
 
-type Workshop = {
+type Event = {
   id: number
   title: string
   description: string
@@ -18,11 +18,11 @@ type Workshop = {
   location: string
 }
 
-export function WorkshopCard({ workshop }: { workshop: Workshop }) {
-  const isPast = isWorkshopPast(workshop.date, workshop.end_time)
+export function EventCard({ event }: { event: Event }) {
+  const isPast = isEventPast(event.date, event.end_time)
 
   // Format date
-  const date = new Date(workshop.date)
+  const date = new Date(event.date)
   const formattedDate = date.toLocaleDateString("en-US", {
     weekday: "long",
     month: "long",
@@ -43,21 +43,21 @@ export function WorkshopCard({ workshop }: { workshop: Workshop }) {
     <Card className="flex flex-col h-full hover:shadow-lg transition-shadow">
       <CardHeader>
         <div className="flex items-start justify-between gap-2 mb-2">
-          <CardTitle className="text-xl text-balance">{workshop.title}</CardTitle>
+          <CardTitle className="text-xl text-balance">{event.title}</CardTitle>
           <div className="flex flex-col items-end gap-2 shrink-0">
             {isPast && (
               <Badge variant="secondary" className="bg-muted text-muted-foreground">
-                Past Workshop
+                Past Event
               </Badge>
             )}
             <Badge variant="outline">
-              {workshop.current_bookings} {workshop.current_bookings === 1 ? 'participant' : 'participants'}
+              {event.current_bookings} {event.current_bookings === 1 ? 'participant' : 'participants'}
             </Badge>
           </div>
         </div>
         <CardDescription className="text-pretty">
           <div className="prose prose-sm dark:prose-invert max-w-none">
-            <ReactMarkdown>{workshop.description}</ReactMarkdown>
+            <ReactMarkdown>{event.description}</ReactMarkdown>
           </div>
         </CardDescription>
       </CardHeader>
@@ -70,27 +70,27 @@ export function WorkshopCard({ workshop }: { workshop: Workshop }) {
           <div className="flex items-center gap-2 text-muted-foreground">
             <Clock className="h-4 w-4 shrink-0" />
             <span>
-              {formatTime(workshop.start_time)} - {formatTime(workshop.end_time)}
+              {formatTime(event.start_time)} - {formatTime(event.end_time)}
             </span>
           </div>
           <div className="flex items-center gap-2 text-muted-foreground">
             <MapPin className="h-4 w-4 shrink-0" />
-            <span>{workshop.location}</span>
+            <span>{event.location}</span>
           </div>
           <div className="flex items-center gap-2 text-muted-foreground">
             <Users className="h-4 w-4 shrink-0" />
-            <span>Instructor: {workshop.instructor}</span>
+            <span>Instructor: {event.instructor}</span>
           </div>
         </div>
 
         {isPast ? (
           <div className="mt-auto">
             <Button className="w-full" disabled>
-              Workshop Ended
+              Event Ended
             </Button>
           </div>
         ) : (
-          <Link href={`/event/${createWorkshopSlug(workshop.id, workshop.title, workshop.instructor)}`} className="mt-auto">
+          <Link href={`/event/${createEventSlug(event.id, event.title, event.instructor)}`} className="mt-auto">
             <Button className="w-full">Book Now</Button>
           </Link>
         )}

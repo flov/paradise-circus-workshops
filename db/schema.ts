@@ -1,8 +1,8 @@
 import { pgTable, serial, varchar, text, date, time, integer, timestamp, index } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 
-export const workshops = pgTable(
-  "workshops",
+export const events = pgTable(
+  "events",
   {
     id: serial("id").primaryKey(),
     title: varchar("title", { length: 255 }).notNull(),
@@ -19,7 +19,7 @@ export const workshops = pgTable(
     updatedAt: timestamp("updated_at").defaultNow().notNull(),
   },
   (table) => ({
-    dateIdx: index("idx_workshops_date").on(table.date),
+    dateIdx: index("idx_events_date").on(table.date),
   })
 );
 
@@ -27,7 +27,7 @@ export const bookings = pgTable(
   "bookings",
   {
     id: serial("id").primaryKey(),
-    workshopId: integer("workshop_id").notNull().references(() => workshops.id, { onDelete: "cascade" }),
+    eventId: integer("event_id").notNull().references(() => events.id, { onDelete: "cascade" }),
     clerkUserId: varchar("clerk_user_id", { length: 255 }),
     participantName: varchar("participant_name", { length: 255 }).notNull(),
     participantEmail: varchar("participant_email", { length: 255 }).notNull(),
@@ -39,20 +39,20 @@ export const bookings = pgTable(
     createdAt: timestamp("created_at").defaultNow().notNull(),
   },
   (table) => ({
-    workshopIdIdx: index("idx_bookings_workshop_id").on(table.workshopId),
+    eventIdIdx: index("idx_bookings_event_id").on(table.eventId),
     emailIdx: index("idx_bookings_email").on(table.participantEmail),
     confirmationTokenIdx: index("idx_bookings_confirmation_token").on(table.confirmationToken),
   })
 );
 
-export const workshopsRelations = relations(workshops, ({ many }) => ({
+export const eventsRelations = relations(events, ({ many }) => ({
   bookings: many(bookings),
 }));
 
 export const bookingsRelations = relations(bookings, ({ one }) => ({
-  workshop: one(workshops, {
-    fields: [bookings.workshopId],
-    references: [workshops.id],
+  event: one(events, {
+    fields: [bookings.eventId],
+    references: [events.id],
   }),
 }));
 

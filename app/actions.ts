@@ -2,19 +2,19 @@
 
 import { randomUUID } from "crypto"
 import { db } from "@/db"
-import { workshops, bookings } from "@/db/schema"
+import { events, bookings } from "@/db/schema"
 import { eq, sql, and } from "drizzle-orm"
 import { revalidatePath } from "next/cache"
 import { sendBookingConfirmationEmail, sendAdminNotificationEmail } from "@/lib/email"
 import { auth, currentUser } from "@clerk/nextjs/server"
-import { getUserName, getUserEmail, createWorkshopSlug } from "@/lib/utils"
+import { getUserName, getUserEmail, createEventSlug } from "@/lib/utils"
 
 export async function createBooking(formData: FormData) {
   // Get authenticated user
   const { userId } = await auth()
   
   if (!userId) {
-    return { success: false, error: "You must be signed in to book a workshop" }
+    return { success: false, error: "You must be signed in to book an event" }
   }
 
   const user = await currentUser()
@@ -26,7 +26,7 @@ export async function createBooking(formData: FormData) {
   const clerkName = getUserName(user)
   const clerkEmail = getUserEmail(user)
 
-  const workshopId = formData.get("workshopId") as string
+  const eventId = formData.get("eventId") as string
   const formName = formData.get("name") as string
   const formEmail = formData.get("email") as string
   const phone = formData.get("phone") as string
@@ -37,32 +37,32 @@ export async function createBooking(formData: FormData) {
   const email = clerkEmail || formEmail
 
   // Validate required fields
-  if (!workshopId || !name || !email) {
+  if (!eventId || !name || !email) {
     return { success: false, error: "Missing required fields. Please ensure you have a name and email." }
   }
 
   try {
-    // Check if workshop exists
-    const workshopResults = await db
+    // Check if event exists
+    const eventResults = await db
       .select({
-        id: workshops.id,
-        currentBookings: workshops.currentBookings,
-        title: workshops.title,
-        date: workshops.date,
-        startTime: workshops.startTime,
-        endTime: workshops.endTime,
-        location: workshops.location,
-        instructor: workshops.instructor,
-        whatToBring: workshops.whatToBring,
+        id: events.id,
+        currentBookings: events.currentBookings,
+        title: events.title,
+        date: events.date,
+        startTime: events.startTime,
+        endTime: events.endTime,
+        location: events.location,
+        instructor: events.instructor,
+        whatToBring: events.whatToBring,
       })
-      .from(workshops)
-      .where(eq(workshops.id, parseInt(workshopId)))
+      .from(events)
+      .where(eq(events.id, parseInt(eventId)))
 
-    if (workshopResults.length === 0) {
-      return { success: false, error: "Workshop not found" }
+    if (eventResults.length === 0) {
+      return { success: false, error: "Event not found" }
     }
 
-    const workshop = workshopResults[0]
+    const event = eventResults[0]
 
     // Generate confirmation token
     const confirmationToken = randomUUID()
@@ -71,7 +71,7 @@ export async function createBooking(formData: FormData) {
     const bookingResults = await db
       .insert(bookings)
       .values({
-        workshopId: parseInt(workshopId),
+        eventId: parseInt(eventId),
         clerkUserId: userId,
         participantName: name,
         participantEmail: email,
@@ -84,25 +84,25 @@ export async function createBooking(formData: FormData) {
     const bookingId = bookingResults[0].id
     const token = bookingResults[0].confirmationToken
 
-    // Update workshop booking count
+    // Update event booking count
     await db
-      .update(workshops)
-      .set({ currentBookings: sql`${workshops.currentBookings} + 1` })
-      .where(eq(workshops.id, parseInt(workshopId)))
+      .update(events)
+      .set({ currentBookings: sql`${events.currentBookings} + 1` })
+      .where(eq(events.id, parseInt(eventId)))
 
     try {
       await sendBookingConfirmationEmail({
         participantName: name,
         participantEmail: email,
-        workshopTitle: workshop.title,
-        workshopDate: workshop.date,
-        workshopStartTime: workshop.startTime,
-        workshopEndTime: workshop.endTime,
-        workshopLocation: workshop.location || "",
-        instructorName: workshop.instructor,
+        eventTitle: event.title,
+        eventDate: event.date,
+        eventStartTime: event.startTime,
+        eventEndTime: event.endTime,
+        eventLocation: event.location || "",
+        instructorName: event.instructor,
         bookingId,
         confirmationToken: token,
-        whatToBring: workshop.whatToBring,
+        whatToBring: event.whatToBring,
       })
     } catch (emailError) {
       console.error("Failed to send confirmation email:", emailError)
@@ -114,9 +114,9 @@ export async function createBooking(formData: FormData) {
         participantName: name,
         participantEmail: email,
         participantPhone: phone,
-        workshopTitle: workshop.title,
-        workshopDate: workshop.date,
-        workshopStartTime: workshop.startTime,
+        eventTitle: event.title,
+        eventDate: event.date,
+        eventStartTime: event.startTime,
         bookingId,
       })
     } catch (emailError) {
@@ -126,7 +126,7 @@ export async function createBooking(formData: FormData) {
 
     // Revalidate relevant pages
     revalidatePath("/")
-    revalidatePath(`/event/${createWorkshopSlug(parseInt(workshopId), workshop.title, workshop.instructor)}`)
+    revalidatePath(`/event/${createEventSlug(parseInt(eventId), event.title, event.instructor)}`)
 
     return { success: true, bookingId, confirmationToken: token }
   } catch (error) {
@@ -147,7 +147,7 @@ export async function cancelBooking(bookingId: number) {
     const bookingResults = await db
       .select({
         id: bookings.id,
-        workshopId: bookings.workshopId,
+        eventId: bookings.eventId,
         clerkUserId: bookings.clerkUserId,
       })
       .from(bookings)
@@ -164,28 +164,28 @@ export async function cancelBooking(bookingId: number) {
       return { success: false, error: "Unauthorized. You can only cancel your own bookings." }
     }
 
-    // Fetch workshop details for revalidation
-    const workshopResults = await db
+    // Fetch event details for revalidation
+    const eventResults = await db
       .select({
-        title: workshops.title,
-        instructor: workshops.instructor,
+        title: events.title,
+        instructor: events.instructor,
       })
-      .from(workshops)
-      .where(eq(workshops.id, booking.workshopId))
+      .from(events)
+      .where(eq(events.id, booking.eventId))
 
     // Delete the booking
     await db.delete(bookings).where(eq(bookings.id, bookingId))
 
-    // Update workshop booking count
+    // Update event booking count
     await db
-      .update(workshops)
-      .set({ currentBookings: sql`${workshops.currentBookings} - 1` })
-      .where(eq(workshops.id, booking.workshopId))
+      .update(events)
+      .set({ currentBookings: sql`${events.currentBookings} - 1` })
+      .where(eq(events.id, booking.eventId))
 
     // Revalidate relevant pages
     revalidatePath("/")
-    if (workshopResults.length > 0) {
-      revalidatePath(`/event/${createWorkshopSlug(booking.workshopId, workshopResults[0].title, workshopResults[0].instructor)}`)
+    if (eventResults.length > 0) {
+      revalidatePath(`/event/${createEventSlug(booking.eventId, eventResults[0].title, eventResults[0].instructor)}`)
     }
 
     return { success: true }
@@ -195,7 +195,7 @@ export async function cancelBooking(bookingId: number) {
   }
 }
 
-export async function cancelBookingByWorkshop(workshopId: number) {
+export async function cancelBookingByEvent(eventId: number) {
   const { userId } = await auth()
   
   if (!userId) {
@@ -203,16 +203,16 @@ export async function cancelBookingByWorkshop(workshopId: number) {
   }
 
   try {
-    // Find the user's booking for this workshop
+    // Find the user's booking for this event
     const bookingResults = await db
       .select({
         id: bookings.id,
-        workshopId: bookings.workshopId,
+        eventId: bookings.eventId,
       })
       .from(bookings)
       .where(
         and(
-          eq(bookings.workshopId, workshopId),
+          eq(bookings.eventId, eventId),
           eq(bookings.clerkUserId, userId)
         )
       )
@@ -223,28 +223,28 @@ export async function cancelBookingByWorkshop(workshopId: number) {
 
     const booking = bookingResults[0]
 
-    // Fetch workshop details for revalidation
-    const workshopResults = await db
+    // Fetch event details for revalidation
+    const eventResults = await db
       .select({
-        title: workshops.title,
-        instructor: workshops.instructor,
+        title: events.title,
+        instructor: events.instructor,
       })
-      .from(workshops)
-      .where(eq(workshops.id, workshopId))
+      .from(events)
+      .where(eq(events.id, eventId))
 
     // Delete the booking
     await db.delete(bookings).where(eq(bookings.id, booking.id))
 
-    // Update workshop booking count
+    // Update event booking count
     await db
-      .update(workshops)
-      .set({ currentBookings: sql`${workshops.currentBookings} - 1` })
-      .where(eq(workshops.id, workshopId))
+      .update(events)
+      .set({ currentBookings: sql`${events.currentBookings} - 1` })
+      .where(eq(events.id, eventId))
 
     // Revalidate relevant pages
     revalidatePath("/")
-    if (workshopResults.length > 0) {
-      revalidatePath(`/event/${createWorkshopSlug(workshopId, workshopResults[0].title, workshopResults[0].instructor)}`)
+    if (eventResults.length > 0) {
+      revalidatePath(`/event/${createEventSlug(eventId, eventResults[0].title, eventResults[0].instructor)}`)
     }
 
     return { success: true }

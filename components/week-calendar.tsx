@@ -5,9 +5,9 @@ import { format, startOfWeek, addDays, parseISO, isSameDay } from "date-fns";
 import { Fragment, useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { createWorkshopSlug } from "@/lib/utils";
+import { createEventSlug } from "@/lib/utils";
 
-type Workshop = {
+type Event = {
   id: number;
   title: string;
   description: string | null;
@@ -20,7 +20,7 @@ type Workshop = {
 };
 
 type WeekCalendarProps = {
-  workshops: Workshop[];
+  events: Event[];
 };
 
 const TIME_SLOTS = [
@@ -36,7 +36,7 @@ const TIME_SLOTS = [
   "21:00",
 ];
 
-export function WeekCalendar({ workshops }: WeekCalendarProps) {
+export function WeekCalendar({ events }: WeekCalendarProps) {
   const [weekOffset, setWeekOffset] = useState(0);
 
   const today = new Date();
@@ -51,20 +51,20 @@ export function WeekCalendar({ workshops }: WeekCalendarProps) {
   const startDate = format(daysOfWeek[0], "MMM do");
   const endDate = format(daysOfWeek[6], "MMM do");
 
-  // Helper to check if workshop falls in a time slot
-  const getWorkshopsForSlot = (day: Date, timeSlot: string) => {
-    return workshops.filter((workshop) => {
-      const workshopDate =
-        typeof workshop.date === "string"
-          ? parseISO(workshop.date)
-          : new Date(workshop.date);
+  // Helper to check if event falls in a time slot
+  const getEventsForSlot = (day: Date, timeSlot: string) => {
+    return events.filter((event) => {
+      const eventDate =
+        typeof event.date === "string"
+          ? parseISO(event.date)
+          : new Date(event.date);
 
-      if (!isSameDay(workshopDate, day)) return false;
+      if (!isSameDay(eventDate, day)) return false;
 
-      const workshopHour = Number.parseInt(workshop.startTime.split(":")[0]);
+      const eventHour = Number.parseInt(event.startTime.split(":")[0]);
       const slotHour = Number.parseInt(timeSlot.split(":")[0]);
 
-      return workshopHour === slotHour;
+      return eventHour === slotHour;
     });
   };
 
@@ -141,21 +141,21 @@ export function WeekCalendar({ workshops }: WeekCalendarProps) {
 
                 {/* Day Cells */}
                 {daysOfWeek.map((day, dayIndex) => {
-                  const workshopsInSlot = getWorkshopsForSlot(day, timeSlot);
+                  const eventsInSlot = getEventsForSlot(day, timeSlot);
 
                   return (
                     <div
                       key={`${dayIndex}-${timeSlot}`}
                       className="min-h-[100px] rounded-lg relative"
                     >
-                      {workshopsInSlot.length > 0 ? (
+                      {eventsInSlot.length > 0 ? (
                         <div className="space-y-2">
-                          {workshopsInSlot.map((workshop) => {
-                            const isParadiseRiver = workshop.location?.toLowerCase().includes("paradise river") || workshop.location?.toLowerCase() === "paradise river";
+                          {eventsInSlot.map((event) => {
+                            const isParadiseRiver = event.location?.toLowerCase().includes("paradise river") || event.location?.toLowerCase() === "paradise river";
                             return (
                               <Link
-                                key={workshop.id}
-                                href={`/event/${createWorkshopSlug(workshop.id, workshop.title, workshop.instructor)}`}
+                                key={event.id}
+                                href={`/event/${createEventSlug(event.id, event.title, event.instructor)}`}
                                 className={`block rounded-lg p-3 text-white transition-colors h-full border ${
                                   isParadiseRiver
                                     ? "bg-blue-600 hover:bg-blue-500 border-blue-500"
@@ -163,15 +163,15 @@ export function WeekCalendar({ workshops }: WeekCalendarProps) {
                                 }`}
                               >
                                 <div className="text-sm font-semibold text-balance leading-tight mb-1">
-                                  {workshop.title}
+                                  {event.title}
                                 </div>
-                                {workshop.instructor && (
+                                {event.instructor && (
                                   <div className="text-xs text-slate-300">
-                                    {workshop.instructor}
+                                    {event.instructor}
                                   </div>
                                 )}
                                 <div className="text-xs text-slate-400 mt-1">
-                                  {workshop.startTime.slice(0, 5)}
+                                  {event.startTime.slice(0, 5)}
                                 </div>
                               </Link>
                             );

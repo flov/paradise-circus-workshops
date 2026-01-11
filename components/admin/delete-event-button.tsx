@@ -14,10 +14,10 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import { Trash2, Loader2 } from "lucide-react"
-import { deleteWorkshop } from "@/app/admin/actions"
+import { deleteEvent } from "@/app/admin/actions"
 import { useRouter } from "next/navigation"
 
-export function DeleteWorkshopButton({ workshopId, workshopTitle }: { workshopId: number; workshopTitle: string }) {
+export function DeleteEventButton({ eventId, eventTitle }: { eventId: number; eventTitle: string }) {
   const router = useRouter()
   const [open, setOpen] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
@@ -26,11 +26,11 @@ export function DeleteWorkshopButton({ workshopId, workshopTitle }: { workshopId
     setIsDeleting(true)
 
     try {
-      await deleteWorkshop(workshopId)
+      await deleteEvent(eventId)
       setOpen(false)
       router.refresh()
     } catch (err) {
-      console.error("Failed to delete workshop:", err)
+      console.error("Failed to delete event:", err)
     } finally {
       setIsDeleting(false)
     }
@@ -45,9 +45,9 @@ export function DeleteWorkshopButton({ workshopId, workshopTitle }: { workshopId
       </AlertDialogTrigger>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>Delete Workshop</AlertDialogTitle>
+          <AlertDialogTitle>Delete Event</AlertDialogTitle>
           <AlertDialogDescription>
-            Are you sure you want to delete "{workshopTitle}"? This will also delete all associated bookings. This
+            Are you sure you want to delete "{eventTitle}"? This will also delete all associated bookings. This
             action cannot be undone.
           </AlertDialogDescription>
         </AlertDialogHeader>

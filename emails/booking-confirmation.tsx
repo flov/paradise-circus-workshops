@@ -14,11 +14,11 @@ import * as React from "react";
 
 export type BookingConfirmationEmailProps = {
   participantName: string;
-  workshopTitle: string;
-  workshopDate: string;
-  workshopStartTime: string;
-  workshopEndTime: string;
-  workshopLocation: string;
+  eventTitle: string;
+  eventDate: string;
+  eventStartTime: string;
+  eventEndTime: string;
+  eventLocation: string;
   instructorName: string;
   bookingId: number;
   confirmationToken: string;
@@ -47,17 +47,17 @@ const formatTime = (time: string) => {
 
 export const BookingConfirmationEmail = ({
   participantName,
-  workshopTitle,
-  workshopDate,
-  workshopStartTime,
-  workshopEndTime,
-  workshopLocation,
+  eventTitle,
+  eventDate,
+  eventStartTime,
+  eventEndTime,
+  eventLocation,
   instructorName,
   bookingId,
   confirmationToken,
   whatToBring,
 }: BookingConfirmationEmailProps) => {
-  const formattedDate = formatDate(workshopDate);
+  const formattedDate = formatDate(eventDate);
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
 
   // Build "What to Bring" list
@@ -77,19 +77,19 @@ export const BookingConfirmationEmail = ({
         <Container style={container}>
           <Section style={header}>
             <Heading style={headerTitle}>🎪 Paradise Circus</Heading>
-            <Text style={headerSubtitle}>Workshop Booking Confirmation</Text>
+            <Text style={headerSubtitle}>Event Booking Confirmation</Text>
           </Section>
 
           <Section style={content}>
             <Text style={text}>Dear {participantName},</Text>
 
             <Text style={text}>
-              Thank you for booking a workshop with Paradise Circus! Your spot
+              Thank you for booking an event with Paradise Circus! Your spot
               has been confirmed.
             </Text>
 
             <Section style={workshopDetails}>
-              <Heading style={workshopTitle}>{workshopTitle}</Heading>
+              <Heading style={eventTitleStyle}>{eventTitle}</Heading>
               <Section style={detailRow}>
                 <Text style={detailLabel}>Date:</Text>
                 <Text style={detailValue}>{formattedDate}</Text>
@@ -97,12 +97,12 @@ export const BookingConfirmationEmail = ({
               <Section style={detailRow}>
                 <Text style={detailLabel}>Time:</Text>
                 <Text style={detailValue}>
-                  {formatTime(workshopStartTime)} - {formatTime(workshopEndTime)}
+                  {formatTime(eventStartTime)} - {formatTime(eventEndTime)}
                 </Text>
               </Section>
               <Section style={detailRow}>
                 <Text style={detailLabel}>Location:</Text>
-                <Text style={detailValue}>{workshopLocation}</Text>
+                <Text style={detailValue}>{eventLocation}</Text>
               </Section>
               <Section style={detailRow}>
                 <Text style={detailLabel}>Instructor:</Text>
@@ -152,7 +152,7 @@ export const BookingConfirmationEmail = ({
             </Section>
 
             <Text style={text}>
-              We're excited to see you at the workshop! If you have any
+              We're excited to see you at the event! If you have any
               questions or need to make changes to your booking, please don't
               hesitate to reach out.
             </Text>
@@ -240,7 +240,7 @@ const workshopDetails = {
   borderRadius: "4px",
 };
 
-const workshopTitle = {
+const eventTitleStyle = {
   margin: "0 0 16px 0",
   fontSize: "20px",
   color: "#92400e",

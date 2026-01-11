@@ -1,11 +1,11 @@
 import { db } from "@/db"
-import { workshops, bookings } from "@/db/schema"
+import { events, bookings } from "@/db/schema"
 import { count, gte, lte, sql, and } from "drizzle-orm"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { WorkshopsList } from "@/components/admin/workshops-list"
+import { EventsList } from "@/components/admin/events-list"
 import { BookingsList } from "@/components/admin/bookings-list"
-import { AddWorkshopButton } from "@/components/admin/add-workshop-button"
+import { AddEventButton } from "@/components/admin/add-event-button"
 import { Calendar, Users, TrendingUp, UserCheck } from "lucide-react"
 import { auth } from "@clerk/nextjs/server"
 import { redirect } from "next/navigation"
@@ -42,28 +42,28 @@ export default async function AdminPage() {
   const today = new Date().toISOString().split('T')[0] // Get today's date in YYYY-MM-DD format
   const { startDate: weekStart, endDate: weekEnd } = getCurrentWeekRange()
 
-  const totalWorkshops = await db.select({ count: count() }).from(workshops)
+  const totalEvents = await db.select({ count: count() }).from(events)
   const totalBookings = await db.select({ count: count() }).from(bookings)
-  const upcomingWorkshops = await db
+  const upcomingEvents = await db
     .select({ count: count() })
-    .from(workshops)
-    .where(gte(workshops.date, today))
+    .from(events)
+    .where(gte(events.date, today))
 
   // Count distinct instructors for this week
   const instructorsThisWeek = await db
-    .select({ count: sql<number>`COUNT(DISTINCT ${workshops.instructor})` })
-    .from(workshops)
-    .where(and(gte(workshops.date, weekStart), lte(workshops.date, weekEnd)))
+    .select({ count: sql<number>`COUNT(DISTINCT ${events.instructor})` })
+    .from(events)
+    .where(and(gte(events.date, weekStart), lte(events.date, weekEnd)))
 
-  // Count distinct instructors across all workshops
+  // Count distinct instructors across all events
   const totalInstructors = await db
-    .select({ count: sql<number>`COUNT(DISTINCT ${workshops.instructor})` })
-    .from(workshops)
+    .select({ count: sql<number>`COUNT(DISTINCT ${events.instructor})` })
+    .from(events)
 
   const dashboardStats = {
-    total_workshops: totalWorkshops[0]?.count || 0,
+    total_events: totalEvents[0]?.count || 0,
     total_bookings: totalBookings[0]?.count || 0,
-    upcoming_workshops: upcomingWorkshops[0]?.count || 0,
+    upcoming_events: upcomingEvents[0]?.count || 0,
     instructors_this_week: Number(instructorsThisWeek[0]?.count) || 0,
     total_instructors: Number(totalInstructors[0]?.count) || 0,
   }
@@ -75,9 +75,9 @@ export default async function AdminPage() {
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-3xl font-bold text-foreground">Admin Dashboard</h1>
-              <p className="text-sm text-muted-foreground mt-1">Manage workshops and bookings</p>
+              <p className="text-sm text-muted-foreground mt-1">Manage events and bookings</p>
             </div>
-            <AddWorkshopButton />
+            <AddEventButton />
           </div>
         </div>
       </div>
@@ -87,21 +87,21 @@ export default async function AdminPage() {
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5 mb-8">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Workshops</CardTitle>
+              <CardTitle className="text-sm font-medium">Total Events</CardTitle>
               <Calendar className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{dashboardStats.total_workshops}</div>
+              <div className="text-2xl font-bold">{dashboardStats.total_events}</div>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Upcoming Workshops</CardTitle>
+              <CardTitle className="text-sm font-medium">Upcoming Events</CardTitle>
               <TrendingUp className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{dashboardStats.upcoming_workshops}</div>
+              <div className="text-2xl font-bold">{dashboardStats.upcoming_events}</div>
             </CardContent>
           </Card>
 
@@ -138,20 +138,20 @@ export default async function AdminPage() {
         </div>
 
         {/* Main Content */}
-        <Tabs defaultValue="workshops" className="space-y-4">
+        <Tabs defaultValue="events" className="space-y-4">
           <TabsList>
-            <TabsTrigger value="workshops">Workshops</TabsTrigger>
+            <TabsTrigger value="events">Events</TabsTrigger>
             <TabsTrigger value="bookings">Bookings</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="workshops" className="space-y-4">
+          <TabsContent value="events" className="space-y-4">
             <Card>
               <CardHeader>
-                <CardTitle>Manage Workshops</CardTitle>
-                <CardDescription>Create, edit, and delete workshops</CardDescription>
+                <CardTitle>Manage Events</CardTitle>
+                <CardDescription>Create, edit, and delete events</CardDescription>
               </CardHeader>
               <CardContent>
-                <WorkshopsList />
+                <EventsList />
               </CardContent>
             </Card>
           </TabsContent>

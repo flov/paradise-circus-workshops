@@ -3,7 +3,7 @@
  * Implements RFC 5545 specification
  */
 
-export type WorkshopCalendarData = {
+export type EventCalendarData = {
   title: string;
   date: string; // ISO date string (YYYY-MM-DD)
   startTime: string; // Time string (HH:MM:SS or HH:MM)
@@ -51,13 +51,13 @@ function formatICSDateTime(dateStr: string, timeStr: string): string {
  */
 function generateUID(bookingId: number, date: string): string {
   const domain = process.env.NEXT_PUBLIC_SITE_URL || "paradise-circus-workshops.vercel.app";
-  return `workshop-${bookingId}-${date.replace(/-/g, "")}@${domain}`;
+  return `event-${bookingId}-${date.replace(/-/g, "")}@${domain}`;
 }
 
 /**
- * Generates iCalendar (.ics) file content from workshop data
+ * Generates iCalendar (.ics) file content from event data
  */
-export function generateICSFile(data: WorkshopCalendarData): string {
+export function generateICSFile(data: EventCalendarData): string {
   const {
     title,
     date,
@@ -97,7 +97,7 @@ export function generateICSFile(data: WorkshopCalendarData): string {
   const lines: string[] = [
     "BEGIN:VCALENDAR",
     "VERSION:2.0",
-    "PRODID:-//Paradise Circus//Workshop Booking//EN",
+    "PRODID:-//Paradise Circus//Event Booking//EN",
     "CALSCALE:GREGORIAN",
     "METHOD:PUBLISH",
     "BEGIN:VEVENT",
@@ -121,12 +121,12 @@ export function generateICSFile(data: WorkshopCalendarData): string {
     `ORGANIZER;CN=${escapeICS(instructor)}:mailto:${escapeICS(instructor.toLowerCase().replace(/\s+/g, "."))}@paradisecircus.com`,
   );
 
-  // Add URL - use event page if confirmationToken starts with "workshop-", otherwise use booking confirmation
+  // Add URL - use event page if confirmationToken starts with "event-", otherwise use booking confirmation
   const siteUrl =
     process.env.NEXT_PUBLIC_SITE_URL || "https://paradisecircus.com";
-  if (confirmationToken.startsWith("workshop-")) {
-    // Extract event slug from token format "workshop-{slug}"
-    const eventSlug = confirmationToken.replace("workshop-", "");
+  if (confirmationToken.startsWith("event-")) {
+    // Extract event slug from token format "event-{slug}"
+    const eventSlug = confirmationToken.replace("event-", "");
     lines.push(`URL:${siteUrl}/event/${eventSlug}`);
   } else {
     lines.push(`URL:${siteUrl}/booking-confirmation/${confirmationToken}`);
@@ -168,7 +168,7 @@ function formatGoogleCalendarDateTime(
  * Generates a Google Calendar URL with pre-filled event details
  * Opens Google Calendar in a new tab with the event form prepopulated
  */
-export function generateGoogleCalendarURL(data: WorkshopCalendarData): string {
+export function generateGoogleCalendarURL(data: EventCalendarData): string {
   const {
     title,
     date,
@@ -201,12 +201,12 @@ export function generateGoogleCalendarURL(data: WorkshopCalendarData): string {
     eventDescription += items.map((item) => `- ${item}`).join("\n");
   }
 
-  // Add URL - use event page if confirmationToken starts with "workshop-", otherwise use booking confirmation
+  // Add URL - use event page if confirmationToken starts with "event-", otherwise use booking confirmation
   const siteUrl =
     process.env.NEXT_PUBLIC_SITE_URL || "https://www.paradisepai.com/";
-  if (confirmationToken.startsWith("workshop-")) {
-    // Extract event slug from token format "workshop-{slug}"
-    const eventSlug = confirmationToken.replace("workshop-", "");
+  if (confirmationToken.startsWith("event-")) {
+    // Extract event slug from token format "event-{slug}"
+    const eventSlug = confirmationToken.replace("event-", "");
     eventDescription += `\n\nView event: ${siteUrl}/event/${eventSlug}`;
   } else {
     eventDescription += `\n\nView booking: ${siteUrl}/booking-confirmation/${confirmationToken}`;

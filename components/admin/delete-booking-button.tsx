@@ -17,7 +17,7 @@ import { Trash2, Loader2 } from "lucide-react"
 import { deleteBooking } from "@/app/admin/actions"
 import { useRouter } from "next/navigation"
 
-export function DeleteBookingButton({ bookingId, workshopId }: { bookingId: number; workshopId: number }) {
+export function DeleteBookingButton({ bookingId, eventId }: { bookingId: number; eventId: number }) {
   const router = useRouter()
   const [open, setOpen] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
@@ -26,7 +26,7 @@ export function DeleteBookingButton({ bookingId, workshopId }: { bookingId: numb
     setIsDeleting(true)
 
     try {
-      await deleteBooking(bookingId, workshopId)
+      await deleteBooking(bookingId, eventId)
       setOpen(false)
       router.refresh()
     } catch (err) {

@@ -16,10 +16,10 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Plus, Loader2 } from "lucide-react"
-import { createWorkshop } from "@/app/admin/actions"
+import { createEvent } from "@/app/admin/actions"
 import { useRouter } from "next/navigation"
 
-export function AddWorkshopButton() {
+export function AddEventButton() {
   const router = useRouter()
   const [open, setOpen] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -33,13 +33,13 @@ export function AddWorkshopButton() {
     const formData = new FormData(e.currentTarget)
 
     try {
-      const result = await createWorkshop(formData)
+      const result = await createEvent(formData)
 
       if (result.success) {
         setOpen(false)
         router.refresh()
       } else {
-        setError(result.error || "Failed to create workshop")
+        setError(result.error || "Failed to create event")
       }
     } catch (err) {
       setError("An unexpected error occurred")
@@ -53,18 +53,18 @@ export function AddWorkshopButton() {
       <DialogTrigger asChild>
         <Button>
           <Plus className="h-4 w-4 mr-2" />
-          Add Workshop
+          Add Event
         </Button>
       </DialogTrigger>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Add New Workshop</DialogTitle>
-          <DialogDescription>Create a new workshop for participants to book</DialogDescription>
+          <DialogTitle>Add New Event</DialogTitle>
+          <DialogDescription>Create a new event for participants to book</DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="title">Workshop Title *</Label>
+              <Label htmlFor="title">Event Title *</Label>
               <Input id="title" name="title" required disabled={isSubmitting} />
             </div>
             <div className="space-y-2">
@@ -139,7 +139,7 @@ export function AddWorkshopButton() {
                   Creating...
                 </>
               ) : (
-                "Create Workshop"
+                "Create Event"
               )}
             </Button>
           </div>

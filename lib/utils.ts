@@ -26,12 +26,12 @@ export function getUserEmail(user: { emailAddresses: Array<{ emailAddress: strin
 }
 
 /**
- * Check if a workshop is in the past based on its date and end time
- * @param date - Workshop date (string in YYYY-MM-DD format or Date object)
- * @param endTime - Workshop end time in HH:MM format (24-hour)
- * @returns true if the workshop has already ended
+ * Check if an event is in the past based on its date and end time
+ * @param date - Event date (string in YYYY-MM-DD format or Date object)
+ * @param endTime - Event end time in HH:MM format (24-hour)
+ * @returns true if the event has already ended
  */
-export function isWorkshopPast(date: string | Date, endTime: string): boolean {
+export function isEventPast(date: string | Date, endTime: string): boolean {
   const now = new Date()
   
   // Parse the date - handle both string and Date object
@@ -75,11 +75,11 @@ export function isWorkshopPast(date: string | Date, endTime: string): boolean {
     return false
   }
   
-  // Create a date object for the workshop end time in local timezone
+  // Create a date object for the event end time in local timezone
   // Note: month is 0-indexed in Date constructor
-  const workshopEndDate = new Date(year, month - 1, day, hours, minutes, 0, 0)
+  const eventEndDate = new Date(year, month - 1, day, hours, minutes, 0, 0)
   
-  return now > workshopEndDate
+  return now > eventEndDate
 }
 
 /**
@@ -98,25 +98,25 @@ export function createTitleSlug(title: string): string {
 }
 
 /**
- * Create a workshop URL slug combining ID, title, and instructor
- * @param id - Workshop ID
- * @param title - Workshop title
+ * Create an event URL slug combining ID, title, and instructor
+ * @param id - Event ID
+ * @param title - Event title
  * @param instructor - Instructor name
  * @returns Combined slug (e.g., "40-rope-dart-kit")
  */
-export function createWorkshopSlug(id: number, title: string, instructor: string): string {
+export function createEventSlug(id: number, title: string, instructor: string): string {
   const titleSlug = createTitleSlug(title)
   const instructorSlug = createTitleSlug(instructor)
   return `${id}-${titleSlug}-${instructorSlug}`
 }
 
 /**
- * Parse a workshop slug to extract the numeric ID
+ * Parse an event slug to extract the numeric ID
  * Supports both old format (numeric only) and new format (id-title-slug)
  * @param slug - URL slug (e.g., "30-hoop-beg-int" or "30")
- * @returns Workshop ID as number, or null if invalid
+ * @returns Event ID as number, or null if invalid
  */
-export function parseWorkshopSlug(slug: string): number | null {
+export function parseEventSlug(slug: string): number | null {
   if (!slug) return null
   
   // Handle old format: numeric only

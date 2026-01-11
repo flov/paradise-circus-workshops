@@ -14,13 +14,13 @@ import { Loader2 } from "lucide-react";
 import { getUserName, getUserEmail } from "@/lib/utils";
 
 export function BookingForm({ 
-  workshopId, 
+  eventId, 
   isPast,
   initialUserName = "",
   initialUserEmail = "",
   isAuthenticated = false
 }: { 
-  workshopId: number;
+  eventId: number;
   isPast: boolean;
   initialUserName?: string;
   initialUserEmail?: string;
@@ -49,7 +49,7 @@ export function BookingForm({
     setError(null);
 
     const formData = new FormData(e.currentTarget);
-    formData.append("workshopId", workshopId.toString());
+    formData.append("eventId", eventId.toString());
     
     // Add name and email from state if user is logged in (they're hidden but still needed)
     if (isLoggedIn) {
@@ -95,7 +95,7 @@ export function BookingForm({
       <div className="space-y-4">
         <div className="rounded-md bg-muted/50 border border-border p-4 text-center">
           <p className="text-sm text-muted-foreground mb-4">
-            Please sign in to book this workshop
+            Please sign in to book this event
           </p>
           <SignInButton mode="modal">
             <Button className="w-full">Sign In to Book</Button>

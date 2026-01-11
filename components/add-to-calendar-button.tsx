@@ -2,20 +2,20 @@
 
 import { Button } from "@/components/ui/button";
 import { Calendar, Download } from "lucide-react";
-import { generateGoogleCalendarURL, type WorkshopCalendarData } from "@/lib/calendar";
+import { generateGoogleCalendarURL, type EventCalendarData } from "@/lib/calendar";
 
 interface AddToCalendarButtonProps {
   confirmationToken: string;
-  workshopData: WorkshopCalendarData;
+  eventData: EventCalendarData;
   className?: string;
 }
 
 export function AddToCalendarButton({
   confirmationToken,
-  workshopData,
+  eventData,
   className,
 }: AddToCalendarButtonProps) {
-  const googleCalendarUrl = generateGoogleCalendarURL(workshopData);
+  const googleCalendarUrl = generateGoogleCalendarURL(eventData);
 
   return (
     <div className={`flex gap-2 ${className || ""}`}>

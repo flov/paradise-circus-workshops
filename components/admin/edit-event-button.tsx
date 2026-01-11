@@ -16,10 +16,10 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Pencil, Loader2 } from "lucide-react"
-import { updateWorkshop } from "@/app/admin/actions"
+import { updateEvent } from "@/app/admin/actions"
 import { useRouter } from "next/navigation"
 
-type Workshop = {
+type Event = {
   id: number
   title: string
   description: string
@@ -31,14 +31,14 @@ type Workshop = {
   what_to_bring?: string | null
 }
 
-export function EditWorkshopButton({ workshop }: { workshop: Workshop }) {
+export function EditEventButton({ event }: { event: Event }) {
   const router = useRouter()
   const [open, setOpen] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   // Format date for input
-  const formattedDate = new Date(workshop.date).toISOString().split("T")[0]
+  const formattedDate = new Date(event.date).toISOString().split("T")[0]
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -46,16 +46,16 @@ export function EditWorkshopButton({ workshop }: { workshop: Workshop }) {
     setError(null)
 
     const formData = new FormData(e.currentTarget)
-    formData.append("id", workshop.id.toString())
+    formData.append("id", event.id.toString())
 
     try {
-      const result = await updateWorkshop(formData)
+      const result = await updateEvent(formData)
 
       if (result.success) {
         setOpen(false)
         router.refresh()
       } else {
-        setError(result.error || "Failed to update workshop")
+        setError(result.error || "Failed to update event")
       }
     } catch (err) {
       setError("An unexpected error occurred")
@@ -73,21 +73,21 @@ export function EditWorkshopButton({ workshop }: { workshop: Workshop }) {
       </DialogTrigger>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Edit Workshop</DialogTitle>
-          <DialogDescription>Update workshop details</DialogDescription>
+          <DialogTitle>Edit Event</DialogTitle>
+          <DialogDescription>Update event details</DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="title">Workshop Title *</Label>
-              <Input id="title" name="title" defaultValue={workshop.title} required disabled={isSubmitting} />
+              <Label htmlFor="title">Event Title *</Label>
+              <Input id="title" name="title" defaultValue={event.title} required disabled={isSubmitting} />
             </div>
             <div className="space-y-2">
               <Label htmlFor="instructor">Instructor *</Label>
               <Input
                 id="instructor"
                 name="instructor"
-                defaultValue={workshop.instructor}
+                defaultValue={event.instructor}
                 required
                 disabled={isSubmitting}
               />
@@ -99,7 +99,7 @@ export function EditWorkshopButton({ workshop }: { workshop: Workshop }) {
             <Textarea
               id="description"
               name="description"
-              defaultValue={workshop.description}
+              defaultValue={event.description}
               required
               disabled={isSubmitting}
               rows={3}
@@ -117,7 +117,7 @@ export function EditWorkshopButton({ workshop }: { workshop: Workshop }) {
                 id="start_time"
                 name="start_time"
                 type="time"
-                defaultValue={workshop.start_time}
+                defaultValue={event.start_time}
                 required
                 disabled={isSubmitting}
               />
@@ -128,7 +128,7 @@ export function EditWorkshopButton({ workshop }: { workshop: Workshop }) {
                 id="end_time"
                 name="end_time"
                 type="time"
-                defaultValue={workshop.end_time}
+                defaultValue={event.end_time}
                 required
                 disabled={isSubmitting}
               />
@@ -140,7 +140,7 @@ export function EditWorkshopButton({ workshop }: { workshop: Workshop }) {
             <select
               id="location"
               name="location"
-              defaultValue={workshop.location}
+              defaultValue={event.location}
               required
               disabled={isSubmitting}
               className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
@@ -156,7 +156,7 @@ export function EditWorkshopButton({ workshop }: { workshop: Workshop }) {
             <Textarea
               id="whatToBring"
               name="whatToBring"
-              defaultValue={workshop.what_to_bring || ""}
+              defaultValue={event.what_to_bring || ""}
               placeholder="Enter items participants should bring, one per line (e.g., Yoga mat&#10;Towel)"
               disabled={isSubmitting}
               rows={4}
@@ -183,7 +183,7 @@ export function EditWorkshopButton({ workshop }: { workshop: Workshop }) {
                   Updating...
                 </>
               ) : (
-                "Update Workshop"
+                "Update Event"
               )}
             </Button>
           </div>

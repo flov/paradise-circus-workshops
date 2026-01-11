@@ -2,20 +2,20 @@
 
 import { Button } from "@/components/ui/button";
 import { Calendar, Download } from "lucide-react";
-import { generateGoogleCalendarURL, type WorkshopCalendarData } from "@/lib/calendar";
+import { generateGoogleCalendarURL, type EventCalendarData } from "@/lib/calendar";
 
-interface WorkshopCalendarButtonsProps {
-  workshopData: WorkshopCalendarData;
+interface EventCalendarButtonsProps {
+  eventData: EventCalendarData;
   eventSlug: string;
   className?: string;
 }
 
-export function WorkshopCalendarButtons({
-  workshopData,
+export function EventCalendarButtons({
+  eventData,
   eventSlug,
   className,
-}: WorkshopCalendarButtonsProps) {
-  const googleCalendarUrl = generateGoogleCalendarURL(workshopData);
+}: EventCalendarButtonsProps) {
+  const googleCalendarUrl = generateGoogleCalendarURL(eventData);
 
   return (
     <div className={`flex gap-2 ${className || ""}`}>
@@ -38,7 +38,7 @@ export function WorkshopCalendarButtons({
         variant="outline"
         className="flex-1"
       >
-        <a href={`/api/workshop/${workshopData.bookingId}/calendar`}>
+        <a href={`/api/event/${eventData.bookingId}/calendar`}>
           <Download className="h-4 w-4 mr-2" />
           Download ICS
         </a>

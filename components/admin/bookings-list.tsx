@@ -1,5 +1,5 @@
 import { db } from "@/db"
-import { bookings, workshops } from "@/db/schema"
+import { bookings, events } from "@/db/schema"
 import { eq, desc } from "drizzle-orm"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
@@ -7,43 +7,43 @@ import { DeleteBookingButton } from "./delete-booking-button"
 
 type Booking = {
   id: number
-  workshop_id: number
+  event_id: number
   participant_name: string
   participant_email: string
   phone: string | null
   booking_date: string
-  workshop_title: string
-  workshop_date: string
-  workshop_start_time: string
+  event_title: string
+  event_date: string
+  event_start_time: string
 }
 
 export async function BookingsList() {
   const bookingsData = await db
     .select({
       id: bookings.id,
-      workshop_id: bookings.workshopId,
+      event_id: bookings.eventId,
       participant_name: bookings.participantName,
       participant_email: bookings.participantEmail,
       phone: bookings.phone,
       booking_date: bookings.bookingDate,
-      workshop_title: workshops.title,
-      workshop_date: workshops.date,
-      workshop_start_time: workshops.startTime,
+      event_title: events.title,
+      event_date: events.date,
+      event_start_time: events.startTime,
     })
     .from(bookings)
-    .innerJoin(workshops, eq(bookings.workshopId, workshops.id))
+    .innerJoin(events, eq(bookings.eventId, events.id))
     .orderBy(desc(bookings.bookingDate))
 
   const bookingsList: Booking[] = bookingsData.map((b) => ({
     id: b.id,
-    workshop_id: b.workshop_id,
+    event_id: b.event_id,
     participant_name: b.participant_name,
     participant_email: b.participant_email,
     phone: b.phone,
     booking_date: b.booking_date.toISOString(),
-    workshop_title: b.workshop_title,
-    workshop_date: b.workshop_date,
-    workshop_start_time: b.workshop_start_time,
+    event_title: b.event_title,
+    event_date: b.event_date,
+    event_start_time: b.event_start_time,
   }))
 
   if (bookingsList.length === 0) {
@@ -69,7 +69,7 @@ export async function BookingsList() {
         <TableHeader>
           <TableRow>
             <TableHead>Participant</TableHead>
-            <TableHead>Workshop</TableHead>
+            <TableHead>Event</TableHead>
             <TableHead>Date & Time</TableHead>
             <TableHead>Booked On</TableHead>
             <TableHead>Contact</TableHead>
@@ -79,21 +79,21 @@ export async function BookingsList() {
         <TableBody>
           {bookingsList.map((booking) => {
             // Combine date and start time to create a proper datetime for comparison
-            const workshopDateTime = new Date(`${booking.workshop_date}T${booking.workshop_start_time}`)
-            const isPast = workshopDateTime < new Date()
+            const eventDateTime = new Date(`${booking.event_date}T${booking.event_start_time}`)
+            const isPast = eventDateTime < new Date()
 
             return (
               <TableRow key={booking.id}>
                 <TableCell className="font-medium">{booking.participant_name}</TableCell>
                 <TableCell>
                   <div className="flex items-center gap-2">
-                    <span className="text-sm">{booking.workshop_title}</span>
+                    <span className="text-sm">{booking.event_title}</span>
                     {isPast && <Badge variant="secondary">Past</Badge>}
                   </div>
                 </TableCell>
                 <TableCell className="text-sm">
-                  <div>{formatDate(booking.workshop_date)}</div>
-                  <div className="text-muted-foreground">{formatTime(booking.workshop_start_time)}</div>
+                  <div>{formatDate(booking.event_date)}</div>
+                  <div className="text-muted-foreground">{formatTime(booking.event_start_time)}</div>
                 </TableCell>
                 <TableCell className="text-sm text-muted-foreground">{formatDate(booking.booking_date)}</TableCell>
                 <TableCell className="text-sm">
@@ -101,7 +101,7 @@ export async function BookingsList() {
                   {booking.phone && <div className="text-muted-foreground">{booking.phone}</div>}
                 </TableCell>
                 <TableCell className="text-right">
-                  <DeleteBookingButton bookingId={booking.id} workshopId={booking.workshop_id} />
+                  <DeleteBookingButton bookingId={booking.id} eventId={booking.event_id} />
                 </TableCell>
               </TableRow>
             )

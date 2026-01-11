@@ -1,18 +1,18 @@
 "use server"
 
 import { db } from "@/db"
-import { workshops, bookings } from "@/db/schema"
+import { events, bookings } from "@/db/schema"
 import { eq, sql } from "drizzle-orm"
 import { revalidatePath } from "next/cache"
-import { createWorkshopSlug } from "@/lib/utils"
+import { createEventSlug } from "@/lib/utils"
 import { auth } from "@clerk/nextjs/server"
 
-export async function createWorkshop(formData: FormData) {
+export async function createEvent(formData: FormData) {
   // Check authentication
   const { userId } = await auth()
   
   if (!userId) {
-    return { success: false, error: "Unauthorized. You must be signed in to create workshops." }
+    return { success: false, error: "Unauthorized. You must be signed in to create events." }
   }
 
   const title = formData.get("title") as string
@@ -28,7 +28,7 @@ export async function createWorkshop(formData: FormData) {
   }
 
   try {
-    await db.insert(workshops).values({
+    await db.insert(events).values({
       title,
       description,
       instructor,
@@ -44,17 +44,17 @@ export async function createWorkshop(formData: FormData) {
 
     return { success: true }
   } catch (error) {
-    console.error("Error creating workshop:", error)
-    return { success: false, error: "Failed to create workshop" }
+    console.error("Error creating event:", error)
+    return { success: false, error: "Failed to create event" }
   }
 }
 
-export async function updateWorkshop(formData: FormData) {
+export async function updateEvent(formData: FormData) {
   // Check authentication
   const { userId } = await auth()
   
   if (!userId) {
-    return { success: false, error: "Unauthorized. You must be signed in to update workshops." }
+    return { success: false, error: "Unauthorized. You must be signed in to update events." }
   }
 
   const id = formData.get("id") as string
@@ -72,7 +72,7 @@ export async function updateWorkshop(formData: FormData) {
 
   try {
     await db
-      .update(workshops)
+      .update(events)
       .set({
         title,
         description,
@@ -84,29 +84,29 @@ export async function updateWorkshop(formData: FormData) {
         whatToBring: whatToBring || null,
         updatedAt: sql`CURRENT_TIMESTAMP`,
       })
-      .where(eq(workshops.id, parseInt(id)))
+      .where(eq(events.id, parseInt(id)))
 
     revalidatePath("/admin")
     revalidatePath("/")
-    revalidatePath(`/event/${createWorkshopSlug(parseInt(id), title, instructor)}`)
+    revalidatePath(`/event/${createEventSlug(parseInt(id), title, instructor)}`)
 
     return { success: true }
   } catch (error) {
-    console.error("Error updating workshop:", error)
-    return { success: false, error: "Failed to update workshop" }
+    console.error("Error updating event:", error)
+    return { success: false, error: "Failed to update event" }
   }
 }
 
-export async function deleteWorkshop(workshopId: number) {
+export async function deleteEvent(eventId: number) {
   // Check authentication
   const { userId } = await auth()
   
   if (!userId) {
-    throw new Error("Unauthorized. You must be signed in to delete workshops.")
+    throw new Error("Unauthorized. You must be signed in to delete events.")
   }
 
   try {
-    await db.delete(workshops).where(eq(workshops.id, workshopId))
+    await db.delete(events).where(eq(events.id, eventId))
 
     revalidatePath("/admin")
     revalidatePath("/")
@@ -116,7 +116,7 @@ export async function deleteWorkshop(workshopId: number) {
   }
 }
 
-export async function deleteBooking(bookingId: number, workshopId: number) {
+export async function deleteBooking(bookingId: number, eventId: number) {
   // Check authentication
   const { userId } = await auth()
   
@@ -125,24 +125,24 @@ export async function deleteBooking(bookingId: number, workshopId: number) {
   }
 
   try {
-    // Fetch workshop title and instructor for revalidation
-    const workshopResults = await db
-      .select({ title: workshops.title, instructor: workshops.instructor })
-      .from(workshops)
-      .where(eq(workshops.id, workshopId))
+    // Fetch event title and instructor for revalidation
+    const eventResults = await db
+      .select({ title: events.title, instructor: events.instructor })
+      .from(events)
+      .where(eq(events.id, eventId))
 
     await db.delete(bookings).where(eq(bookings.id, bookingId))
 
-    // Update workshop booking count
+    // Update event booking count
     await db
-      .update(workshops)
-      .set({ currentBookings: sql`${workshops.currentBookings} - 1` })
-      .where(eq(workshops.id, workshopId))
+      .update(events)
+      .set({ currentBookings: sql`${events.currentBookings} - 1` })
+      .where(eq(events.id, eventId))
 
     revalidatePath("/admin")
     revalidatePath("/")
-    if (workshopResults.length > 0) {
-      revalidatePath(`/event/${createWorkshopSlug(workshopId, workshopResults[0].title, workshopResults[0].instructor)}`)
+    if (eventResults.length > 0) {
+      revalidatePath(`/event/${createEventSlug(eventId, eventResults[0].title, eventResults[0].instructor)}`)
     }
   } catch (error) {
     console.error("Error deleting booking:", error)

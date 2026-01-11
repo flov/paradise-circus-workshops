@@ -1,38 +1,26 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
-import { bookings, events } from "@/db/schema";
+import { events } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { generateICSFile } from "@/lib/calendar";
+import { createEventSlug } from "@/lib/utils";
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ token: string }> }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { token } = await params;
+    const { id } = await params;
+    const eventId = Number.parseInt(id);
 
-    if (!token || token.length === 0) {
+    if (!eventId || Number.isNaN(eventId)) {
       return NextResponse.json(
-        { error: "Invalid booking token" },
+        { error: "Invalid event ID" },
         { status: 400 }
       );
     }
 
-    // Fetch booking and event data
-    const bookingResults = await db
-      .select()
-      .from(bookings)
-      .where(eq(bookings.confirmationToken, token));
-
-    if (bookingResults.length === 0) {
-      return NextResponse.json(
-        { error: "Booking not found" },
-        { status: 404 }
-      );
-    }
-
-    const booking = bookingResults[0];
-
+    // Fetch event data
     const eventResults = await db
       .select({
         id: events.id,
@@ -46,7 +34,7 @@ export async function GET(
         whatToBring: events.whatToBring,
       })
       .from(events)
-      .where(eq(events.id, booking.eventId));
+      .where(eq(events.id, eventId));
 
     if (eventResults.length === 0) {
       return NextResponse.json(
@@ -57,7 +45,14 @@ export async function GET(
 
     const event = eventResults[0];
 
-    // Generate iCalendar content
+    // Generate event slug for URL
+    const eventSlug = createEventSlug(
+      event.id,
+      event.title,
+      event.instructor
+    );
+
+    // Generate iCalendar content (without booking info)
     const icsContent = generateICSFile({
       title: event.title,
       date: event.date,
@@ -67,8 +62,8 @@ export async function GET(
       instructor: event.instructor,
       description: event.description,
       whatToBring: event.whatToBring,
-      bookingId: booking.id,
-      confirmationToken: booking.confirmationToken,
+      bookingId: event.id, // Use event ID as fallback
+      confirmationToken: `event-${eventSlug}`, // Store slug in token field for URL generation
     });
 
     // Sanitize title for filename
@@ -78,7 +73,7 @@ export async function GET(
       .toLowerCase()
       .substring(0, 50);
 
-    const filename = `event-${booking.id}-${sanitizedTitle}.ics`;
+    const filename = `event-${event.id}-${sanitizedTitle}.ics`;
 
     // Return .ics file with proper headers
     return new NextResponse(icsContent, {
@@ -97,4 +92,3 @@ export async function GET(
     );
   }
 }
-

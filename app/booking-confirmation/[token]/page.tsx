@@ -1,5 +1,5 @@
 import { db } from '@/db';
-import { bookings, workshops } from '@/db/schema';
+import { bookings, events } from '@/db/schema';
 import { eq } from 'drizzle-orm';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -17,12 +17,12 @@ import {
 } from 'lucide-react';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
-import { createWorkshopSlug } from '@/lib/utils';
+import { createEventSlug } from '@/lib/utils';
 import { ArrowLeft } from 'lucide-react';
 
 type Booking = {
   id: number;
-  workshop_id: number;
+  event_id: number;
   participant_name: string;
   participant_email: string;
   phone: string | null;
@@ -30,7 +30,7 @@ type Booking = {
   booking_date: string;
 };
 
-type Workshop = {
+type Event = {
   id: number;
   title: string;
   date: string;
@@ -60,7 +60,7 @@ export default async function BookingConfirmationPage({
   const bookingData = bookingResults[0];
   const booking: Booking = {
     id: bookingData.id,
-    workshop_id: bookingData.workshopId,
+    event_id: bookingData.eventId,
     participant_name: bookingData.participantName,
     participant_email: bookingData.participantEmail,
     phone: bookingData.phone,
@@ -68,35 +68,35 @@ export default async function BookingConfirmationPage({
     booking_date: bookingData.bookingDate.toISOString(),
   };
 
-  const workshopResults = await db
+  const eventResults = await db
     .select({
-      id: workshops.id,
-      title: workshops.title,
-      date: workshops.date,
-      startTime: workshops.startTime,
-      endTime: workshops.endTime,
-      location: workshops.location,
-      instructor: workshops.instructor,
-      description: workshops.description,
-      whatToBring: workshops.whatToBring,
+      id: events.id,
+      title: events.title,
+      date: events.date,
+      startTime: events.startTime,
+      endTime: events.endTime,
+      location: events.location,
+      instructor: events.instructor,
+      description: events.description,
+      whatToBring: events.whatToBring,
     })
-    .from(workshops)
-    .where(eq(workshops.id, bookingData.workshopId));
+    .from(events)
+    .where(eq(events.id, bookingData.eventId));
 
-  const workshopData = workshopResults[0];
-  const workshop: Workshop = {
-    id: workshopData.id,
-    title: workshopData.title,
-    date: workshopData.date,
-    start_time: workshopData.startTime,
-    end_time: workshopData.endTime,
-    location: workshopData.location || '',
-    instructor: workshopData.instructor,
-    what_to_bring: workshopData.whatToBring,
+  const eventData = eventResults[0];
+  const event: Event = {
+    id: eventData.id,
+    title: eventData.title,
+    date: eventData.date,
+    start_time: eventData.startTime,
+    end_time: eventData.endTime,
+    location: eventData.location || '',
+    instructor: eventData.instructor,
+    what_to_bring: eventData.whatToBring,
   };
 
   // Format date
-  const date = new Date(workshop.date);
+  const date = new Date(event.date);
   const formattedDate = date.toLocaleDateString('en-US', {
     weekday: 'long',
     month: 'long',
@@ -114,10 +114,10 @@ export default async function BookingConfirmationPage({
   };
 
   // Create event slug for back button
-  const eventSlug = createWorkshopSlug(
-    workshopData.id,
-    workshopData.title,
-    workshopData.instructor,
+  const eventSlug = createEventSlug(
+    eventData.id,
+    eventData.title,
+    eventData.instructor,
   );
 
   return (
@@ -157,7 +157,7 @@ export default async function BookingConfirmationPage({
           <CardContent className='space-y-4'>
             <div>
               <h3 className='font-semibold text-lg text-foreground mb-3'>
-                {workshop.title}
+                {event.title}
               </h3>
               <div className='space-y-2 text-sm'>
                 <div className='flex items-center gap-3'>
@@ -167,13 +167,13 @@ export default async function BookingConfirmationPage({
                 <div className='flex items-center gap-3'>
                   <Clock className='h-4 w-4 text-muted-foreground' />
                   <span className='text-foreground'>
-                    {formatTime(workshop.start_time)} -{' '}
-                    {formatTime(workshop.end_time)}
+                    {formatTime(event.start_time)} -{' '}
+                    {formatTime(event.end_time)}
                   </span>
                 </div>
                 <div className='flex items-center gap-3'>
                   <MapPin className='h-4 w-4 text-muted-foreground' />
-                  <span className='text-foreground'>{workshop.location}</span>
+                  <span className='text-foreground'>{event.location}</span>
                 </div>
               </div>
             </div>
@@ -213,13 +213,13 @@ export default async function BookingConfirmationPage({
               </div>
             )}
 
-            {workshop.what_to_bring && (
+            {event.what_to_bring && (
               <div className='pt-4 border-t border-border'>
                 <h4 className='font-semibold text-foreground mb-2'>
                   What to Bring
                 </h4>
                 <ul className='text-sm text-muted-foreground space-y-1 list-disc list-inside'>
-                  {workshop.what_to_bring
+                  {event.what_to_bring
                     .split('\n')
                     .map((item) => item.trim())
                     .filter((item) => item.length > 0)
@@ -233,22 +233,22 @@ export default async function BookingConfirmationPage({
             <div className='pt-4 border-t border-border space-y-3'>
               <AddToCalendarButton
                 confirmationToken={bookingData.confirmationToken}
-                workshopData={{
-                  title: workshopData.title,
-                  date: workshopData.date,
-                  startTime: workshopData.startTime,
-                  endTime: workshopData.endTime,
-                  location: workshopData.location,
-                  instructor: workshopData.instructor,
-                  description: workshopData.description,
-                  whatToBring: workshopData.whatToBring,
+                eventData={{
+                  title: eventData.title,
+                  date: eventData.date,
+                  startTime: eventData.startTime,
+                  endTime: eventData.endTime,
+                  location: eventData.location,
+                  instructor: eventData.instructor,
+                  description: eventData.description,
+                  whatToBring: eventData.whatToBring,
                   bookingId: bookingData.id,
                   confirmationToken: bookingData.confirmationToken,
                 }}
                 className='w-full'
               />
               <Link href='/'>
-                <Button className='w-full'>Browse More Workshops</Button>
+                <Button className='w-full'>Browse More Events</Button>
               </Link>
               <CancelBookingButton
                 bookingId={bookingData.id}

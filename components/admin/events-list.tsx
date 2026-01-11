@@ -1,14 +1,14 @@
 import { db } from "@/db"
-import { workshops } from "@/db/schema"
+import { events } from "@/db/schema"
 import { desc } from "drizzle-orm"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
-import { EditWorkshopButton } from "./edit-workshop-button"
-import { DeleteWorkshopButton } from "./delete-workshop-button"
+import { EditEventButton } from "./edit-event-button"
+import { DeleteEventButton } from "./delete-event-button"
 import Link from "next/link"
-import { createWorkshopSlug } from "@/lib/utils"
+import { createEventSlug } from "@/lib/utils"
 
-type Workshop = {
+type Event = {
   id: number
   title: string
   description: string
@@ -21,13 +21,13 @@ type Workshop = {
   what_to_bring?: string | null
 }
 
-export async function WorkshopsList() {
-  const workshopsData = await db
+export async function EventsList() {
+  const eventsData = await db
     .select()
-    .from(workshops)
-    .orderBy(desc(workshops.date), desc(workshops.startTime))
+    .from(events)
+    .orderBy(desc(events.date), desc(events.startTime))
 
-  const workshopsList: Workshop[] = workshopsData.map((w) => ({
+  const eventsList: Event[] = eventsData.map((w) => ({
     id: w.id,
     title: w.title,
     description: w.description || "",
@@ -40,10 +40,10 @@ export async function WorkshopsList() {
     what_to_bring: w.whatToBring,
   }))
 
-  if (workshopsList.length === 0) {
+  if (eventsList.length === 0) {
     return (
       <div className="text-center py-8 text-muted-foreground">
-        No workshops found. Create your first workshop to get started.
+        No events found. Create your first event to get started.
       </div>
     )
   }
@@ -71,7 +71,7 @@ export async function WorkshopsList() {
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>Workshop</TableHead>
+            <TableHead>Event</TableHead>
             <TableHead>Date & Time</TableHead>
             <TableHead>Location</TableHead>
             <TableHead>Instructor</TableHead>
@@ -80,35 +80,35 @@ export async function WorkshopsList() {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {workshopsList.map((workshop) => {
+          {eventsList.map((event) => {
             // Combine date and start_time to properly compare datetime
-            const workshopDateTime = new Date(`${workshop.date}T${workshop.start_time}`)
-            const isPast = workshopDateTime < new Date()
+            const eventDateTime = new Date(`${event.date}T${event.start_time}`)
+            const isPast = eventDateTime < new Date()
 
             return (
-              <TableRow key={workshop.id}>
+              <TableRow key={event.id}>
                 <TableCell className="font-medium">
                   <Link 
-                    href={`/event/${createWorkshopSlug(workshop.id, workshop.title, workshop.instructor)}`}
+                    href={`/event/${createEventSlug(event.id, event.title, event.instructor)}`}
                     className="hover:underline text-primary"
                   >
-                    {workshop.title}
+                    {event.title}
                   </Link>
                 </TableCell>
                 <TableCell>
                   <div className="text-sm">
-                    <div>{formatDate(workshop.date)}</div>
+                    <div>{formatDate(event.date)}</div>
                     <div className="text-muted-foreground">
-                      {formatTime(workshop.start_time)} - {formatTime(workshop.end_time)}
+                      {formatTime(event.start_time)} - {formatTime(event.end_time)}
                     </div>
                   </div>
                 </TableCell>
-                <TableCell className="text-sm">{workshop.location}</TableCell>
-                <TableCell className="text-sm">{workshop.instructor}</TableCell>
+                <TableCell className="text-sm">{event.location}</TableCell>
+                <TableCell className="text-sm">{event.instructor}</TableCell>
                 <TableCell>
                   <div className="flex items-center gap-2">
                     <span className="text-sm">
-                      {workshop.current_bookings} {workshop.current_bookings === 1 ? 'participant' : 'participants'}
+                      {event.current_bookings} {event.current_bookings === 1 ? 'participant' : 'participants'}
                     </span>
                     {isPast && (
                       <Badge variant="secondary">Past</Badge>
@@ -117,8 +117,8 @@ export async function WorkshopsList() {
                 </TableCell>
                 <TableCell className="text-right">
                   <div className="flex items-center justify-end gap-2">
-                    <EditWorkshopButton workshop={workshop} />
-                    <DeleteWorkshopButton workshopId={workshop.id} workshopTitle={workshop.title} />
+                    <EditEventButton event={event} />
+                    <DeleteEventButton eventId={event.id} eventTitle={event.title} />
                   </div>
                 </TableCell>
               </TableRow>

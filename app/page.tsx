@@ -1,12 +1,12 @@
 import Link from "next/link";
 import { db } from "@/db";
-import { workshops as workshopsTable } from "@/db/schema";
+import { events as eventsTable } from "@/db/schema";
 import { gte, asc } from "drizzle-orm";
-import { WorkshopCard } from "@/components/workshop-card";
+import { EventCard } from "@/components/event-card";
 import { WeeklyTimetable } from "@/components/weekly-timetable";
 import { Tent } from "lucide-react";
 
-type Workshop = {
+type Event = {
   id: number;
   title: string;
   description: string;
@@ -19,27 +19,27 @@ type Workshop = {
 };
 
 export default async function Home() {
-  // Fetch upcoming workshops ordered by date and time
+  // Fetch upcoming events ordered by date and time
   const today = new Date().toISOString().split("T")[0]; // Get today's date in YYYY-MM-DD format
 
-  const workshopsData = await db
+  const eventsData = await db
     .select({
-      id: workshopsTable.id,
-      title: workshopsTable.title,
-      description: workshopsTable.description,
-      instructor: workshopsTable.instructor,
-      date: workshopsTable.date,
-      startTime: workshopsTable.startTime,
-      endTime: workshopsTable.endTime,
-      currentBookings: workshopsTable.currentBookings,
-      location: workshopsTable.location,
+      id: eventsTable.id,
+      title: eventsTable.title,
+      description: eventsTable.description,
+      instructor: eventsTable.instructor,
+      date: eventsTable.date,
+      startTime: eventsTable.startTime,
+      endTime: eventsTable.endTime,
+      currentBookings: eventsTable.currentBookings,
+      location: eventsTable.location,
     })
-    .from(workshopsTable)
-    .where(gte(workshopsTable.date, today))
-    .orderBy(asc(workshopsTable.date), asc(workshopsTable.startTime));
+    .from(eventsTable)
+    .where(gte(eventsTable.date, today))
+    .orderBy(asc(eventsTable.date), asc(eventsTable.startTime));
 
   // Map to match the expected type format
-  const workshops: Workshop[] = workshopsData.map((w) => ({
+  const events: Event[] = eventsData.map((w) => ({
     id: w.id,
     title: w.title,
     description: w.description || "",
@@ -79,7 +79,7 @@ export default async function Home() {
                   href="/"
                   className="text-sm text-muted-foreground hover:text-primary transition-colors"
                 >
-                  Weekly Workshops
+                  Weekly Events
                 </Link>
                 <Link
                   href="/about"

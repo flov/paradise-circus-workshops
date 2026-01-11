@@ -8,21 +8,21 @@ import { createBooking } from "@/app/actions";
 import { Loader2 } from "lucide-react";
 import { getUserName, getUserEmail } from "@/lib/utils";
 
-interface BookWorkshopButtonProps {
-  workshopId: number;
+interface BookEventButtonProps {
+  eventId: number;
   isPast: boolean;
   isAuthenticated: boolean;
   userName: string;
   userEmail: string;
 }
 
-export function BookWorkshopButton({
-  workshopId,
+export function BookEventButton({
+  eventId,
   isPast,
   isAuthenticated: serverIsAuthenticated,
   userName: serverUserName,
   userEmail: serverUserEmail,
-}: BookWorkshopButtonProps) {
+}: BookEventButtonProps) {
   const router = useRouter();
   const { user, isLoaded } = useUser();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -38,7 +38,7 @@ export function BookWorkshopButton({
     setError(null);
 
     const formData = new FormData();
-    formData.append("workshopId", workshopId.toString());
+    formData.append("eventId", eventId.toString());
     formData.append("name", userName);
     formData.append("email", userEmail);
 
@@ -60,7 +60,7 @@ export function BookWorkshopButton({
   if (isPast) {
     return (
       <p className="text-sm text-muted-foreground text-center">
-        This workshop has already ended and bookings are no longer available.
+        This event has already ended and bookings are no longer available.
       </p>
     );
   }

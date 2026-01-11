@@ -7,11 +7,11 @@ import { AdminNotificationEmail } from "@/emails/admin-notification";
 type BookingConfirmationEmailProps = {
   participantName: string;
   participantEmail: string;
-  workshopTitle: string;
-  workshopDate: string;
-  workshopStartTime: string;
-  workshopEndTime: string;
-  workshopLocation: string;
+  eventTitle: string;
+  eventDate: string;
+  eventStartTime: string;
+  eventEndTime: string;
+  eventLocation: string;
   instructorName: string;
   bookingId: number;
   confirmationToken: string;
@@ -22,11 +22,11 @@ type BookingConfirmationEmailProps = {
 const generatePlainText = (props: BookingConfirmationEmailProps) => {
   const {
     participantName,
-    workshopTitle,
-    workshopDate,
-    workshopStartTime,
-    workshopEndTime,
-    workshopLocation,
+    eventTitle,
+    eventDate,
+    eventStartTime,
+    eventEndTime,
+    eventLocation,
     instructorName,
     bookingId,
     confirmationToken,
@@ -34,7 +34,7 @@ const generatePlainText = (props: BookingConfirmationEmailProps) => {
   } = props;
 
   // Format date
-  const date = new Date(workshopDate);
+  const date = new Date(eventDate);
   const formattedDate = date.toLocaleDateString("en-US", {
     weekday: "long",
     month: "long",
@@ -64,17 +64,17 @@ const generatePlainText = (props: BookingConfirmationEmailProps) => {
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
 
   return `
-Paradise Circus - Workshop Booking Confirmation
+Paradise Circus - Event Booking Confirmation
 
 Dear ${participantName},
 
-Thank you for booking a workshop with Paradise Circus! Your spot has been confirmed.
+Thank you for booking an event with Paradise Circus! Your spot has been confirmed.
 
-Workshop Details:
-- Title: ${workshopTitle}
+Event Details:
+- Title: ${eventTitle}
 - Date: ${formattedDate}
-- Time: ${formatTime(workshopStartTime)} - ${formatTime(workshopEndTime)}
-- Location: ${workshopLocation}
+- Time: ${formatTime(eventStartTime)} - ${formatTime(eventEndTime)}
+- Location: ${eventLocation}
 - Instructor: ${instructorName}
 ${whatToBringItems.length > 0 ? `
 What to Bring:
@@ -88,7 +88,7 @@ View your booking details: ${appUrl}/booking-confirmation/${confirmationToken}
 
 Cancel this booking: ${appUrl}/api/cancel-booking?id=${bookingId}
 
-We're excited to see you at the workshop!
+We're excited to see you at the event!
 
 Booking Reference: #${bookingId}
 
@@ -102,7 +102,7 @@ export async function sendBookingConfirmationEmail(
 ) {
   const {
     participantEmail,
-    workshopTitle,
+    eventTitle,
   } = props;
 
   // Render React Email component to HTML
@@ -131,7 +131,7 @@ export async function sendBookingConfirmationEmail(
     await resend.emails.send({
       from: fromEmail,
       to: participantEmail,
-      subject: `Booking Confirmed: ${workshopTitle}`,
+      subject: `Booking Confirmed: ${eventTitle}`,
       html: emailHtml,
       text: emailText,
     });
@@ -153,16 +153,16 @@ type AdminNotificationEmailProps = {
   participantName: string;
   participantEmail: string;
   participantPhone: string | null;
-  workshopTitle: string;
-  workshopDate: string;
-  workshopStartTime: string;
+  eventTitle: string;
+  eventDate: string;
+  eventStartTime: string;
   bookingId: number;
 };
 
 export async function sendAdminNotificationEmail(
   props: AdminNotificationEmailProps,
 ) {
-  const { workshopTitle } = props;
+  const { eventTitle } = props;
 
   // Render React Email component to HTML
   const emailHtml = await render(<AdminNotificationEmail {...props} />);
@@ -184,7 +184,7 @@ export async function sendAdminNotificationEmail(
     await resend.emails.send({
       from: fromEmail,
       to: adminEmail,
-      subject: `New Booking: ${workshopTitle}`,
+      subject: `New Booking: ${eventTitle}`,
       html: emailHtml,
     });
 
