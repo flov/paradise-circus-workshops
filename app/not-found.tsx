@@ -19,7 +19,7 @@ export default function NotFound() {
             >
               4
             </span>
-            <span className="inline-block text-6xl mx-4 animate-spin">🎪</span>
+            <span className="inline-block animate-bounce">🎪</span>
             <span
               className="inline-block animate-bounce"
               style={{ animationDelay: "0.2s" }}
