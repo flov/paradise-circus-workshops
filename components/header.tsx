@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { SignedIn, UserButton } from "@clerk/nextjs";
 import { Menu, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { ProfileLinks } from "@/components/profile-links";
 
 interface HeaderProps {
   title?: string;
@@ -69,6 +70,7 @@ export function Header({
               {/* Auth Buttons */}
               <div className="flex items-center gap-2">
                 <SignedIn>
+                  <ProfileLinks />
                   <UserButton />
                 </SignedIn>
               </div>
