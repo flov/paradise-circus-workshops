@@ -84,7 +84,6 @@ BEGIN
 			ON DELETE cascade ON UPDATE no action;
 		END IF;
 		
-		-- Drop prop_name column (commented out for safety - uncomment after verifying migration)
-		-- ALTER TABLE "user_props" DROP COLUMN IF EXISTS "prop_name";
+		ALTER TABLE "user_props" DROP COLUMN IF EXISTS "prop_name";
 	END IF;
 END $$;
