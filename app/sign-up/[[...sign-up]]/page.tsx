@@ -6,7 +6,8 @@ export default function SignUpPage() {
       <SignUp
         appearance={{
           elements: {
-            formButtonPrimary: "bg-primary text-primary-foreground hover:bg-primary/90",
+            formButtonPrimary:
+              "bg-primary text-primary-foreground hover:bg-primary/90",
             formFieldInput: "border-input bg-background",
             card: "bg-card border-border",
           },
@@ -20,9 +21,7 @@ export default function SignUpPage() {
         routing="path"
         path="/sign-up"
         signInUrl="/sign-in"
-        afterSignUpUrl="/onboarding"
       />
     </div>
   );
 }
-
