@@ -58,7 +58,7 @@ export const BookingConfirmationEmail = ({
   whatToBring,
 }: BookingConfirmationEmailProps) => {
   const formattedDate = formatDate(eventDate);
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://paradise-circus.app";
 
   // Build "What to Bring" list
   const whatToBringItems: string[] = [];

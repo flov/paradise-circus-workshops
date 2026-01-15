@@ -50,7 +50,7 @@ function formatICSDateTime(dateStr: string, timeStr: string): string {
  * Generates a unique UID for the calendar event
  */
 function generateUID(bookingId: number, date: string): string {
-  const domain = process.env.NEXT_PUBLIC_SITE_URL || "paradise-circus-workshops.vercel.app";
+  const domain = process.env.NEXT_PUBLIC_SITE_URL || "paradise-circus.app";
   return `event-${bookingId}-${date.replace(/-/g, "")}@${domain}`;
 }
 
@@ -123,7 +123,7 @@ export function generateICSFile(data: EventCalendarData): string {
 
   // Add URL - use event page if confirmationToken starts with "event-", otherwise use booking confirmation
   const siteUrl =
-    process.env.NEXT_PUBLIC_SITE_URL || "https://paradisecircus.com";
+    process.env.NEXT_PUBLIC_SITE_URL || "https://paradise-circus.app";
   if (confirmationToken.startsWith("event-")) {
     // Extract event slug from token format "event-{slug}"
     const eventSlug = confirmationToken.replace("event-", "");
@@ -203,7 +203,7 @@ export function generateGoogleCalendarURL(data: EventCalendarData): string {
 
   // Add URL - use event page if confirmationToken starts with "event-", otherwise use booking confirmation
   const siteUrl =
-    process.env.NEXT_PUBLIC_SITE_URL || "https://www.paradisepai.com/";
+    process.env.NEXT_PUBLIC_SITE_URL || "https://paradise-circus.app";
   if (confirmationToken.startsWith("event-")) {
     // Extract event slug from token format "event-{slug}"
     const eventSlug = confirmationToken.replace("event-", "");

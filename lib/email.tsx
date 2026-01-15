@@ -61,7 +61,7 @@ const generatePlainText = (props: BookingConfirmationEmailProps) => {
     whatToBringItems.push(...customItems);
   }
 
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://paradise-circus.app";
 
   return `
 Paradise Circus - Event Booking Confirmation
