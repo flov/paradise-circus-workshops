@@ -1,5 +1,5 @@
 import { pgTable, serial, varchar, text, date, time, integer, timestamp, index, boolean } from "drizzle-orm/pg-core";
-import { relations } from "drizzle-orm";
+import { relations, InferSelectModel, InferInsertModel } from "drizzle-orm";
 
 export const events = pgTable(
   "events",
@@ -186,3 +186,28 @@ export const eventPropsRelations = relations(eventProps, ({ one }) => ({
     references: [props.id],
   }),
 }));
+
+// Export inferred types for each table
+export type Event = InferSelectModel<typeof events>;
+export type NewEvent = InferInsertModel<typeof events>;
+
+export type Booking = InferSelectModel<typeof bookings>;
+export type NewBooking = InferInsertModel<typeof bookings>;
+
+export type Comment = InferSelectModel<typeof comments>;
+export type NewComment = InferInsertModel<typeof comments>;
+
+export type User = InferSelectModel<typeof users>;
+export type NewUser = InferInsertModel<typeof users>;
+
+export type Prop = InferSelectModel<typeof props>;
+export type NewProp = InferInsertModel<typeof props>;
+
+export type UserProp = InferSelectModel<typeof userProps>;
+export type NewUserProp = InferInsertModel<typeof userProps>;
+
+export type EventProp = InferSelectModel<typeof eventProps>;
+export type NewEventProp = InferInsertModel<typeof eventProps>;
+
+export type AdminSetting = InferSelectModel<typeof adminSettings>;
+export type NewAdminSetting = InferInsertModel<typeof adminSettings>;

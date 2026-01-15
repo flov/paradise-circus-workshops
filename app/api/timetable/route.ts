@@ -19,10 +19,10 @@ export async function GET(request: NextRequest) {
         title: events.title,
         instructor: events.instructor,
         date: events.date,
-        start_time: events.startTime,
-        end_time: events.endTime,
+        startTime: events.startTime,
+        endTime: events.endTime,
         location: events.location,
-        current_bookings: events.currentBookings,
+        currentBookings: events.currentBookings,
       })
       .from(events)
       .where(and(gte(events.date, startDate), lte(events.date, endDate)))

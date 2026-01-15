@@ -8,15 +8,7 @@ import { getInitials } from "@/lib/utils";
 import { addComment, deleteComment } from "@/app/actions";
 import { MessageCircle, Send, Trash2, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
-
-type Comment = {
-  id: number;
-  authorName: string;
-  authorImageUrl: string | null;
-  content: string;
-  createdAt: Date;
-  clerkUserId: string;
-};
+import type { Comment } from "@/db/schema";
 
 type EventCommentsProps = {
   eventId: number;

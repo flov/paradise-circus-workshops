@@ -19,20 +19,9 @@ import { Pencil, Loader2 } from "lucide-react"
 import { updateEvent, getEventProps } from "@/app/admin/actions"
 import { getAllProps } from "@/app/profile/actions"
 import { useRouter } from "next/navigation"
+import type { Event } from "@/db/schema"
 
-type Event = {
-  id: number
-  title: string
-  description: string
-  instructor: string
-  date: string
-  start_time: string
-  end_time: string
-  location: string
-  what_to_bring?: string | null
-}
-
-export function EditEventButton({ event }: { event: Event }) {
+export function EditEventButton({ event }: { event: Pick<Event, "id" | "title" | "description" | "instructor" | "date" | "startTime" | "endTime" | "location" | "whatToBring"> }) {
   const router = useRouter()
   const [open, setOpen] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -140,7 +129,7 @@ export function EditEventButton({ event }: { event: Event }) {
                 id="start_time"
                 name="start_time"
                 type="time"
-                defaultValue={event.start_time}
+                defaultValue={event.startTime}
                 required
                 disabled={isSubmitting}
               />
@@ -151,7 +140,7 @@ export function EditEventButton({ event }: { event: Event }) {
                 id="end_time"
                 name="end_time"
                 type="time"
-                defaultValue={event.end_time}
+                defaultValue={event.endTime}
                 required
                 disabled={isSubmitting}
               />
@@ -179,7 +168,7 @@ export function EditEventButton({ event }: { event: Event }) {
             <Textarea
               id="whatToBring"
               name="whatToBring"
-              defaultValue={event.what_to_bring || ""}
+              defaultValue={event.whatToBring || ""}
               placeholder="Enter items participants should bring, one per line (e.g., Yoga mat&#10;Towel)"
               disabled={isSubmitting}
               rows={4}

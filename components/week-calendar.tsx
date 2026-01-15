@@ -6,21 +6,10 @@ import { Fragment, useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { createEventSlug } from "@/lib/utils";
-
-type Event = {
-  id: number;
-  title: string;
-  description: string | null;
-  instructor: string;
-  date: string | Date;
-  startTime: string;
-  endTime: string;
-  currentBookings: number;
-  location: string | null;
-};
+import type { Event } from "@/db/schema";
 
 type WeekCalendarProps = {
-  events: Event[];
+  events: Pick<Event, "id" | "title" | "description" | "instructor" | "date" | "startTime" | "endTime" | "currentBookings" | "location">[];
 };
 
 const TIME_SLOTS = [

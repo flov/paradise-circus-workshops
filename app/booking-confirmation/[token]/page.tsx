@@ -19,27 +19,7 @@ import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { createEventSlug } from '@/lib/utils';
 import { ArrowLeft } from 'lucide-react';
-
-type Booking = {
-  id: number;
-  event_id: number;
-  participant_name: string;
-  participant_email: string;
-  phone: string | null;
-  notes: string | null;
-  booking_date: string;
-};
-
-type Event = {
-  id: number;
-  title: string;
-  date: string;
-  start_time: string;
-  end_time: string;
-  location: string;
-  instructor: string;
-  what_to_bring?: string | null;
-};
+import type { Booking, Event } from '@/db/schema';
 
 export default async function BookingConfirmationPage({
   params,
@@ -57,16 +37,7 @@ export default async function BookingConfirmationPage({
     notFound();
   }
 
-  const bookingData = bookingResults[0];
-  const booking: Booking = {
-    id: bookingData.id,
-    event_id: bookingData.eventId,
-    participant_name: bookingData.participantName,
-    participant_email: bookingData.participantEmail,
-    phone: bookingData.phone,
-    notes: bookingData.notes,
-    booking_date: bookingData.bookingDate.toISOString(),
-  };
+  const booking = bookingResults[0];
 
   const eventResults = await db
     .select({
@@ -81,19 +52,9 @@ export default async function BookingConfirmationPage({
       whatToBring: events.whatToBring,
     })
     .from(events)
-    .where(eq(events.id, bookingData.eventId));
+    .where(eq(events.id, booking.eventId));
 
-  const eventData = eventResults[0];
-  const event: Event = {
-    id: eventData.id,
-    title: eventData.title,
-    date: eventData.date,
-    start_time: eventData.startTime,
-    end_time: eventData.endTime,
-    location: eventData.location || '',
-    instructor: eventData.instructor,
-    what_to_bring: eventData.whatToBring,
-  };
+  const event = eventResults[0];
 
   // Format date
   const date = new Date(event.date);
@@ -167,8 +128,8 @@ export default async function BookingConfirmationPage({
                 <div className='flex items-center gap-3'>
                   <Clock className='h-4 w-4 text-muted-foreground' />
                   <span className='text-foreground'>
-                    {formatTime(event.start_time)} -{' '}
-                    {formatTime(event.end_time)}
+                    {formatTime(event.startTime)} -{' '}
+                    {formatTime(event.endTime)}
                   </span>
                 </div>
                 <div className='flex items-center gap-3'>
@@ -186,13 +147,13 @@ export default async function BookingConfirmationPage({
                 <div className='flex items-center gap-3'>
                   <User className='h-4 w-4 text-muted-foreground' />
                   <span className='text-foreground'>
-                    {booking.participant_name}
+                    {booking.participantName}
                   </span>
                 </div>
                 <div className='flex items-center gap-3'>
                   <Mail className='h-4 w-4 text-muted-foreground' />
                   <span className='text-foreground'>
-                    {booking.participant_email}
+                    {booking.participantEmail}
                   </span>
                 </div>
                 {booking.phone && (
@@ -213,13 +174,13 @@ export default async function BookingConfirmationPage({
               </div>
             )}
 
-            {event.what_to_bring && (
+            {event.whatToBring && (
               <div className='pt-4 border-t border-border'>
                 <h4 className='font-semibold text-foreground mb-2'>
                   What to Bring
                 </h4>
                 <ul className='text-sm text-muted-foreground space-y-1 list-disc list-inside'>
-                  {event.what_to_bring
+                  {event.whatToBring
                     .split('\n')
                     .map((item) => item.trim())
                     .filter((item) => item.length > 0)

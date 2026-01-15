@@ -6,11 +6,11 @@ import { Button } from "@/components/ui/button";
 import { createEventSlug } from "@/lib/utils";
 
 type TimeSlot = {
-  event_id: number;
+  id: number;
   title: string;
   instructor: string;
-  start_time: string;
-  end_time: string;
+  startTime: string;
+  endTime: string;
   location: string | null;
 };
 
@@ -80,18 +80,18 @@ export function WeeklyTimetable() {
         const dayName = DAYS[dayIndex];
 
         // Convert 24h time to 12h format for matching
-        const hour = Number.parseInt(event.start_time.split(":")[0]);
+        const hour = Number.parseInt(event.startTime.split(":")[0]);
         const timeSlot =
           hour >= 12 ? `${hour === 12 ? 12 : hour - 12}pm` : `${hour}am`;
 
         if (!organized[dayName]) organized[dayName] = {};
         if (!organized[dayName][timeSlot]) organized[dayName][timeSlot] = [];
         organized[dayName][timeSlot].push({
-          event_id: event.id,
+          id: event.id,
           title: event.title,
           instructor: event.instructor,
-          start_time: event.start_time,
-          end_time: event.end_time,
+          startTime: event.startTime,
+          endTime: event.endTime,
           location: event.location,
         });
       });
@@ -353,8 +353,8 @@ export function WeeklyTimetable() {
                                     "paradise river";
                                 return (
                                   <a
-                                    key={slot.event_id}
-                                    href={`/event/${createEventSlug(slot.event_id, slot.title, slot.instructor)}`}
+                                    key={slot.id}
+                                    href={`/event/${createEventSlug(slot.id, slot.title, slot.instructor)}`}
                                     className={`block p-2 rounded transition-colors h-full ${
                                       isParadiseRiver
                                         ? "bg-blue-500/20 hover:bg-blue-500/30 border border-blue-500/40"
@@ -469,8 +469,8 @@ export function WeeklyTimetable() {
                               slot.location?.toLowerCase() === "paradise river";
                             return (
                               <a
-                                key={slot.event_id}
-                                href={`/event/${createEventSlug(slot.event_id, slot.title, slot.instructor)}`}
+                                key={slot.id}
+                                href={`/event/${createEventSlug(slot.id, slot.title, slot.instructor)}`}
                                 className={`block p-4 rounded-lg border-2 shadow-sm hover:shadow-md active:shadow-sm transition-all duration-150 cursor-pointer ${
                                   isParadiseRiver
                                     ? "bg-blue-500/15 hover:bg-blue-500/25 active:bg-blue-500/30 border-blue-500/40 hover:border-blue-500/50 active:border-blue-500/60"
