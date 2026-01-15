@@ -1,4 +1,4 @@
-import { pgTable, serial, varchar, text, date, time, integer, timestamp, index } from "drizzle-orm/pg-core";
+import { pgTable, serial, varchar, text, date, time, integer, timestamp, index, boolean } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 
 export const events = pgTable(
@@ -66,6 +66,7 @@ export const comments = pgTable(
 export const eventsRelations = relations(events, ({ many }) => ({
   bookings: many(bookings),
   comments: many(comments),
+  props: many(eventProps),
 }));
 
 export const bookingsRelations = relations(bookings, ({ one }) => ({
@@ -88,3 +89,100 @@ export const adminSettings = pgTable("admin_settings", {
   settingValue: text("setting_value"),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
+
+export const users = pgTable(
+  "users",
+  {
+    id: serial("id").primaryKey(),
+    clerkUserId: varchar("clerk_user_id", { length: 255 }).notNull().unique(),
+    username: varchar("username", { length: 50 }).notNull().unique(),
+    isArtist: boolean("is_artist").notNull().default(false),
+    isInstructor: boolean("is_instructor").notNull().default(false),
+    bio: text("bio"),
+    instagramHandle: varchar("instagram_handle", { length: 100 }),
+    youtubeVideos: text("youtube_videos").array(),
+    experienceStartDate: date("experience_start_date"),
+    performanceStyle: varchar("performance_style", { length: 255 }),
+    availableForPerformances: boolean("available_for_performances").notNull().default(false),
+    location: varchar("location", { length: 255 }),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (table) => ({
+    usernameIdx: index("idx_users_username").on(table.username),
+    clerkUserIdIdx: index("idx_users_clerk_user_id").on(table.clerkUserId),
+  })
+);
+
+export const props = pgTable(
+  "props",
+  {
+    id: serial("id").primaryKey(),
+    name: varchar("name", { length: 100 }).notNull().unique(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => ({
+    nameIdx: index("idx_props_name").on(table.name),
+  })
+);
+
+export const userProps = pgTable(
+  "user_props",
+  {
+    id: serial("id").primaryKey(),
+    userId: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+    propId: integer("prop_id").notNull().references(() => props.id, { onDelete: "cascade" }),
+    skillLevel: integer("skill_level").notNull().default(0),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => ({
+    userIdIdx: index("idx_user_props_user_id").on(table.userId),
+    propIdIdx: index("idx_user_props_prop_id").on(table.propId),
+    userPropUniqueIdx: index("idx_user_props_user_prop_unique").on(table.userId, table.propId),
+  })
+);
+
+export const eventProps = pgTable(
+  "event_props",
+  {
+    id: serial("id").primaryKey(),
+    eventId: integer("event_id").notNull().references(() => events.id, { onDelete: "cascade" }),
+    propId: integer("prop_id").notNull().references(() => props.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => ({
+    eventIdIdx: index("idx_event_props_event_id").on(table.eventId),
+    propIdIdx: index("idx_event_props_prop_id").on(table.propId),
+  })
+);
+
+export const usersRelations = relations(users, ({ many }) => ({
+  props: many(userProps),
+}));
+
+export const propsRelations = relations(props, ({ many }) => ({
+  userProps: many(userProps),
+  eventProps: many(eventProps),
+}));
+
+export const userPropsRelations = relations(userProps, ({ one }) => ({
+  user: one(users, {
+    fields: [userProps.userId],
+    references: [users.id],
+  }),
+  prop: one(props, {
+    fields: [userProps.propId],
+    references: [props.id],
+  }),
+}));
+
+export const eventPropsRelations = relations(eventProps, ({ one }) => ({
+  event: one(events, {
+    fields: [eventProps.eventId],
+    references: [events.id],
+  }),
+  prop: one(props, {
+    fields: [eventProps.propId],
+    references: [props.id],
+  }),
+}));

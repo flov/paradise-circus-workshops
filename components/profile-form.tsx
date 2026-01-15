@@ -1,13 +1,13 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Card, CardContent } from "@/components/ui/card"
-import { createProfile } from "@/app/profile/actions"
+import { createProfile, getAllProps } from "@/app/profile/actions"
 import { Loader2, Plus, X } from "lucide-react"
 
 interface Prop {
@@ -24,7 +24,13 @@ export function ProfileForm({ initialData }: { initialData?: any }) {
   const [bio, setBio] = useState(initialData?.bio || "")
   const [instagramHandle, setInstagramHandle] = useState(initialData?.instagramHandle || "")
   const [isInstructor, setIsInstructor] = useState(initialData?.isInstructor || false)
-  const [yearsOfExperience, setYearsOfExperience] = useState(initialData?.yearsOfExperience?.toString() || "")
+  const [experienceStartDate, setExperienceStartDate] = useState(
+    initialData?.experienceStartDate 
+      ? (typeof initialData.experienceStartDate === 'string' 
+          ? initialData.experienceStartDate 
+          : new Date(initialData.experienceStartDate).toISOString().split('T')[0])
+      : ""
+  )
   const [performanceStyle, setPerformanceStyle] = useState(initialData?.performanceStyle || "")
   const [availableForPerformances, setAvailableForPerformances] = useState(initialData?.availableForPerformances || false)
   const [location, setLocation] = useState(initialData?.location || "")
@@ -32,6 +38,20 @@ export function ProfileForm({ initialData }: { initialData?: any }) {
     initialData?.youtubeVideos?.join(", ") || ""
   )
   const [props, setProps] = useState<Prop[]>(initialData?.props || [])
+  const [availableProps, setAvailableProps] = useState<Array<{ id: number; name: string }>>([])
+
+  // Fetch available props for autocomplete
+  useEffect(() => {
+    async function fetchProps() {
+      try {
+        const propsList = await getAllProps()
+        setAvailableProps(propsList)
+      } catch (error) {
+        console.error("Failed to fetch props:", error)
+      }
+    }
+    fetchProps()
+  }, [])
 
   function addProp() {
     setProps([...props, { propName: "", skillLevel: 5 }])
@@ -57,7 +77,7 @@ export function ProfileForm({ initialData }: { initialData?: any }) {
     formData.append("bio", bio)
     formData.append("instagramHandle", instagramHandle)
     formData.append("isInstructor", isInstructor.toString())
-    formData.append("yearsOfExperience", yearsOfExperience)
+    formData.append("experienceStartDate", experienceStartDate)
     formData.append("performanceStyle", performanceStyle)
     formData.append("availableForPerformances", availableForPerformances.toString())
     formData.append("location", location)
@@ -140,15 +160,16 @@ export function ProfileForm({ initialData }: { initialData?: any }) {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="space-y-2">
-          <Label htmlFor="yearsOfExperience">Years of Experience</Label>
+          <Label htmlFor="experienceStartDate">Experience Start Date</Label>
           <Input
-            id="yearsOfExperience"
-            type="number"
-            min="0"
-            value={yearsOfExperience}
-            onChange={(e) => setYearsOfExperience(e.target.value)}
-            placeholder="5"
+            id="experienceStartDate"
+            type="date"
+            value={experienceStartDate}
+            onChange={(e) => setExperienceStartDate(e.target.value)}
           />
+          <p className="text-xs text-muted-foreground">
+            When did you start performing? Years of experience will be calculated automatically.
+          </p>
         </div>
 
         <div className="space-y-2">
@@ -195,12 +216,20 @@ export function ProfileForm({ initialData }: { initialData?: any }) {
         <div className="space-y-3">
           {props.map((prop, index) => (
             <div key={index} className="flex gap-2 items-center">
-              <Input
-                placeholder="Prop name (e.g., Hoop, Staff)"
-                value={prop.propName}
-                onChange={(e) => updateProp(index, "propName", e.target.value)}
-                className="flex-1"
-              />
+              <div className="flex-1 relative">
+                <Input
+                  placeholder="Prop name (e.g., Hoop, Staff)"
+                  value={prop.propName}
+                  onChange={(e) => updateProp(index, "propName", e.target.value)}
+                  list={`prop-list-${index}`}
+                  className="w-full"
+                />
+                <datalist id={`prop-list-${index}`}>
+                  {availableProps.map((availableProp) => (
+                    <option key={availableProp.id} value={availableProp.name} />
+                  ))}
+                </datalist>
+              </div>
               <div className="flex items-center gap-2 w-32">
                 <input
                   type="range"

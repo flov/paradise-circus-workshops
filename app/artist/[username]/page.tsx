@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { clerkClient } from "@clerk/nextjs/server";
 import { getUserByUsername, getUserProps } from "@/app/profile/actions";
-import { getYouTubeEmbedUrl } from "@/lib/utils";
+import { getYouTubeEmbedUrl, calculateYearsOfExperience } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { MapPin, Instagram, Youtube, Award } from "lucide-react";
@@ -24,11 +24,15 @@ export default async function ArtistProfilePage({
   // Get Clerk user for profile picture
   let profileImageUrl: string | null = null;
   try {
-    const clerkUser = await clerkClient().users.getUser(user.clerkUserId);
+    const clerk = await clerkClient();
+    const clerkUser = await clerk.users.getUser(user.clerkUserId);
     profileImageUrl = clerkUser.imageUrl || null;
   } catch (error) {
     console.error("Failed to fetch Clerk user:", error);
   }
+
+  // Calculate years of experience once
+  const yearsOfExperience = calculateYearsOfExperience(user.experienceStartDate);
 
   return (
     <div className="container mx-auto max-w-4xl py-12 px-4">
@@ -61,7 +65,7 @@ export default async function ArtistProfilePage({
                 </Badge>
               )}
               {user.availableForPerformances && (
-                <Badge variant="secondary" className="text-sm">
+                <Badge variant="secondary" className="text-sm bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/20 hover:bg-amber-500/20">
                   Available for Performances
                 </Badge>
               )}
@@ -88,10 +92,10 @@ export default async function ArtistProfilePage({
               </div>
             )}
 
-            {user.yearsOfExperience && (
+            {yearsOfExperience !== null && (
               <p className="text-muted-foreground">
-                {user.yearsOfExperience}{" "}
-                {user.yearsOfExperience === 1 ? "year" : "years"} of experience
+                {yearsOfExperience}{" "}
+                {yearsOfExperience === 1 ? "year" : "years"} of experience
               </p>
             )}
 

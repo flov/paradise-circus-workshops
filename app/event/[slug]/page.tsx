@@ -1,6 +1,7 @@
 import { db } from "@/db";
 import { events, bookings, comments } from "@/db/schema";
 import { eq, asc } from "drizzle-orm";
+import { getEventProps } from "@/app/admin/actions";
 import { BookEventButton } from "@/components/book-event-button";
 import { CancelBookingButton } from "@/components/cancel-booking-button";
 import {
@@ -84,6 +85,9 @@ export default async function BookEventPage({
     location: eventData.location || "",
     whatToBring: eventData.whatToBring || null,
   };
+
+  // Get event props
+  const eventPropsList = await getEventProps(eventId);
 
   // If the slug is in old format (numeric only), redirect to new format for SEO
   if (/^\d+$/.test(slug)) {
@@ -274,6 +278,23 @@ export default async function BookEventPage({
                     </div>
                   </div>
                 </div>
+                {eventPropsList.length > 0 && (
+                  <div className="flex items-start gap-3 text-sm">
+                    <div className="h-5 w-5 text-primary mt-0.5">🎪</div>
+                    <div>
+                      <div className="font-medium text-foreground">
+                        Props
+                      </div>
+                      <div className="text-muted-foreground flex flex-wrap gap-1 mt-1">
+                        {eventPropsList.map((ep) => (
+                          <Badge key={ep.id} variant="secondary" className="text-xs">
+                            {ep.propName}
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
                 <div className="flex items-center gap-3 text-sm">
                   <UserCheck className="h-5 w-5 text-primary" />
                   <div className="font-medium text-foreground">

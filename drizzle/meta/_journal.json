@@ -36,6 +36,20 @@
       "when": 1768133458414,
       "tag": "0004_workable_randall_flagg",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1768238084613,
+      "tag": "0005_glorious_captain_cross",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1768242670607,
+      "tag": "0006_keen_rumiko_fujikawa",
+      "breakpoints": true
     }
   ]
 }

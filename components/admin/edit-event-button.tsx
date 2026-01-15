@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -16,7 +16,8 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Pencil, Loader2 } from "lucide-react"
-import { updateEvent } from "@/app/admin/actions"
+import { updateEvent, getEventProps } from "@/app/admin/actions"
+import { getAllProps } from "@/app/profile/actions"
 import { useRouter } from "next/navigation"
 
 type Event = {
@@ -36,9 +37,30 @@ export function EditEventButton({ event }: { event: Event }) {
   const [open, setOpen] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [availableProps, setAvailableProps] = useState<Array<{ id: number; name: string }>>([])
+  const [selectedProps, setSelectedProps] = useState<number[]>([])
 
   // Format date for input
   const formattedDate = new Date(event.date).toISOString().split("T")[0]
+
+  // Fetch available props and current event props
+  useEffect(() => {
+    async function fetchData() {
+      try {
+        const [propsList, eventPropsList] = await Promise.all([
+          getAllProps(),
+          getEventProps(event.id),
+        ])
+        setAvailableProps(propsList)
+        setSelectedProps(eventPropsList.map(ep => ep.propId))
+      } catch (error) {
+        console.error("Failed to fetch props:", error)
+      }
+    }
+    if (open) {
+      fetchData()
+    }
+  }, [open, event.id])
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -47,6 +69,7 @@ export function EditEventButton({ event }: { event: Event }) {
 
     const formData = new FormData(e.currentTarget)
     formData.append("id", event.id.toString())
+    formData.append("props", JSON.stringify(selectedProps))
 
     try {
       const result = await updateEvent(formData)
@@ -163,6 +186,37 @@ export function EditEventButton({ event }: { event: Event }) {
             />
             <p className="text-xs text-muted-foreground">
               Each line will be displayed as a separate item. Leave blank if no items are needed.
+            </p>
+          </div>
+
+          <div className="space-y-2">
+            <Label>Props (Optional)</Label>
+            <div className="space-y-2 max-h-40 overflow-y-auto border rounded-md p-2">
+              {availableProps.length === 0 ? (
+                <p className="text-sm text-muted-foreground">No props available. Create props in user profiles first.</p>
+              ) : (
+                availableProps.map((prop) => (
+                  <label key={prop.id} className="flex items-center space-x-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={selectedProps.includes(prop.id)}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setSelectedProps([...selectedProps, prop.id])
+                        } else {
+                          setSelectedProps(selectedProps.filter(id => id !== prop.id))
+                        }
+                      }}
+                      disabled={isSubmitting}
+                      className="h-4 w-4 rounded border-gray-300"
+                    />
+                    <span className="text-sm">{prop.name}</span>
+                  </label>
+                ))
+              )}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Select props used in this event. You can select multiple props.
             </p>
           </div>
 
