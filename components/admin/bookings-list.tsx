@@ -5,46 +5,22 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge"
 import { DeleteBookingButton } from "./delete-booking-button"
 
-type Booking = {
-  id: number
-  event_id: number
-  participant_name: string
-  participant_email: string
-  phone: string | null
-  booking_date: string
-  event_title: string
-  event_date: string
-  event_start_time: string
-}
-
 export async function BookingsList() {
-  const bookingsData = await db
+  const bookingsList = await db
     .select({
       id: bookings.id,
-      event_id: bookings.eventId,
-      participant_name: bookings.participantName,
-      participant_email: bookings.participantEmail,
+      eventId: bookings.eventId,
+      participantName: bookings.participantName,
+      participantEmail: bookings.participantEmail,
       phone: bookings.phone,
-      booking_date: bookings.bookingDate,
-      event_title: events.title,
-      event_date: events.date,
-      event_start_time: events.startTime,
+      bookingDate: bookings.bookingDate,
+      eventTitle: events.title,
+      eventDate: events.date,
+      eventStartTime: events.startTime,
     })
     .from(bookings)
     .innerJoin(events, eq(bookings.eventId, events.id))
     .orderBy(desc(bookings.bookingDate))
-
-  const bookingsList: Booking[] = bookingsData.map((b) => ({
-    id: b.id,
-    event_id: b.event_id,
-    participant_name: b.participant_name,
-    participant_email: b.participant_email,
-    phone: b.phone,
-    booking_date: b.booking_date.toISOString(),
-    event_title: b.event_title,
-    event_date: b.event_date,
-    event_start_time: b.event_start_time,
-  }))
 
   if (bookingsList.length === 0) {
     return <div className="text-center py-8 text-muted-foreground">No bookings found.</div>
@@ -79,29 +55,29 @@ export async function BookingsList() {
         <TableBody>
           {bookingsList.map((booking) => {
             // Combine date and start time to create a proper datetime for comparison
-            const eventDateTime = new Date(`${booking.event_date}T${booking.event_start_time}`)
+            const eventDateTime = new Date(`${booking.eventDate}T${booking.eventStartTime}`)
             const isPast = eventDateTime < new Date()
 
             return (
               <TableRow key={booking.id}>
-                <TableCell className="font-medium">{booking.participant_name}</TableCell>
+                <TableCell className="font-medium">{booking.participantName}</TableCell>
                 <TableCell>
                   <div className="flex items-center gap-2">
-                    <span className="text-sm">{booking.event_title}</span>
+                    <span className="text-sm">{booking.eventTitle}</span>
                     {isPast && <Badge variant="secondary">Past</Badge>}
                   </div>
                 </TableCell>
                 <TableCell className="text-sm">
-                  <div>{formatDate(booking.event_date)}</div>
-                  <div className="text-muted-foreground">{formatTime(booking.event_start_time)}</div>
+                  <div>{formatDate(booking.eventDate)}</div>
+                  <div className="text-muted-foreground">{formatTime(booking.eventStartTime)}</div>
                 </TableCell>
-                <TableCell className="text-sm text-muted-foreground">{formatDate(booking.booking_date)}</TableCell>
+                <TableCell className="text-sm text-muted-foreground">{formatDate(booking.bookingDate.toISOString())}</TableCell>
                 <TableCell className="text-sm">
-                  <div>{booking.participant_email}</div>
+                  <div>{booking.participantEmail}</div>
                   {booking.phone && <div className="text-muted-foreground">{booking.phone}</div>}
                 </TableCell>
                 <TableCell className="text-right">
-                  <DeleteBookingButton bookingId={booking.id} eventId={booking.event_id} />
+                  <DeleteBookingButton bookingId={booking.id} eventId={booking.eventId} />
                 </TableCell>
               </TableRow>
             )

@@ -1,28 +1,14 @@
 import Link from "next/link";
 import { db } from "@/db";
-import { events as eventsTable } from "@/db/schema";
+import { events as eventsTable, type Event } from "@/db/schema";
 import { gte, asc } from "drizzle-orm";
-import { EventCard } from "@/components/event-card";
 import { WeeklyTimetable } from "@/components/weekly-timetable";
-import { Tent } from "lucide-react";
-
-type Event = {
-  id: number;
-  title: string;
-  description: string;
-  instructor: string;
-  date: string;
-  start_time: string;
-  end_time: string;
-  current_bookings: number;
-  location: string;
-};
 
 export default async function Home() {
   // Fetch upcoming events ordered by date and time
   const today = new Date().toISOString().split("T")[0]; // Get today's date in YYYY-MM-DD format
 
-  const eventsData = await db
+  const events = await db
     .select({
       id: eventsTable.id,
       title: eventsTable.title,
@@ -37,19 +23,6 @@ export default async function Home() {
     .from(eventsTable)
     .where(gte(eventsTable.date, today))
     .orderBy(asc(eventsTable.date), asc(eventsTable.startTime));
-
-  // Map to match the expected type format
-  const events: Event[] = eventsData.map((w) => ({
-    id: w.id,
-    title: w.title,
-    description: w.description || "",
-    instructor: w.instructor,
-    date: w.date,
-    start_time: w.startTime,
-    end_time: w.endTime,
-    current_bookings: w.currentBookings,
-    location: w.location || "",
-  }));
 
   return (
     <div className="min-h-screen bg-background">

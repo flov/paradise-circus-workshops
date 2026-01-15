@@ -5,21 +5,10 @@ import { Calendar, Clock, MapPin, Users } from "lucide-react"
 import Link from "next/link"
 import { isEventPast, createEventSlug } from "@/lib/utils"
 import ReactMarkdown from "react-markdown"
+import type { Event } from "@/db/schema"
 
-type Event = {
-  id: number
-  title: string
-  description: string
-  instructor: string
-  date: string
-  start_time: string
-  end_time: string
-  current_bookings: number
-  location: string
-}
-
-export function EventCard({ event }: { event: Event }) {
-  const isPast = isEventPast(event.date, event.end_time)
+export function EventCard({ event }: { event: Pick<Event, "id" | "title" | "description" | "instructor" | "date" | "startTime" | "endTime" | "currentBookings" | "location"> }) {
+  const isPast = isEventPast(event.date, event.endTime)
 
   // Format date
   const date = new Date(event.date)
@@ -51,7 +40,7 @@ export function EventCard({ event }: { event: Event }) {
               </Badge>
             )}
             <Badge variant="outline">
-              {event.current_bookings} {event.current_bookings === 1 ? 'participant' : 'participants'}
+              {event.currentBookings} {event.currentBookings === 1 ? 'participant' : 'participants'}
             </Badge>
           </div>
         </div>
@@ -70,7 +59,7 @@ export function EventCard({ event }: { event: Event }) {
           <div className="flex items-center gap-2 text-muted-foreground">
             <Clock className="h-4 w-4 shrink-0" />
             <span>
-              {formatTime(event.start_time)} - {formatTime(event.end_time)}
+              {formatTime(event.startTime)} - {formatTime(event.endTime)}
             </span>
           </div>
           <div className="flex items-center gap-2 text-muted-foreground">

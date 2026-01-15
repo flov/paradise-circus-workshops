@@ -8,37 +8,11 @@ import { DeleteEventButton } from "./delete-event-button"
 import Link from "next/link"
 import { createEventSlug } from "@/lib/utils"
 
-type Event = {
-  id: number
-  title: string
-  description: string
-  instructor: string
-  date: string
-  start_time: string
-  end_time: string
-  current_bookings: number
-  location: string
-  what_to_bring?: string | null
-}
-
 export async function EventsList() {
-  const eventsData = await db
+  const eventsList = await db
     .select()
     .from(events)
     .orderBy(desc(events.date), desc(events.startTime))
-
-  const eventsList: Event[] = eventsData.map((w) => ({
-    id: w.id,
-    title: w.title,
-    description: w.description || "",
-    instructor: w.instructor,
-    date: w.date,
-    start_time: w.startTime,
-    end_time: w.endTime,
-    current_bookings: w.currentBookings,
-    location: w.location || "",
-    what_to_bring: w.whatToBring,
-  }))
 
   if (eventsList.length === 0) {
     return (
@@ -81,8 +55,8 @@ export async function EventsList() {
         </TableHeader>
         <TableBody>
           {eventsList.map((event) => {
-            // Combine date and start_time to properly compare datetime
-            const eventDateTime = new Date(`${event.date}T${event.start_time}`)
+            // Combine date and startTime to properly compare datetime
+            const eventDateTime = new Date(`${event.date}T${event.startTime}`)
             const isPast = eventDateTime < new Date()
 
             return (
@@ -99,7 +73,7 @@ export async function EventsList() {
                   <div className="text-sm">
                     <div>{formatDate(event.date)}</div>
                     <div className="text-muted-foreground">
-                      {formatTime(event.start_time)} - {formatTime(event.end_time)}
+                      {formatTime(event.startTime)} - {formatTime(event.endTime)}
                     </div>
                   </div>
                 </TableCell>
@@ -108,7 +82,7 @@ export async function EventsList() {
                 <TableCell>
                   <div className="flex items-center gap-2">
                     <span className="text-sm">
-                      {event.current_bookings} {event.current_bookings === 1 ? 'participant' : 'participants'}
+                      {event.currentBookings} {event.currentBookings === 1 ? 'participant' : 'participants'}
                     </span>
                     {isPast && (
                       <Badge variant="secondary">Past</Badge>

@@ -1,6 +1,7 @@
 import { db } from "@/db";
-import { events, bookings, comments } from "@/db/schema";
+import { events, bookings, comments, type Event } from "@/db/schema";
 import { eq, asc } from "drizzle-orm";
+import { getEventProps } from "@/app/admin/actions";
 import { BookEventButton } from "@/components/book-event-button";
 import { CancelBookingButton } from "@/components/cancel-booking-button";
 import {
@@ -35,19 +36,6 @@ import ReactMarkdown from "react-markdown";
 import { EventCalendarButtons } from "@/components/event-calendar-buttons";
 import { EventComments } from "@/components/event-comments";
 
-type Event = {
-  id: number;
-  title: string;
-  description: string;
-  instructor: string;
-  date: string;
-  start_time: string;
-  end_time: string;
-  current_bookings: number;
-  location: string;
-  whatToBring?: string | null;
-};
-
 export default async function BookEventPage({
   params,
 }: {
@@ -71,19 +59,10 @@ export default async function BookEventPage({
     notFound();
   }
 
-  const eventData = eventResults[0];
-  const event: Event = {
-    id: eventData.id,
-    title: eventData.title,
-    description: eventData.description || "",
-    instructor: eventData.instructor,
-    date: eventData.date,
-    start_time: eventData.startTime,
-    end_time: eventData.endTime,
-    current_bookings: eventData.currentBookings,
-    location: eventData.location || "",
-    whatToBring: eventData.whatToBring || null,
-  };
+  const event = eventResults[0];
+
+  // Get event props
+  const eventPropsList = await getEventProps(eventId);
 
   // If the slug is in old format (numeric only), redirect to new format for SEO
   if (/^\d+$/.test(slug)) {
@@ -113,7 +92,7 @@ export default async function BookEventPage({
     return `${displayHour}:${minutes} ${ampm}`;
   };
 
-  const isPast = isEventPast(event.date, event.end_time);
+  const isPast = isEventPast(event.date, event.endTime);
 
   // Get user data on server side for faster loading
   const { userId } = await auth();
@@ -249,8 +228,8 @@ export default async function BookEventPage({
                   <div>
                     <div className="font-medium text-foreground">Time</div>
                     <div className="text-muted-foreground">
-                      {formatTime(event.start_time)} -{" "}
-                      {formatTime(event.end_time)}
+                      {formatTime(event.startTime)} -{" "}
+                      {formatTime(event.endTime)}
                     </div>
                   </div>
                 </div>
@@ -274,11 +253,28 @@ export default async function BookEventPage({
                     </div>
                   </div>
                 </div>
+                {eventPropsList.length > 0 && (
+                  <div className="flex items-start gap-3 text-sm">
+                    <div className="h-5 w-5 text-primary mt-0.5">🎪</div>
+                    <div>
+                      <div className="font-medium text-foreground">
+                        Props
+                      </div>
+                      <div className="text-muted-foreground flex flex-wrap gap-1 mt-1">
+                        {eventPropsList.map((ep) => (
+                          <Badge key={ep.id} variant="secondary" className="text-xs">
+                            {ep.propName}
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
                 <div className="flex items-center gap-3 text-sm">
                   <UserCheck className="h-5 w-5 text-primary" />
                   <div className="font-medium text-foreground">
-                    {event.current_bookings}{" "}
-                    {event.current_bookings === 1
+                    {event.currentBookings}{" "}
+                    {event.currentBookings === 1
                       ? "Participant"
                       : "Participants"}
                   </div>
@@ -293,8 +289,8 @@ export default async function BookEventPage({
                     eventData={{
                       title: event.title,
                       date: event.date,
-                      startTime: event.start_time,
-                      endTime: event.end_time,
+                      startTime: event.startTime,
+                      endTime: event.endTime,
                       location: event.location,
                       instructor: event.instructor,
                       description: event.description,
@@ -306,11 +302,6 @@ export default async function BookEventPage({
                         event.instructor
                       )}`,
                     }}
-                    eventSlug={createEventSlug(
-                      event.id,
-                      event.title,
-                      event.instructor
-                    )}
                     className="w-full"
                   />
                 </div>

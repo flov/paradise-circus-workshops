@@ -3,9 +3,10 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { SignedIn, UserButton } from "@clerk/nextjs";
+import { SignedIn, SignedOut, UserButton, SignInButton } from "@clerk/nextjs";
 import { Menu, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { ProfileLinks } from "@/components/profile-links";
 
 interface HeaderProps {
   title?: string;
@@ -69,8 +70,14 @@ export function Header({
               {/* Auth Buttons */}
               <div className="flex items-center gap-2">
                 <SignedIn>
+                  <ProfileLinks />
                   <UserButton />
                 </SignedIn>
+                <SignedOut>
+                  <SignInButton mode="modal">
+                    <Button variant="default">Sign In</Button>
+                  </SignInButton>
+                </SignedOut>
               </div>
               {/* Mobile Menu Button */}
               <Button
@@ -133,6 +140,11 @@ export function Header({
                     </Link>
                   );
                 })}
+                <SignedIn>
+                  <div className="pt-2 border-t border-border mt-2">
+                    <ProfileLinks />
+                  </div>
+                </SignedIn>
               </div>
             </div>
           </nav>

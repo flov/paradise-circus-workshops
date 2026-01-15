@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -17,6 +17,7 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Plus, Loader2 } from "lucide-react"
 import { createEvent } from "@/app/admin/actions"
+import { getAllProps } from "@/app/profile/actions"
 import { useRouter } from "next/navigation"
 
 export function AddEventButton() {
@@ -24,6 +25,24 @@ export function AddEventButton() {
   const [open, setOpen] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [availableProps, setAvailableProps] = useState<Array<{ id: number; name: string }>>([])
+  const [selectedProps, setSelectedProps] = useState<number[]>([])
+
+  // Fetch available props and reset selected props when dialog opens
+  useEffect(() => {
+    async function fetchProps() {
+      try {
+        const propsList = await getAllProps()
+        setAvailableProps(propsList)
+      } catch (error) {
+        console.error("Failed to fetch props:", error)
+      }
+    }
+    if (open) {
+      setSelectedProps([]) // Reset selected props when dialog opens
+      fetchProps()
+    }
+  }, [open])
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -31,11 +50,13 @@ export function AddEventButton() {
     setError(null)
 
     const formData = new FormData(e.currentTarget)
+    formData.append("props", JSON.stringify(selectedProps))
 
     try {
       const result = await createEvent(formData)
 
       if (result.success) {
+        setSelectedProps([]) // Reset selected props on successful submission
         setOpen(false)
         router.refresh()
       } else {
@@ -119,6 +140,37 @@ export function AddEventButton() {
             />
             <p className="text-xs text-muted-foreground">
               Each line will be displayed as a separate item. Leave blank if no items are needed.
+            </p>
+          </div>
+
+          <div className="space-y-2">
+            <Label>Props (Optional)</Label>
+            <div className="space-y-2 max-h-40 overflow-y-auto border rounded-md p-2">
+              {availableProps.length === 0 ? (
+                <p className="text-sm text-muted-foreground">No props available. Create props in user profiles first.</p>
+              ) : (
+                availableProps.map((prop) => (
+                  <label key={prop.id} className="flex items-center space-x-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={selectedProps.includes(prop.id)}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setSelectedProps([...selectedProps, prop.id])
+                        } else {
+                          setSelectedProps(selectedProps.filter(id => id !== prop.id))
+                        }
+                      }}
+                      disabled={isSubmitting}
+                      className="h-4 w-4 rounded border-gray-300"
+                    />
+                    <span className="text-sm">{prop.name}</span>
+                  </label>
+                ))
+              )}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Select props used in this event. You can select multiple props.
             </p>
           </div>
 

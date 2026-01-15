@@ -7,12 +7,14 @@ export function cn(...inputs: ClassValue[]) {
 
 /**
  * Get user's name from Clerk user object
+ * Falls back to username from database if available
  * @param user - Clerk user object (from useUser hook or currentUser())
- * @returns User's name (firstName) or empty string if not available
+ * @returns User's name (firstName) or username or empty string if not available
  */
-export function getUserName(user: { firstName: string | null | undefined } | null | undefined): string {
+export function getUserName(user: { firstName?: string | null; username?: string | null } | null | undefined): string {
   if (!user) return ""
-  return user.firstName || ""
+  // Try firstName first, then username from Clerk, then empty string
+  return user.firstName || user.username || ""
 }
 
 /**
@@ -154,4 +156,171 @@ export function getInitials(name: string): string {
   }
   
   return name.substring(0, 2).toUpperCase()
+}
+
+/**
+ * Validate username format
+ * @param username - Username to validate
+ * @returns Object with isValid boolean and error message if invalid
+ */
+export function validateUsername(username: string): { isValid: boolean; error?: string } {
+  if (!username || username.trim().length === 0) {
+    return { isValid: false, error: "Username is required" }
+  }
+  
+  const trimmed = username.trim()
+  
+  // Length check: 3-30 characters
+  if (trimmed.length < 3) {
+    return { isValid: false, error: "Username must be at least 3 characters" }
+  }
+  
+  if (trimmed.length > 30) {
+    return { isValid: false, error: "Username must be no more than 30 characters" }
+  }
+  
+  // Format check: alphanumeric + hyphens/underscores, no spaces
+  const usernameRegex = /^[a-zA-Z0-9_-]+$/
+  if (!usernameRegex.test(trimmed)) {
+    return { isValid: false, error: "Username can only contain letters, numbers, hyphens, and underscores" }
+  }
+  
+  return { isValid: true }
+}
+
+/**
+ * Extract YouTube video ID from various URL formats
+ * @param urlOrId - YouTube URL or video ID
+ * @returns Video ID or null if invalid
+ */
+export function extractYouTubeId(urlOrId: string): string | null {
+  if (!urlOrId || urlOrId.trim().length === 0) {
+    return null
+  }
+  
+  const trimmed = urlOrId.trim()
+  
+  // If it's already just an ID (11 characters, alphanumeric + hyphens/underscores)
+  if (/^[a-zA-Z0-9_-]{11}$/.test(trimmed)) {
+    return trimmed
+  }
+  
+  // Try to extract from various YouTube URL formats
+  const patterns = [
+    /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([a-zA-Z0-9_-]{11})/,
+    /youtube\.com\/watch\?.*v=([a-zA-Z0-9_-]{11})/,
+  ]
+  
+  for (const pattern of patterns) {
+    const match = trimmed.match(pattern)
+    if (match && match[1]) {
+      return match[1]
+    }
+  }
+  
+  return null
+}
+
+/**
+ * Get YouTube embed URL from video ID
+ * @param videoId - YouTube video ID
+ * @returns Embed URL
+ */
+export function getYouTubeEmbedUrl(videoId: string): string {
+  return `https://www.youtube.com/embed/${videoId}`
+}
+
+/**
+ * Calculate years of experience from a start date
+ * @param startDate - Start date (string in YYYY-MM-DD format or Date object)
+ * @returns Number of years of experience, or null if invalid
+ */
+export function calculateYearsOfExperience(startDate: string | Date | null | undefined): number | null {
+  if (!startDate) return null
+  
+  const start = startDate instanceof Date ? startDate : new Date(startDate)
+  if (isNaN(start.getTime())) return null
+  
+  const today = new Date()
+  let years = today.getFullYear() - start.getFullYear()
+  const monthDiff = today.getMonth() - start.getMonth()
+  
+  // Adjust if the anniversary hasn't occurred yet this year
+  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < start.getDate())) {
+    years--
+  }
+  
+  return years >= 0 ? years : null
+}
+
+/**
+ * Validate Instagram handle format
+ * @param handle - Instagram handle to validate (with or without @)
+ * @returns Object with isValid boolean and error message if invalid
+ */
+export function validateInstagramHandle(handle: string): { isValid: boolean; error?: string } {
+  if (!handle || handle.trim().length === 0) {
+    return { isValid: true }; // Optional field
+  }
+  
+  const cleaned = handle.replace(/^@/, '').trim();
+  
+  if (cleaned.length === 0) {
+    return { isValid: true }; // Empty after cleaning is fine
+  }
+  
+  // Instagram handles: 1-30 characters, alphanumeric, dots, underscores
+  // Cannot start or end with dot or underscore
+  const instagramRegex = /^[a-zA-Z0-9]([a-zA-Z0-9._]*[a-zA-Z0-9])?$/;
+  
+  if (!instagramRegex.test(cleaned)) {
+    return { 
+      isValid: false, 
+      error: "Invalid Instagram handle format. Use letters, numbers, dots, and underscores only." 
+    };
+  }
+  
+  if (cleaned.length > 30) {
+    return { isValid: false, error: "Instagram handle must be 30 characters or less" };
+  }
+  
+  return { isValid: true };
+}
+
+/**
+ * Normalize experience start date to YYYY-MM-DD format
+ * Handles Date objects, strings, and null/undefined values
+ * @param date - Date value to normalize
+ * @returns Normalized date string in YYYY-MM-DD format, or null if invalid
+ */
+export function normalizeExperienceStartDate(
+  date: string | Date | null | undefined
+): string | null {
+  if (!date) return null;
+  
+  const dateValue = date instanceof Date ? date : new Date(date);
+  if (isNaN(dateValue.getTime())) return null;
+  
+  return dateValue.toISOString().split('T')[0];
+}
+
+/**
+ * Sanitize text content to prevent XSS attacks
+ * Removes HTML tags and escapes special characters
+ * @param text - Text to sanitize
+ * @returns Sanitized text safe for display
+ */
+export function sanitizeText(text: string): string {
+  if (!text) return '';
+  
+  // Remove HTML tags
+  const withoutTags = text.replace(/<[^>]*>/g, '');
+  
+  // Escape HTML entities
+  return withoutTags
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#x27;');
 }
