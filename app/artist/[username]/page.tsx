@@ -32,7 +32,9 @@ export default async function ArtistProfilePage({
   }
 
   // Calculate years of experience once
-  const yearsOfExperience = calculateYearsOfExperience(user.experienceStartDate);
+  const yearsOfExperience = calculateYearsOfExperience(
+    user.experienceStartDate,
+  );
 
   return (
     <div className="container mx-auto max-w-4xl py-12 px-4">
@@ -65,7 +67,10 @@ export default async function ArtistProfilePage({
                 </Badge>
               )}
               {user.availableForPerformances && (
-                <Badge variant="secondary" className="text-sm bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/20 hover:bg-amber-500/20">
+                <Badge
+                  variant="secondary"
+                  className="text-sm bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/20 hover:bg-amber-500/20"
+                >
                   Available for Performances
                 </Badge>
               )}
@@ -94,8 +99,8 @@ export default async function ArtistProfilePage({
 
             {yearsOfExperience !== null && (
               <p className="text-muted-foreground">
-                {yearsOfExperience}{" "}
-                {yearsOfExperience === 1 ? "year" : "years"} of experience
+                {yearsOfExperience} {yearsOfExperience === 1 ? "year" : "years"}{" "}
+                of experience
               </p>
             )}
 

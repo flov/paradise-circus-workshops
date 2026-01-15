@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo, useCallback } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -9,13 +9,19 @@ import { Textarea } from "@/components/ui/textarea"
 import { Card, CardContent } from "@/components/ui/card"
 import { createProfile, getAllProps } from "@/app/profile/actions"
 import { Loader2, Plus, X } from "lucide-react"
+import { validateInstagramHandle } from "@/lib/utils"
+import type { ProfileFormData, PropOption } from "@/lib/types"
 
 interface Prop {
   propName: string
   skillLevel: number
 }
 
-export function ProfileForm({ initialData }: { initialData?: any }) {
+interface ProfileFormProps {
+  initialData?: ProfileFormData & { props?: Prop[] }
+}
+
+export function ProfileForm({ initialData }: ProfileFormProps) {
   const router = useRouter()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -35,10 +41,13 @@ export function ProfileForm({ initialData }: { initialData?: any }) {
   const [availableForPerformances, setAvailableForPerformances] = useState(initialData?.availableForPerformances || false)
   const [location, setLocation] = useState(initialData?.location || "")
   const [youtubeVideos, setYoutubeVideos] = useState(
-    initialData?.youtubeVideos?.join(", ") || ""
+    Array.isArray(initialData?.youtubeVideos) 
+      ? initialData.youtubeVideos.join(", ") 
+      : initialData?.youtubeVideos || ""
   )
   const [props, setProps] = useState<Prop[]>(initialData?.props || [])
-  const [availableProps, setAvailableProps] = useState<Array<{ id: number; name: string }>>([])
+  const [availableProps, setAvailableProps] = useState<PropOption[]>([])
+  const [instagramError, setInstagramError] = useState<string | null>(null)
 
   // Fetch available props for autocomplete
   useEffect(() => {
@@ -46,43 +55,72 @@ export function ProfileForm({ initialData }: { initialData?: any }) {
       try {
         const propsList = await getAllProps()
         setAvailableProps(propsList)
-      } catch (error) {
+      } catch (error: unknown) {
         console.error("Failed to fetch props:", error)
       }
     }
     fetchProps()
   }, [])
 
-  function addProp() {
-    setProps([...props, { propName: "", skillLevel: 5 }])
-  }
+  // Memoize filtered props to avoid unnecessary recalculations
+  const filteredProps = useMemo(
+    () => props.filter(p => p.propName.trim()),
+    [props]
+  )
 
-  function removeProp(index: number) {
-    setProps(props.filter((_, i) => i !== index))
-  }
+  const addProp = useCallback(() => {
+    setProps(prev => [...prev, { propName: "", skillLevel: 5 }])
+  }, [])
 
-  function updateProp(index: number, field: keyof Prop, value: string | number) {
-    const updated = [...props]
-    updated[index] = { ...updated[index], [field]: value }
-    setProps(updated)
-  }
+  const removeProp = useCallback((index: number) => {
+    setProps(prev => prev.filter((_, i) => i !== index))
+  }, [])
+
+  const updateProp = useCallback((index: number, field: keyof Prop, value: string | number) => {
+    setProps(prev => {
+      const updated = [...prev]
+      updated[index] = { ...updated[index], [field]: value }
+      return updated
+    })
+  }, [])
+
+  // Validate Instagram handle on change
+  const handleInstagramChange = useCallback((value: string) => {
+    setInstagramHandle(value)
+    if (value.trim()) {
+      const validation = validateInstagramHandle(value)
+      setInstagramError(validation.isValid ? null : validation.error || null)
+    } else {
+      setInstagramError(null)
+    }
+  }, [])
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
     setIsSubmitting(true)
     setError(null)
 
+    // Validate Instagram handle before submission
+    if (instagramHandle.trim()) {
+      const instagramValidation = validateInstagramHandle(instagramHandle)
+      if (!instagramValidation.isValid) {
+        setError(instagramValidation.error || "Invalid Instagram handle")
+        setIsSubmitting(false)
+        return
+      }
+    }
+
     const formData = new FormData()
-    formData.append("username", username)
-    formData.append("bio", bio)
-    formData.append("instagramHandle", instagramHandle)
+    formData.append("username", username.trim())
+    formData.append("bio", bio.trim())
+    formData.append("instagramHandle", instagramHandle.trim())
     formData.append("isInstructor", isInstructor.toString())
     formData.append("experienceStartDate", experienceStartDate)
-    formData.append("performanceStyle", performanceStyle)
+    formData.append("performanceStyle", performanceStyle.trim())
     formData.append("availableForPerformances", availableForPerformances.toString())
-    formData.append("location", location)
-    formData.append("youtubeVideos", youtubeVideos)
-    formData.append("props", JSON.stringify(props.filter(p => p.propName.trim())))
+    formData.append("location", location.trim())
+    formData.append("youtubeVideos", youtubeVideos.trim())
+    formData.append("props", JSON.stringify(filteredProps))
 
     try {
       const result = await createProfile(formData)
@@ -94,9 +132,10 @@ export function ProfileForm({ initialData }: { initialData?: any }) {
         setError(result.error || "Failed to save profile")
         setIsSubmitting(false)
       }
-    } catch (err) {
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : String(err)
       console.error("Profile save error:", err)
-      setError("An unexpected error occurred")
+      setError(errorMessage || "An unexpected error occurred. Please try again.")
       setIsSubmitting(false)
     }
   }
@@ -119,8 +158,9 @@ export function ProfileForm({ initialData }: { initialData?: any }) {
           onChange={(e) => setUsername(e.target.value)}
           required
           placeholder="your-username"
+          aria-describedby="username-help"
         />
-        <p className="text-xs text-muted-foreground">
+        <p id="username-help" className="text-xs text-muted-foreground">
           3-30 characters, letters, numbers, hyphens, and underscores only
         </p>
       </div>
@@ -133,7 +173,11 @@ export function ProfileForm({ initialData }: { initialData?: any }) {
           onChange={(e) => setBio(e.target.value)}
           placeholder="Tell us about yourself..."
           rows={4}
+          aria-describedby="bio-help"
         />
+        <p id="bio-help" className="text-xs text-muted-foreground">
+          Tell us about your circus and flow arts journey
+        </p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -142,9 +186,20 @@ export function ProfileForm({ initialData }: { initialData?: any }) {
           <Input
             id="instagramHandle"
             value={instagramHandle}
-            onChange={(e) => setInstagramHandle(e.target.value)}
+            onChange={(e) => handleInstagramChange(e.target.value)}
             placeholder="@username"
+            aria-describedby="instagram-help"
+            aria-invalid={instagramError ? "true" : "false"}
+            className={instagramError ? "border-destructive" : ""}
           />
+          {instagramError && (
+            <p className="text-sm text-destructive" role="alert">
+              {instagramError}
+            </p>
+          )}
+          <p id="instagram-help" className="text-xs text-muted-foreground">
+            Your Instagram username (with or without @)
+          </p>
         </div>
 
         <div className="space-y-2">
@@ -238,8 +293,15 @@ export function ProfileForm({ initialData }: { initialData?: any }) {
                   value={prop.skillLevel}
                   onChange={(e) => updateProp(index, "skillLevel", parseInt(e.target.value))}
                   className="flex-1"
+                  aria-label={`Skill level for ${prop.propName || 'prop'}`}
+                  aria-valuemin={0}
+                  aria-valuemax={10}
+                  aria-valuenow={prop.skillLevel}
+                  aria-valuetext={`Level ${prop.skillLevel} out of 10`}
                 />
-                <span className="text-sm w-8 text-right">{prop.skillLevel}</span>
+                <span className="text-sm w-8 text-right" aria-live="polite">
+                  {prop.skillLevel}
+                </span>
               </div>
               <Button
                 type="button"
@@ -271,8 +333,9 @@ export function ProfileForm({ initialData }: { initialData?: any }) {
           onChange={(e) => setYoutubeVideos(e.target.value)}
           placeholder="Enter YouTube URLs or video IDs, separated by commas"
           rows={3}
+          aria-describedby="youtube-help"
         />
-        <p className="text-xs text-muted-foreground">
+        <p id="youtube-help" className="text-xs text-muted-foreground">
           Paste YouTube URLs or video IDs separated by commas
         </p>
       </div>

@@ -5,7 +5,8 @@ import { users, userProps, props } from "@/db/schema";
 import { eq, asc, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { auth, currentUser } from "@clerk/nextjs/server";
-import { validateUsername, extractYouTubeId } from "@/lib/utils";
+import { validateUsername, extractYouTubeId, validateInstagramHandle, normalizeExperienceStartDate } from "@/lib/utils";
+import type { UserProfile, UserProp, PropOption } from "@/lib/types";
 
 /**
  * Create a basic user record (called from onboarding)
@@ -22,17 +23,6 @@ export async function createUserRecord(
       return { success: false, error: validation.error };
     }
 
-    // Check if username is available
-    const existingUser = await db
-      .select({ id: users.id })
-      .from(users)
-      .where(eq(users.username, username.trim()))
-      .limit(1);
-
-    if (existingUser.length > 0) {
-      return { success: false, error: "Username is already taken" };
-    }
-
     // Check if user already exists
     const existingClerkUser = await db
       .select({ id: users.id })
@@ -44,24 +34,53 @@ export async function createUserRecord(
       return { success: false, error: "User record already exists" };
     }
 
-    // Create user record
-    const result = await db
-      .insert(users)
-      .values({
-        clerkUserId,
-        username: username.trim(),
-        isArtist,
-      })
-      .returning({ id: users.id, username: users.username });
+    // Create user record - database unique constraint will handle race conditions
+    const trimmedUsername = username.trim();
+    try {
+      const result = await db
+        .insert(users)
+        .values({
+          clerkUserId,
+          username: trimmedUsername,
+          isArtist,
+        })
+        .returning({ id: users.id, username: users.username });
+      
+      return {
+        success: true,
+        userId: result[0].id,
+        username: result[0].username,
+      };
+    } catch (error: unknown) {
+      // Handle unique constraint violation (race condition or duplicate username)
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      if (errorMessage.includes('unique') || errorMessage.includes('duplicate') || 
+          (typeof error === 'object' && error !== null && 'code' in error && error.code === '23505')) {
+        // Check if it's username or clerkUserId conflict
+        const existingUser = await db
+          .select({ id: users.id, clerkUserId: users.clerkUserId })
+          .from(users)
+          .where(eq(users.username, trimmedUsername))
+          .limit(1);
+        
+        if (existingUser.length > 0) {
+          return { success: false, error: "Username is already taken" };
+        }
+        return { success: false, error: "User record already exists" };
+      }
+      throw error;
+    }
 
-    return {
-      success: true,
-      userId: result[0].id,
-      username: result[0].username,
-    };
-  } catch (error) {
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
     console.error("Create user record error:", error);
-    return { success: false, error: "Failed to create user record" };
+    
+    // Return more specific error if available
+    if (errorMessage.includes('unique') || errorMessage.includes('duplicate')) {
+      return { success: false, error: "Username is already taken" };
+    }
+    
+    return { success: false, error: "Failed to create user record. Please try again." };
   }
 }
 
@@ -116,16 +135,13 @@ export async function createProfile(formData: FormData) {
       if (!validation.isValid) {
         return { success: false, error: validation.error };
       }
+    }
 
-      // Check if new username is available
-      const existingUser = await db
-        .select({ id: users.id })
-        .from(users)
-        .where(eq(users.username, username.trim()))
-        .limit(1);
-
-      if (existingUser.length > 0 && existingUser[0].id !== user.id) {
-        return { success: false, error: "Username is already taken" };
+    // Validate Instagram handle
+    if (instagramHandle) {
+      const instagramValidation = validateInstagramHandle(instagramHandle);
+      if (!instagramValidation.isValid) {
+        return { success: false, error: instagramValidation.error };
       }
     }
 
@@ -142,16 +158,26 @@ export async function createProfile(formData: FormData) {
       youtubeVideos = videoIds.length > 0 ? videoIds : null;
     }
 
-    // Update user profile
+    // Normalize Instagram handle (remove @ if present)
+    const normalizedInstagramHandle = instagramHandle 
+      ? instagramHandle.replace(/^@/, '').trim() || null 
+      : null;
+
+    // Normalize experience start date
+    const normalizedExperienceDate = normalizeExperienceStartDate(
+      experienceStartDateInput || null
+    );
+
+    // Update user profile - database constraint handles username uniqueness race condition
     try {
       await db
         .update(users)
         .set({
           username: username.trim(),
           bio: bio || null,
-          instagramHandle: instagramHandle || null,
+          instagramHandle: normalizedInstagramHandle,
           isInstructor,
-          experienceStartDate: experienceStartDateInput || null,
+          experienceStartDate: normalizedExperienceDate,
           performanceStyle: performanceStyle || null,
           availableForPerformances,
           location: location || null,
@@ -159,7 +185,13 @@ export async function createProfile(formData: FormData) {
           updatedAt: new Date(),
         })
         .where(eq(users.id, user.id));
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      // Handle unique constraint violation for username
+      if (errorMessage.includes('unique') || errorMessage.includes('duplicate') ||
+          (typeof error === 'object' && error !== null && 'code' in error && error.code === '23505')) {
+        return { success: false, error: "Username is already taken. Please choose another." };
+      }
       throw error;
     }
 
@@ -203,16 +235,26 @@ export async function createProfile(formData: FormData) {
     revalidatePath("/profile/edit");
 
     return { success: true, username: username.trim() };
-  } catch (error) {
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
     console.error("Create profile error:", error);
-    return { success: false, error: "Failed to create profile" };
+    
+    // Provide more specific error messages
+    if (errorMessage.includes('unique') || errorMessage.includes('duplicate')) {
+      return { success: false, error: "Username is already taken. Please choose another." };
+    }
+    if (errorMessage.includes('foreign key') || errorMessage.includes('constraint')) {
+      return { success: false, error: "Invalid data provided. Please check your inputs and try again." };
+    }
+    
+    return { success: false, error: "Failed to save profile. Please try again." };
   }
 }
 
 /**
  * Get user by username
  */
-export async function getUserByUsername(username: string) {
+export async function getUserByUsername(username: string): Promise<UserProfile | null> {
   try {
     const result = await db
       .select()
@@ -225,24 +267,14 @@ export async function getUserByUsername(username: string) {
     }
 
     const user = result[0];
-    // Ensure experienceStartDate is a string if present (Drizzle returns date as string)
-    // Handle Date objects if they occur during serialization
-    if (
-      user.experienceStartDate &&
-      typeof user.experienceStartDate !== "string"
-    ) {
-      const dateValue = user.experienceStartDate as unknown;
-      if (dateValue instanceof Date) {
-        (user as any).experienceStartDate = dateValue
-          .toISOString()
-          .split("T")[0];
-      } else if (dateValue !== null && dateValue !== undefined) {
-        (user as any).experienceStartDate = String(dateValue);
-      }
-    }
+    // Normalize experienceStartDate to string format
+    const normalizedUser: UserProfile = {
+      ...user,
+      experienceStartDate: normalizeExperienceStartDate(user.experienceStartDate),
+    };
 
-    return user;
-  } catch (error) {
+    return normalizedUser;
+  } catch (error: unknown) {
     console.error("Get user by username error:", error);
     return null;
   }
@@ -251,7 +283,7 @@ export async function getUserByUsername(username: string) {
 /**
  * Get all available props (for autocomplete)
  */
-export async function getAllProps() {
+export async function getAllProps(): Promise<PropOption[]> {
   try {
     const result = await db
       .select({
@@ -262,7 +294,7 @@ export async function getAllProps() {
       .orderBy(asc(props.name));
 
     return result;
-  } catch (error) {
+  } catch (error: unknown) {
     console.error("Get all props error:", error);
     return [];
   }
@@ -301,7 +333,7 @@ async function getOrCreateProp(propName: string): Promise<number> {
 /**
  * Get user props with prop names joined
  */
-export async function getUserProps(userId: number) {
+export async function getUserProps(userId: number): Promise<UserProp[]> {
   try {
     const result = await db
       .select({
@@ -318,7 +350,7 @@ export async function getUserProps(userId: number) {
       .orderBy(asc(props.name));
 
     return result;
-  } catch (error) {
+  } catch (error: unknown) {
     console.error("Get user props error:", error);
     return [];
   }
@@ -327,7 +359,7 @@ export async function getUserProps(userId: number) {
 /**
  * Get current user's profile
  */
-export async function getCurrentUserProfile() {
+export async function getCurrentUserProfile(): Promise<UserProfile | null> {
   const { userId } = await auth();
 
   if (!userId) {
@@ -335,85 +367,40 @@ export async function getCurrentUserProfile() {
   }
 
   try {
-    // Try to select with experienceStartDate first (after migration)
-    try {
-      const result = await db
-        .select({
-          id: users.id,
-          clerkUserId: users.clerkUserId,
-          username: users.username,
-          isArtist: users.isArtist,
-          isInstructor: users.isInstructor,
-          bio: users.bio,
-          instagramHandle: users.instagramHandle,
-          youtubeVideos: users.youtubeVideos,
-          experienceStartDate: users.experienceStartDate,
-          performanceStyle: users.performanceStyle,
-          availableForPerformances: users.availableForPerformances,
-          location: users.location,
-          createdAt: users.createdAt,
-          updatedAt: users.updatedAt,
-        })
-        .from(users)
-        .where(eq(users.clerkUserId, userId))
-        .limit(1);
+    const result = await db
+      .select({
+        id: users.id,
+        clerkUserId: users.clerkUserId,
+        username: users.username,
+        isArtist: users.isArtist,
+        isInstructor: users.isInstructor,
+        bio: users.bio,
+        instagramHandle: users.instagramHandle,
+        youtubeVideos: users.youtubeVideos,
+        experienceStartDate: users.experienceStartDate,
+        performanceStyle: users.performanceStyle,
+        availableForPerformances: users.availableForPerformances,
+        location: users.location,
+        createdAt: users.createdAt,
+        updatedAt: users.updatedAt,
+      })
+      .from(users)
+      .where(eq(users.clerkUserId, userId))
+      .limit(1);
 
-      if (result.length === 0) {
-        return null;
-      }
-
-      const user = result[0] as any;
-      // Ensure experienceStartDate is a string if present
-      if (
-        user.experienceStartDate &&
-        typeof user.experienceStartDate !== "string"
-      ) {
-        const dateValue = user.experienceStartDate as unknown;
-        if (dateValue instanceof Date) {
-          user.experienceStartDate = dateValue.toISOString().split("T")[0];
-        } else if (dateValue !== null && dateValue !== undefined) {
-          user.experienceStartDate = String(dateValue);
-        }
-      }
-
-      return user;
-    } catch (selectError: any) {
-      // If experienceStartDate column doesn't exist yet (before migration), select without it
-      if (
-        selectError?.message?.includes("experience_start_date") ||
-        selectError?.code === "42703"
-      ) {
-        const result = await db
-          .select({
-            id: users.id,
-            clerkUserId: users.clerkUserId,
-            username: users.username,
-            isArtist: users.isArtist,
-            isInstructor: users.isInstructor,
-            bio: users.bio,
-            instagramHandle: users.instagramHandle,
-            youtubeVideos: users.youtubeVideos,
-            performanceStyle: users.performanceStyle,
-            availableForPerformances: users.availableForPerformances,
-            location: users.location,
-            createdAt: users.createdAt,
-            updatedAt: users.updatedAt,
-          })
-          .from(users)
-          .where(eq(users.clerkUserId, userId))
-          .limit(1);
-
-        if (result.length === 0) {
-          return null;
-        }
-
-        const user = result[0] as any;
-        user.experienceStartDate = null; // Column doesn't exist yet
-        return user;
-      }
-      throw selectError;
+    if (result.length === 0) {
+      return null;
     }
-  } catch (error) {
+
+    const user = result[0];
+    // Normalize experienceStartDate to string format
+    const normalizedUser: UserProfile = {
+      ...user,
+      experienceStartDate: normalizeExperienceStartDate(user.experienceStartDate),
+    };
+
+    return normalizedUser;
+  } catch (error: unknown) {
     console.error("Get current user profile error:", error);
     return null;
   }
@@ -431,7 +418,7 @@ export async function hasUserRecord(clerkUserId: string): Promise<boolean> {
       .limit(1);
 
     return result.length > 0;
-  } catch (error) {
+  } catch (error: unknown) {
     console.error("Has user record error:", error);
     return false;
   }
@@ -449,7 +436,7 @@ export async function isUserArtist(clerkUserId: string): Promise<boolean> {
       .limit(1);
 
     return result.length > 0 && result[0].isArtist === true;
-  } catch (error) {
+  } catch (error: unknown) {
     console.error("Is user artist error:", error);
     return false;
   }

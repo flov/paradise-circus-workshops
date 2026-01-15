@@ -252,3 +252,75 @@ export function calculateYearsOfExperience(startDate: string | Date | null | und
   
   return years >= 0 ? years : null
 }
+
+/**
+ * Validate Instagram handle format
+ * @param handle - Instagram handle to validate (with or without @)
+ * @returns Object with isValid boolean and error message if invalid
+ */
+export function validateInstagramHandle(handle: string): { isValid: boolean; error?: string } {
+  if (!handle || handle.trim().length === 0) {
+    return { isValid: true }; // Optional field
+  }
+  
+  const cleaned = handle.replace(/^@/, '').trim();
+  
+  if (cleaned.length === 0) {
+    return { isValid: true }; // Empty after cleaning is fine
+  }
+  
+  // Instagram handles: 1-30 characters, alphanumeric, dots, underscores
+  // Cannot start or end with dot or underscore
+  const instagramRegex = /^[a-zA-Z0-9]([a-zA-Z0-9._]*[a-zA-Z0-9])?$/;
+  
+  if (!instagramRegex.test(cleaned)) {
+    return { 
+      isValid: false, 
+      error: "Invalid Instagram handle format. Use letters, numbers, dots, and underscores only." 
+    };
+  }
+  
+  if (cleaned.length > 30) {
+    return { isValid: false, error: "Instagram handle must be 30 characters or less" };
+  }
+  
+  return { isValid: true };
+}
+
+/**
+ * Normalize experience start date to YYYY-MM-DD format
+ * Handles Date objects, strings, and null/undefined values
+ * @param date - Date value to normalize
+ * @returns Normalized date string in YYYY-MM-DD format, or null if invalid
+ */
+export function normalizeExperienceStartDate(
+  date: string | Date | null | undefined
+): string | null {
+  if (!date) return null;
+  
+  const dateValue = date instanceof Date ? date : new Date(date);
+  if (isNaN(dateValue.getTime())) return null;
+  
+  return dateValue.toISOString().split('T')[0];
+}
+
+/**
+ * Sanitize text content to prevent XSS attacks
+ * Removes HTML tags and escapes special characters
+ * @param text - Text to sanitize
+ * @returns Sanitized text safe for display
+ */
+export function sanitizeText(text: string): string {
+  if (!text) return '';
+  
+  // Remove HTML tags
+  const withoutTags = text.replace(/<[^>]*>/g, '');
+  
+  // Escape HTML entities
+  return withoutTags
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#x27;');
+}
