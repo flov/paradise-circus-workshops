@@ -28,7 +28,7 @@ export function AddEventButton() {
   const [availableProps, setAvailableProps] = useState<Array<{ id: number; name: string }>>([])
   const [selectedProps, setSelectedProps] = useState<number[]>([])
 
-  // Fetch available props
+  // Fetch available props and reset selected props when dialog opens
   useEffect(() => {
     async function fetchProps() {
       try {
@@ -39,6 +39,7 @@ export function AddEventButton() {
       }
     }
     if (open) {
+      setSelectedProps([]) // Reset selected props when dialog opens
       fetchProps()
     }
   }, [open])
@@ -55,6 +56,7 @@ export function AddEventButton() {
       const result = await createEvent(formData)
 
       if (result.success) {
+        setSelectedProps([]) // Reset selected props on successful submission
         setOpen(false)
         router.refresh()
       } else {
