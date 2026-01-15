@@ -175,7 +175,7 @@ export async function createProfile(formData: FormData) {
         // Delete existing props
         await db.delete(userProps).where(eq(userProps.userId, user.id));
 
-        // Insert new props - handle migration transition where both columns may exist
+        // Insert new props
         if (propsData.length > 0) {
           const propEntries = await Promise.all(
             propsData
@@ -186,42 +186,12 @@ export async function createProfile(formData: FormData) {
                   userId: user.id,
                   propId,
                   skillLevel: Math.max(0, Math.min(10, prop.skillLevel)),
-                  propName: prop.propName.trim(), // Keep propName for migration transition
                 };
               }),
           );
 
           if (propEntries.length > 0) {
-            try {
-              // Try inserting with propId only (after migration complete)
-              await db
-                .insert(userProps)
-                .values(propEntries.map(({ propName, ...rest }) => rest));
-            } catch (insertError: any) {
-              // If prop_name is still required (during migration), include both columns
-              if (
-                insertError?.code === "23502" &&
-                insertError?.column === "prop_name"
-              ) {
-                await db.insert(userProps).values(propEntries as any);
-              } else if (
-                insertError?.code === "23502" &&
-                insertError?.column === "prop_id"
-              ) {
-                // If prop_id doesn't exist yet (before migration), use old schema only
-                await db.insert(userProps).values(
-                  propsData
-                    .filter((p) => p.propName && p.propName.trim())
-                    .map((prop) => ({
-                      userId: user.id,
-                      propName: prop.propName.trim(),
-                      skillLevel: Math.max(0, Math.min(10, prop.skillLevel)),
-                    })) as any,
-                );
-              } else {
-                throw insertError;
-              }
-            }
+            await db.insert(userProps).values(propEntries);
           }
         }
       } catch (error) {
@@ -350,19 +320,7 @@ export async function getUserProps(userId: number) {
     return result;
   } catch (error) {
     console.error("Get user props error:", error);
-    // Fallback: try to get props without join (for backward compatibility during migration)
-    try {
-      const result = await db
-        .select()
-        .from(userProps)
-        .where(eq(userProps.userId, userId));
-      return result.map((r: any) => ({
-        ...r,
-        propName: r.propName || "Unknown",
-      }));
-    } catch {
-      return [];
-    }
+    return [];
   }
 }
 
