@@ -317,10 +317,10 @@ async function getOrCreateProp(propName: string): Promise<number> {
     return existing[0].id;
   }
 
-  // Create new prop
+  // Create new prop - always use lowercase to prevent duplicates
   const result = await db
     .insert(props)
-    .values({ name: propName.trim() })
+    .values({ name: normalizedName })
     .returning({ id: props.id })
     .onConflictDoUpdate({
       target: props.name,
