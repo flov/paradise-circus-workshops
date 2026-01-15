@@ -76,9 +76,9 @@ export default async function BookingConfirmationPage({
 
   // Create event slug for back button
   const eventSlug = createEventSlug(
-    eventData.id,
-    eventData.title,
-    eventData.instructor,
+    event.id,
+    event.title,
+    event.instructor,
   );
 
   return (
@@ -193,18 +193,18 @@ export default async function BookingConfirmationPage({
 
             <div className='pt-4 border-t border-border space-y-3'>
               <AddToCalendarButton
-                confirmationToken={bookingData.confirmationToken}
+                confirmationToken={booking.confirmationToken}
                 eventData={{
-                  title: eventData.title,
-                  date: eventData.date,
-                  startTime: eventData.startTime,
-                  endTime: eventData.endTime,
-                  location: eventData.location,
-                  instructor: eventData.instructor,
-                  description: eventData.description,
-                  whatToBring: eventData.whatToBring,
-                  bookingId: bookingData.id,
-                  confirmationToken: bookingData.confirmationToken,
+                  title: event.title,
+                  date: event.date,
+                  startTime: event.startTime,
+                  endTime: event.endTime,
+                  location: event.location,
+                  instructor: event.instructor,
+                  description: event.description,
+                  whatToBring: event.whatToBring,
+                  bookingId: booking.id,
+                  confirmationToken: booking.confirmationToken,
                 }}
                 className='w-full'
               />
@@ -212,7 +212,7 @@ export default async function BookingConfirmationPage({
                 <Button className='w-full'>Browse More Events</Button>
               </Link>
               <CancelBookingButton
-                bookingId={bookingData.id}
+                bookingId={booking.id}
                 variant='outline'
                 className='w-full mt-2'
               />
