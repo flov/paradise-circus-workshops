@@ -6,13 +6,11 @@ import { generateGoogleCalendarURL, type EventCalendarData } from "@/lib/calenda
 
 interface EventCalendarButtonsProps {
   eventData: EventCalendarData;
-  eventSlug: string;
   className?: string;
 }
 
 export function EventCalendarButtons({
   eventData,
-  eventSlug,
   className,
 }: EventCalendarButtonsProps) {
   const googleCalendarUrl = generateGoogleCalendarURL(eventData);

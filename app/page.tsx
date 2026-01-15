@@ -2,9 +2,7 @@ import Link from "next/link";
 import { db } from "@/db";
 import { events as eventsTable, type Event } from "@/db/schema";
 import { gte, asc } from "drizzle-orm";
-import { EventCard } from "@/components/event-card";
 import { WeeklyTimetable } from "@/components/weekly-timetable";
-import { Tent } from "lucide-react";
 
 export default async function Home() {
   // Fetch upcoming events ordered by date and time

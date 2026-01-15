@@ -302,11 +302,6 @@ export default async function BookEventPage({
                         event.instructor
                       )}`,
                     }}
-                    eventSlug={createEventSlug(
-                      event.id,
-                      event.title,
-                      event.instructor
-                    )}
                     className="w-full"
                   />
                 </div>

@@ -1,5 +1,5 @@
 import { db } from "@/db"
-import { bookings, events, type Booking, type Event } from "@/db/schema"
+import { bookings, events } from "@/db/schema"
 import { eq, desc } from "drizzle-orm"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"

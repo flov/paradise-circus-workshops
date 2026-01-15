@@ -13,7 +13,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
-import { X, Loader2 } from "lucide-react"
+import { Loader2 } from "lucide-react"
 import { cancelBooking } from "@/app/actions"
 import { useRouter } from "next/navigation"
 
