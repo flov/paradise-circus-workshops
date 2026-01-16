@@ -441,3 +441,34 @@ export async function isUserArtist(clerkUserId: string): Promise<boolean> {
     return false;
   }
 }
+
+/**
+ * Get profile links data for current user
+ */
+export async function getProfileLinksData(): Promise<{
+  isArtist: boolean;
+  username: string | null;
+}> {
+  const { userId } = await auth();
+
+  if (!userId) {
+    return { isArtist: false, username: null };
+  }
+
+  try {
+    const userIsArtist = await isUserArtist(userId);
+    if (!userIsArtist) {
+      return { isArtist: false, username: null };
+    }
+
+    const profile = await getCurrentUserProfile();
+
+    return {
+      isArtist: true,
+      username: profile?.username || null,
+    };
+  } catch (error: unknown) {
+    console.error("Get profile links data error:", error);
+    return { isArtist: false, username: null };
+  }
+}

@@ -140,11 +140,6 @@ export function Header({
                     </Link>
                   );
                 })}
-                <SignedIn>
-                  <div className="pt-2 border-t border-border mt-2">
-                    <ProfileLinks />
-                  </div>
-                </SignedIn>
               </div>
             </div>
           </nav>
