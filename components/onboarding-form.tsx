@@ -129,7 +129,7 @@ export function OnboardingForm({ initialUsername }: OnboardingFormProps) {
           </div>
 
           <p className="text-sm text-muted-foreground text-center">
-            Clicking &quot;Yes&quot; will create an artist profile for you.
+            Clicking &quot;Yes&quot; sets up your artist profile to showcase your skills and connect with the community.
           </p>
         </div>
       </div>

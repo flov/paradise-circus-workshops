@@ -9,7 +9,6 @@ import { Loader2 } from "lucide-react"
 export function ProfileLinks() {
   const { isLoaded, isSignedIn } = useUser()
   const [profileData, setProfileData] = useState<{
-    hasProfile: boolean
     isArtist: boolean
     username: string | null
   } | null>(null)
@@ -62,7 +61,7 @@ export function ProfileLinks() {
 
   return (
     <div className="flex items-center gap-2">
-      {profileData.hasProfile && profileData.username ? (
+      {profileData.username ? (
         <>
           <Link href="/profile/edit">
             <Button variant="ghost" size="sm">

@@ -7,23 +7,22 @@ export async function GET() {
     const { userId } = await auth()
     
     if (!userId) {
-      return NextResponse.json({ hasProfile: false, isArtist: false })
+      return NextResponse.json({ isArtist: false })
     }
 
     const userIsArtist = await isUserArtist(userId)
     if (!userIsArtist) {
-      return NextResponse.json({ hasProfile: false, isArtist: false })
+      return NextResponse.json({ isArtist: false })
     }
 
     const profile = await getCurrentUserProfile()
 
     return NextResponse.json({
-      hasProfile: !!profile,
       isArtist: true,
       username: profile?.username || null,
     })
   } catch (error) {
     console.error("Profile links API error:", error)
-    return NextResponse.json({ hasProfile: false, isArtist: false })
+    return NextResponse.json({ isArtist: false })
   }
 }
