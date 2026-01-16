@@ -3,7 +3,7 @@ import { clerkClient } from "@clerk/nextjs/server";
 import { getUserByUsername, getUserProps } from "@/app/profile/actions";
 import { getYouTubeEmbedUrl, calculateYearsOfExperience } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { MapPin, Instagram, Youtube, Award } from "lucide-react";
 
 export default async function ArtistProfilePage({
@@ -116,8 +116,10 @@ export default async function ArtistProfilePage({
         {/* Bio */}
         {user.bio && (
           <Card>
-            <CardContent className="pt-6">
-              <h2 className="text-xl font-semibold mb-3">About</h2>
+            <CardHeader>
+              <CardTitle className="text-xl">About</CardTitle>
+            </CardHeader>
+            <CardContent>
               <p className="text-muted-foreground whitespace-pre-wrap">
                 {user.bio}
               </p>
@@ -128,8 +130,10 @@ export default async function ArtistProfilePage({
         {/* Props & Skills */}
         {props.length > 0 && (
           <Card>
-            <CardContent className="pt-6">
-              <h2 className="text-xl font-semibold mb-4">Props & Skills</h2>
+            <CardHeader>
+              <CardTitle className="text-xl">Props & Skills</CardTitle>
+            </CardHeader>
+            <CardContent>
               <div className="space-y-4">
                 {props.map((prop) => (
                   <div key={prop.id} className="space-y-2">
@@ -155,11 +159,13 @@ export default async function ArtistProfilePage({
         {/* YouTube Videos */}
         {user.youtubeVideos && user.youtubeVideos.length > 0 && (
           <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-center gap-2 mb-4">
+            <CardHeader>
+              <CardTitle className="text-xl flex items-center gap-2">
                 <Youtube className="h-5 w-5" />
-                <h2 className="text-xl font-semibold">Videos</h2>
-              </div>
+                Videos
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {user.youtubeVideos.map((videoId, index) => (
                   <div key={index} className="aspect-video">
