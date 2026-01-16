@@ -3,10 +3,10 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { SignedIn, SignedOut, UserButton, SignInButton } from "@clerk/nextjs";
+import { SignedIn, SignedOut, SignInButton } from "@clerk/nextjs";
 import { Menu, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { ProfileLinks } from "@/components/profile-links";
+import { CustomUserButton } from "@/components/custom-user-button";
 
 interface HeaderProps {
   title?: string;
@@ -70,8 +70,7 @@ export function Header({
               {/* Auth Buttons */}
               <div className="flex items-center gap-2">
                 <SignedIn>
-                  <ProfileLinks />
-                  <UserButton />
+                  <CustomUserButton />
                 </SignedIn>
                 <SignedOut>
                   <SignInButton mode="modal">
