@@ -1,10 +1,11 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { createEventSlug } from "@/lib/utils";
 import { EditEventButton } from "@/components/admin/edit-event-button";
+import { AddEventButton } from "@/components/admin/add-event-button";
 
 type TimeSlot = {
   id: number;
@@ -46,6 +47,12 @@ export function WeeklyTimetable({ isInstructor = false }: { isInstructor?: boole
   const [weekDates, setWeekDates] = useState<Date[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [shouldScrollToNow, setShouldScrollToNow] = useState(false);
+  const [addEventOpen, setAddEventOpen] = useState(false);
+  const [prefillValues, setPrefillValues] = useState<{
+    date: string;
+    startTime: string;
+    endTime: string;
+  } | null>(null);
   const dayCardRefs = useRef<(HTMLDivElement | null)[]>([]);
   const timeSlotRefs = useRef<Map<string, HTMLDivElement>>(new Map());
 
@@ -59,6 +66,47 @@ export function WeeklyTimetable({ isInstructor = false }: { isInstructor?: boole
     const month = String(date.getMonth() + 1).padStart(2, "0");
     const day = String(date.getDate()).padStart(2, "0");
     return `${year}-${month}-${day}`;
+  };
+
+  // Helper function to convert time slot string to HH:MM format
+  const convertTimeSlotToTime = (timeSlot: string): string => {
+    // Remove "pm" or "am" and convert to number
+    const timeStr = timeSlot.replace(/[ap]m/i, "");
+    const hour = Number.parseInt(timeStr);
+    
+    // Convert to 24-hour format
+    // "12pm" -> 12, "1pm" -> 13, etc.
+    if (timeSlot.toLowerCase().includes("pm")) {
+      const hour24 = hour === 12 ? 12 : hour + 12;
+      return `${String(hour24).padStart(2, "0")}:00`;
+    } else {
+      // Handle am if needed (though TIME_SLOTS only has pm)
+      const hour24 = hour === 12 ? 0 : hour;
+      return `${String(hour24).padStart(2, "0")}:00`;
+    }
+  };
+
+  // Helper function to get next time slot
+  const getNextTimeSlot = (timeSlot: string): string => {
+    const currentIndex = TIME_SLOTS.indexOf(timeSlot);
+    if (currentIndex === -1 || currentIndex === TIME_SLOTS.length - 1) {
+      // If last slot (10pm), use 23:00 as end time
+      return "23:00";
+    }
+    const nextSlot = TIME_SLOTS[currentIndex + 1];
+    return convertTimeSlotToTime(nextSlot);
+  };
+
+  // Handle clicking on "+" button in empty slot
+  const handleAddEventClick = (dayIndex: number, timeSlot: string) => {
+    if (!weekDates[dayIndex]) return;
+    
+    const date = formatLocalDate(weekDates[dayIndex]);
+    const startTime = convertTimeSlotToTime(timeSlot);
+    const endTime = getNextTimeSlot(timeSlot);
+    
+    setPrefillValues({ date, startTime, endTime });
+    setAddEventOpen(true);
   };
 
   const loadWeekData = async () => {
@@ -403,7 +451,19 @@ export function WeeklyTimetable({ isInstructor = false }: { isInstructor?: boole
                               })}
                             </div>
                           ) : (
-                            <div className="p-2 h-full min-h-[60px] bg-muted/20 rounded" />
+                            <div className="p-2 h-full min-h-[60px] bg-muted/20 rounded relative group">
+                              {isInstructor && (
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="absolute inset-0 w-full h-full opacity-30 hover:opacity-100 transition-opacity flex items-center justify-center hover:bg-muted/40"
+                                  onClick={() => handleAddEventClick(dayIndex, time)}
+                                  aria-label={`Add event at ${day} ${time}`}
+                                >
+                                  <Plus className="h-5 w-5 text-muted-foreground group-hover:text-foreground transition-colors" />
+                                </Button>
+                              )}
+                            </div>
                           )}
                         </td>
                       );
@@ -476,9 +536,35 @@ export function WeeklyTimetable({ isInstructor = false }: { isInstructor?: boole
                   ) : hasSlots ? (
                     TIME_SLOTS.map((time) => {
                       const slots = daySlots[time] || [];
-                      if (slots.length === 0) return null;
-
                       const timeSlotKey = `${dayIndex}-${time}`;
+
+                      if (slots.length === 0) {
+                        // Show "+" button for empty slots when instructor
+                        if (!isInstructor) return null;
+                        return (
+                          <div
+                            key={time}
+                            ref={(el) => {
+                              if (el) {
+                                timeSlotRefs.current.set(timeSlotKey, el);
+                              }
+                            }}
+                            data-time-slot={time}
+                            data-day-index={dayIndex}
+                            className="space-y-2"
+                          >
+                            <Button
+                              variant="outline"
+                              className="w-full h-16 border-dashed border-2 hover:border-solid"
+                              onClick={() => handleAddEventClick(dayIndex, time)}
+                              aria-label={`Add event at ${day} ${time}`}
+                            >
+                              <Plus className="h-5 w-5 text-muted-foreground mr-2" />
+                              <span className="text-sm text-muted-foreground">Add Event</span>
+                            </Button>
+                          </div>
+                        );
+                      }
 
                       return (
                         <div
@@ -567,6 +653,20 @@ export function WeeklyTimetable({ isInstructor = false }: { isInstructor?: boole
           })}
         </div>
       </div>
+
+      {/* Add Event Dialog - controlled externally */}
+      <AddEventButton
+        open={addEventOpen}
+        onOpenChange={(open) => {
+          setAddEventOpen(open);
+          if (!open) {
+            // Reset prefill values when dialog closes
+            setPrefillValues(null);
+          }
+        }}
+        initialValues={prefillValues || undefined}
+        showTrigger={false}
+      />
     </div>
   );
 }
