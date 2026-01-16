@@ -3,6 +3,7 @@ import { db } from "@/db";
 import { events as eventsTable, type Event } from "@/db/schema";
 import { gte, asc } from "drizzle-orm";
 import { WeeklyTimetable } from "@/components/weekly-timetable";
+import { getCurrentUserProfile } from "@/app/profile/actions";
 
 export default async function Home() {
   // Fetch upcoming events ordered by date and time
@@ -24,6 +25,10 @@ export default async function Home() {
     .where(gte(eventsTable.date, today))
     .orderBy(asc(eventsTable.date), asc(eventsTable.startTime));
 
+  // Fetch current user profile to check instructor status
+  const userProfile = await getCurrentUserProfile();
+  const isInstructor = userProfile?.isInstructor ?? false;
+
   return (
     <div className="min-h-screen bg-background">
       {/* Main Content */}
@@ -32,7 +37,7 @@ export default async function Home() {
         suppressHydrationWarning
       >
         {/* Weekly Timetable Section */}
-        <WeeklyTimetable />
+        <WeeklyTimetable isInstructor={isInstructor} />
       </main>
 
       {/* Footer */}

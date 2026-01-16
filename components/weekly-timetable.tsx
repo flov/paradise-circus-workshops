@@ -4,14 +4,19 @@ import { useState, useEffect, useRef } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { createEventSlug } from "@/lib/utils";
+import { EditEventButton } from "@/components/admin/edit-event-button";
 
 type TimeSlot = {
   id: number;
   title: string;
+  description: string | null;
   instructor: string;
+  date: string;
   startTime: string;
   endTime: string;
   location: string | null;
+  whatToBring: string | null;
+  isWorkshop: boolean;
 };
 
 type TimetableData = {
@@ -35,7 +40,7 @@ const TIME_SLOTS = [
   "10pm",
 ];
 
-export function WeeklyTimetable() {
+export function WeeklyTimetable({ isInstructor = false }: { isInstructor?: boolean }) {
   const [currentWeek, setCurrentWeek] = useState(0); // 0 = current week
   const [timetableData, setTimetableData] = useState<TimetableData>({});
   const [weekDates, setWeekDates] = useState<Date[]>([]);
@@ -89,10 +94,14 @@ export function WeeklyTimetable() {
         organized[dayName][timeSlot].push({
           id: event.id,
           title: event.title,
+          description: event.description,
           instructor: event.instructor,
+          date: event.date,
           startTime: event.startTime,
           endTime: event.endTime,
           location: event.location,
+          whatToBring: event.whatToBring,
+          isWorkshop: event.isWorkshop,
         });
       });
 
@@ -352,22 +361,44 @@ export function WeeklyTimetable() {
                                   slot.location?.toLowerCase() ===
                                     "paradise river";
                                 return (
-                                  <a
+                                  <div
                                     key={slot.id}
-                                    href={`/event/${createEventSlug(slot.id, slot.title, slot.instructor)}`}
-                                    className={`block p-2 rounded transition-colors h-full ${
+                                    className={`relative block rounded transition-colors h-full ${
                                       isParadiseRiver
                                         ? "bg-blue-500/20 hover:bg-blue-500/30 border border-blue-500/40"
                                         : "bg-red-500/20 hover:bg-red-500/30 border border-red-500/40"
                                     }`}
                                   >
-                                    <div className="text-sm font-medium text-foreground line-clamp-2">
-                                      {slot.title}
-                                    </div>
-                                    <div className="text-xs text-muted-foreground mt-0.5 line-clamp-1">
-                                      {slot.instructor}
-                                    </div>
-                                  </a>
+                                    <a
+                                      href={`/event/${createEventSlug(slot.id, slot.title, slot.instructor)}`}
+                                      className="block p-2 pr-8"
+                                    >
+                                      <div className="text-sm font-medium text-foreground line-clamp-2">
+                                        {slot.title}
+                                      </div>
+                                      <div className="text-xs text-muted-foreground mt-0.5 line-clamp-1">
+                                        {slot.instructor}
+                                      </div>
+                                    </a>
+                                    {isInstructor && (
+                                      <div className="absolute top-1 right-1 z-10" onClick={(e) => e.stopPropagation()}>
+                                        <EditEventButton
+                                          event={{
+                                            id: slot.id,
+                                            title: slot.title,
+                                            description: slot.description,
+                                            instructor: slot.instructor,
+                                            date: slot.date,
+                                            startTime: slot.startTime,
+                                            endTime: slot.endTime,
+                                            location: slot.location,
+                                            whatToBring: slot.whatToBring,
+                                            isWorkshop: slot.isWorkshop,
+                                          }}
+                                        />
+                                      </div>
+                                    )}
+                                  </div>
                                 );
                               })}
                             </div>
@@ -468,36 +499,58 @@ export function WeeklyTimetable() {
                                 .includes("paradise river") ||
                               slot.location?.toLowerCase() === "paradise river";
                             return (
-                              <a
+                              <div
                                 key={slot.id}
-                                href={`/event/${createEventSlug(slot.id, slot.title, slot.instructor)}`}
-                                className={`block p-4 rounded-lg border-2 shadow-sm hover:shadow-md active:shadow-sm transition-all duration-150 cursor-pointer ${
+                                className={`relative block rounded-lg border-2 shadow-sm hover:shadow-md active:shadow-sm transition-all duration-150 ${
                                   isParadiseRiver
                                     ? "bg-blue-500/15 hover:bg-blue-500/25 active:bg-blue-500/30 border-blue-500/40 hover:border-blue-500/50 active:border-blue-500/60"
                                     : "bg-red-500/15 hover:bg-red-500/25 active:bg-red-500/30 border-red-500/40 hover:border-red-500/50 active:border-red-500/60"
                                 }`}
                               >
-                                <div className="flex justify-between items-start gap-2 mb-1">
-                                  <div className="font-medium text-foreground flex-1 min-w-0">
-                                    {slot.title}
+                                <a
+                                  href={`/event/${createEventSlug(slot.id, slot.title, slot.instructor)}`}
+                                  className="block p-4 pr-12 cursor-pointer"
+                                >
+                                  <div className="flex justify-between items-start gap-2 mb-1">
+                                    <div className="font-medium text-foreground flex-1 min-w-0">
+                                      {slot.title}
+                                    </div>
+                                    <div className="text-sm text-muted-foreground whitespace-nowrap flex-shrink-0 flex items-center gap-1">
+                                      {time}
+                                      <span
+                                        className={
+                                          isParadiseRiver
+                                            ? "text-blue-600 dark:text-blue-400"
+                                            : "text-red-600 dark:text-red-400"
+                                        }
+                                      >
+                                        →
+                                      </span>
+                                    </div>
                                   </div>
-                                  <div className="text-sm text-muted-foreground whitespace-nowrap flex-shrink-0 flex items-center gap-1">
-                                    {time}
-                                    <span
-                                      className={
-                                        isParadiseRiver
-                                          ? "text-blue-600 dark:text-blue-400"
-                                          : "text-red-600 dark:text-red-400"
-                                      }
-                                    >
-                                      →
-                                    </span>
+                                  <div className="text-sm text-muted-foreground">
+                                    {slot.instructor}
                                   </div>
-                                </div>
-                                <div className="text-sm text-muted-foreground">
-                                  {slot.instructor}
-                                </div>
-                              </a>
+                                </a>
+                                {isInstructor && (
+                                  <div className="absolute top-2 right-2 z-10" onClick={(e) => e.stopPropagation()}>
+                                    <EditEventButton
+                                      event={{
+                                        id: slot.id,
+                                        title: slot.title,
+                                        description: slot.description,
+                                        instructor: slot.instructor,
+                                        date: slot.date,
+                                        startTime: slot.startTime,
+                                        endTime: slot.endTime,
+                                        location: slot.location,
+                                        whatToBring: slot.whatToBring,
+                                        isWorkshop: slot.isWorkshop,
+                                      }}
+                                    />
+                                  </div>
+                                )}
+                              </div>
                             );
                           })}
                         </div>

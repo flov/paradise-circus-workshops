@@ -6,9 +6,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { EventsList } from "@/components/admin/events-list"
 import { BookingsList } from "@/components/admin/bookings-list"
 import { AddEventButton } from "@/components/admin/add-event-button"
+import { WeeklyTimetable } from "@/components/weekly-timetable"
 import { Calendar, Users, TrendingUp, UserCheck } from "lucide-react"
 import { auth } from "@clerk/nextjs/server"
 import { redirect } from "next/navigation"
+import { getCurrentUserProfile } from "@/app/profile/actions"
 
 // Helper function to calculate current week date range (Monday-Sunday)
 function getCurrentWeekRange(): { startDate: string; endDate: string } {
@@ -68,6 +70,10 @@ export default async function AdminPage() {
     total_instructors: Number(totalInstructors[0]?.count) || 0,
   }
 
+  // Fetch current user profile to check instructor status
+  const userProfile = await getCurrentUserProfile()
+  const isInstructor = userProfile?.isInstructor ?? false
+
   return (
     <div className="min-h-screen bg-background">
       <div className="border-b border-border bg-card">
@@ -92,6 +98,7 @@ export default async function AdminPage() {
           </TabsList>
 
           <TabsContent value="events" className="space-y-4">
+            <WeeklyTimetable isInstructor={isInstructor} />
             <Card>
               <CardHeader>
                 <CardTitle>Manage Events</CardTitle>
