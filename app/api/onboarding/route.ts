@@ -14,16 +14,16 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { username, isArtist } = body
+    const { username } = body
 
-    if (!username || typeof isArtist !== "boolean") {
+    if (!username) {
       return NextResponse.json(
         { success: false, error: "Missing required fields" },
         { status: 400 }
       )
     }
 
-    const result = await createUserRecord(userId, username, isArtist)
+    const result = await createUserRecord(userId, username)
 
     if (!result.success) {
       return NextResponse.json(

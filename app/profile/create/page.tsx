@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation"
 import { auth } from "@clerk/nextjs/server"
-import { getCurrentUserProfile, isUserArtist, hasUserRecord } from "@/app/profile/actions"
+import { getCurrentUserProfile, hasUserRecord } from "@/app/profile/actions"
 import { ProfileForm } from "@/components/profile-form"
 
 export default async function CreateProfilePage() {
@@ -14,12 +14,6 @@ export default async function CreateProfilePage() {
   const hasRecord = await hasUserRecord(userId)
   if (!hasRecord) {
     redirect("/onboarding")
-  }
-
-  // Check if user is an artist
-  const userIsArtist = await isUserArtist(userId)
-  if (!userIsArtist) {
-    redirect("/")
   }
 
   // Check if profile already exists

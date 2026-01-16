@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation"
 import { auth } from "@clerk/nextjs/server"
-import { getCurrentUserProfile, getUserProps, isUserArtist, hasUserRecord } from "@/app/profile/actions"
+import { getCurrentUserProfile, getUserProps, hasUserRecord } from "@/app/profile/actions"
 import { ProfileForm } from "@/components/profile-form"
 
 export default async function EditProfilePage() {
@@ -14,12 +14,6 @@ export default async function EditProfilePage() {
   const hasRecord = await hasUserRecord(userId)
   if (!hasRecord) {
     redirect("/onboarding")
-  }
-
-  // Check if user is an artist
-  const userIsArtist = await isUserArtist(userId)
-  if (!userIsArtist) {
-    redirect("/")
   }
 
   // Get current profile

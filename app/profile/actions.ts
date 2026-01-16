@@ -14,7 +14,6 @@ import type { UserProfile, UserProp, PropOption } from "@/lib/types";
 export async function createUserRecord(
   clerkUserId: string,
   username: string,
-  isArtist: boolean,
 ) {
   try {
     // Validate username
@@ -42,7 +41,6 @@ export async function createUserRecord(
         .values({
           clerkUserId,
           username: trimmedUsername,
-          isArtist,
         })
         .returning({ id: users.id, username: users.username });
       
@@ -110,10 +108,6 @@ export async function createProfile(formData: FormData) {
     }
 
     const user = userRecord[0];
-
-    if (!user.isArtist) {
-      return { success: false, error: "Only artists can create profiles" };
-    }
 
     // Get form data
     const username = formData.get("username") as string;
@@ -372,7 +366,6 @@ export async function getCurrentUserProfile(): Promise<UserProfile | null> {
         id: users.id,
         clerkUserId: users.clerkUserId,
         username: users.username,
-        isArtist: users.isArtist,
         isInstructor: users.isInstructor,
         bio: users.bio,
         instagramHandle: users.instagramHandle,
@@ -425,50 +418,25 @@ export async function hasUserRecord(clerkUserId: string): Promise<boolean> {
 }
 
 /**
- * Check if user is an artist
- */
-export async function isUserArtist(clerkUserId: string): Promise<boolean> {
-  try {
-    const result = await db
-      .select({ isArtist: users.isArtist })
-      .from(users)
-      .where(eq(users.clerkUserId, clerkUserId))
-      .limit(1);
-
-    return result.length > 0 && result[0].isArtist === true;
-  } catch (error: unknown) {
-    console.error("Is user artist error:", error);
-    return false;
-  }
-}
-
-/**
  * Get profile links data for current user
  */
 export async function getProfileLinksData(): Promise<{
-  isArtist: boolean;
   username: string | null;
 }> {
   const { userId } = await auth();
 
   if (!userId) {
-    return { isArtist: false, username: null };
+    return { username: null };
   }
 
   try {
-    const userIsArtist = await isUserArtist(userId);
-    if (!userIsArtist) {
-      return { isArtist: false, username: null };
-    }
-
     const profile = await getCurrentUserProfile();
 
     return {
-      isArtist: true,
       username: profile?.username || null,
     };
   } catch (error: unknown) {
     console.error("Get profile links data error:", error);
-    return { isArtist: false, username: null };
+    return { username: null };
   }
 }

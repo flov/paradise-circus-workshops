@@ -14,7 +14,7 @@ export default async function ArtistProfilePage({
   const { username } = await params;
   const user = await getUserByUsername(username);
 
-  if (!user || !user.isArtist) {
+  if (!user) {
     notFound();
   }
 

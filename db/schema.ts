@@ -96,7 +96,6 @@ export const users = pgTable(
     id: serial("id").primaryKey(),
     clerkUserId: varchar("clerk_user_id", { length: 255 }).notNull().unique(),
     username: varchar("username", { length: 50 }).notNull().unique(),
-    isArtist: boolean("is_artist").notNull().default(false),
     isInstructor: boolean("is_instructor").notNull().default(false),
     bio: text("bio"),
     instagramHandle: varchar("instagram_handle", { length: 100 }),
