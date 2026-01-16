@@ -24,6 +24,7 @@ export async function createEvent(formData: FormData) {
   const location = formData.get("location") as string
   const whatToBring = formData.get("whatToBring") as string
   const propsInput = formData.get("props") as string
+  const isWorkshop = formData.get("isWorkshop") === "on" || formData.get("isWorkshop") === "true"
   if (!title || !description || !instructor || !date || !start_time || !end_time || !location) {
     return { success: false, error: "Missing required fields" }
   }
@@ -39,6 +40,7 @@ export async function createEvent(formData: FormData) {
       endTime: end_time,
       location,
       whatToBring: whatToBring || null,
+      isWorkshop,
     }).returning({ id: events.id })
 
     // Handle event props
@@ -86,6 +88,7 @@ export async function updateEvent(formData: FormData) {
   const location = formData.get("location") as string
   const whatToBring = formData.get("whatToBring") as string
   const propsInput = formData.get("props") as string
+  const isWorkshop = formData.get("isWorkshop") === "on" || formData.get("isWorkshop") === "true"
   if (!id || !title || !description || !instructor || !date || !start_time || !end_time || !location) {
     return { success: false, error: "Missing required fields" }
   }
@@ -104,6 +107,7 @@ export async function updateEvent(formData: FormData) {
         endTime: end_time,
         location,
         whatToBring: whatToBring || null,
+        isWorkshop,
         updatedAt: sql`CURRENT_TIMESTAMP`,
       })
       .where(eq(events.id, eventId))

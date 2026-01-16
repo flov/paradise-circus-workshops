@@ -21,7 +21,7 @@ import { getAllProps } from "@/app/profile/actions"
 import { useRouter } from "next/navigation"
 import type { Event } from "@/db/schema"
 
-export function EditEventButton({ event }: { event: Pick<Event, "id" | "title" | "description" | "instructor" | "date" | "startTime" | "endTime" | "location" | "whatToBring"> }) {
+export function EditEventButton({ event }: { event: Pick<Event, "id" | "title" | "description" | "instructor" | "date" | "startTime" | "endTime" | "location" | "whatToBring" | "isWorkshop"> }) {
   const router = useRouter()
   const [open, setOpen] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -175,6 +175,23 @@ export function EditEventButton({ event }: { event: Pick<Event, "id" | "title" |
             />
             <p className="text-xs text-muted-foreground">
               Each line will be displayed as a separate item. Leave blank if no items are needed.
+            </p>
+          </div>
+
+          <div className="space-y-2">
+            <label className="flex items-center space-x-2 cursor-pointer">
+              <input
+                type="checkbox"
+                id="isWorkshop"
+                name="isWorkshop"
+                defaultChecked={event.isWorkshop ?? true}
+                disabled={isSubmitting}
+                className="h-4 w-4 rounded border-gray-300"
+              />
+              <Label htmlFor="isWorkshop" className="cursor-pointer">Is Workshop</Label>
+            </label>
+            <p className="text-xs text-muted-foreground">
+              Check this box if this event is a workshop. Uncheck for other event types.
             </p>
           </div>
 

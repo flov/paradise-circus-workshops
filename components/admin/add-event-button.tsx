@@ -144,6 +144,23 @@ export function AddEventButton() {
           </div>
 
           <div className="space-y-2">
+            <label className="flex items-center space-x-2 cursor-pointer">
+              <input
+                type="checkbox"
+                id="isWorkshop"
+                name="isWorkshop"
+                defaultChecked={true}
+                disabled={isSubmitting}
+                className="h-4 w-4 rounded border-gray-300"
+              />
+              <Label htmlFor="isWorkshop" className="cursor-pointer">Is Workshop</Label>
+            </label>
+            <p className="text-xs text-muted-foreground">
+              Check this box if this event is a workshop. Uncheck for other event types.
+            </p>
+          </div>
+
+          <div className="space-y-2">
             <Label>Props (Optional)</Label>
             <div className="space-y-2 max-h-40 overflow-y-auto border rounded-md p-2">
               {availableProps.length === 0 ? (

@@ -15,6 +15,7 @@ export const events = pgTable(
     currentBookings: integer("current_bookings").notNull().default(0),
     location: varchar("location", { length: 255 }),
     whatToBring: text("what_to_bring"),
+    isWorkshop: boolean("is_workshop").notNull().default(true),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at").defaultNow().notNull(),
   },

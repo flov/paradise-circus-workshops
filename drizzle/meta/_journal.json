@@ -57,6 +57,13 @@
       "when": 1768548355950,
       "tag": "0007_panoramic_roughhouse",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1768549987667,
+      "tag": "0008_freezing_mandroid",
+      "breakpoints": true
     }
   ]
 }
