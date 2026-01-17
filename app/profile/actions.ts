@@ -100,15 +100,6 @@ export async function createProfile(formData: FormData) {
       .where(eq(users.clerkUserId, userId))
       .limit(1);
 
-    if (userRecord.length === 0) {
-      return {
-        success: false,
-        error: "User record not found. Please complete onboarding first.",
-      };
-    }
-
-    const user = userRecord[0];
-
     // Get form data
     const username = formData.get("username") as string;
     const bio = formData.get("bio") as string;
@@ -123,12 +114,10 @@ export async function createProfile(formData: FormData) {
     const location = formData.get("location") as string;
     const youtubeVideosInput = formData.get("youtubeVideos") as string;
 
-    // Validate username if changed
-    if (username !== user.username) {
-      const validation = validateUsername(username);
-      if (!validation.isValid) {
-        return { success: false, error: validation.error };
-      }
+    // Validate username
+    const validation = validateUsername(username);
+    if (!validation.isValid) {
+      return { success: false, error: validation.error };
     }
 
     // Validate Instagram handle
@@ -162,31 +151,77 @@ export async function createProfile(formData: FormData) {
       experienceStartDateInput || null
     );
 
-    // Update user profile - database constraint handles username uniqueness race condition
-    try {
-      await db
-        .update(users)
-        .set({
-          username: username.trim(),
-          bio: bio || null,
-          instagramHandle: normalizedInstagramHandle,
-          isInstructor,
-          experienceStartDate: normalizedExperienceDate,
-          performanceStyle: performanceStyle || null,
-          availableForPerformances,
-          location: location || null,
-          youtubeVideos,
-          updatedAt: new Date(),
-        })
-        .where(eq(users.id, user.id));
-    } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      // Handle unique constraint violation for username
-      if (errorMessage.includes('unique') || errorMessage.includes('duplicate') ||
-          (typeof error === 'object' && error !== null && 'code' in error && error.code === '23505')) {
-        return { success: false, error: "Username is already taken. Please choose another." };
+    let user: { id: number; username: string };
+
+    if (userRecord.length === 0) {
+      // Create new user record with all profile data
+      try {
+        const trimmedUsername = username.trim();
+        const result = await db
+          .insert(users)
+          .values({
+            clerkUserId: userId,
+            username: trimmedUsername,
+            bio: bio || null,
+            instagramHandle: normalizedInstagramHandle,
+            isInstructor,
+            experienceStartDate: normalizedExperienceDate,
+            performanceStyle: performanceStyle || null,
+            availableForPerformances,
+            location: location || null,
+            youtubeVideos,
+          })
+          .returning({ id: users.id, username: users.username });
+        
+        user = result[0];
+      } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        // Handle unique constraint violation for username
+        if (errorMessage.includes('unique') || errorMessage.includes('duplicate') ||
+            (typeof error === 'object' && error !== null && 'code' in error && error.code === '23505')) {
+          return { success: false, error: "Username is already taken. Please choose another." };
+        }
+        throw error;
       }
-      throw error;
+    } else {
+      // Update existing user record
+      const existingUser = userRecord[0];
+      
+      // Validate username if changed
+      if (username.trim() !== existingUser.username) {
+        const validation = validateUsername(username);
+        if (!validation.isValid) {
+          return { success: false, error: validation.error };
+        }
+      }
+
+      try {
+        await db
+          .update(users)
+          .set({
+            username: username.trim(),
+            bio: bio || null,
+            instagramHandle: normalizedInstagramHandle,
+            isInstructor,
+            experienceStartDate: normalizedExperienceDate,
+            performanceStyle: performanceStyle || null,
+            availableForPerformances,
+            location: location || null,
+            youtubeVideos,
+            updatedAt: new Date(),
+          })
+          .where(eq(users.id, existingUser.id));
+        
+        user = { id: existingUser.id, username: username.trim() };
+      } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        // Handle unique constraint violation for username
+        if (errorMessage.includes('unique') || errorMessage.includes('duplicate') ||
+            (typeof error === 'object' && error !== null && 'code' in error && error.code === '23505')) {
+          return { success: false, error: "Username is already taken. Please choose another." };
+        }
+        throw error;
+      }
     }
 
     // Handle props
@@ -227,6 +262,7 @@ export async function createProfile(formData: FormData) {
 
     revalidatePath(`/artist/${username.trim()}`);
     revalidatePath("/profile/edit");
+    revalidatePath("/onboarding");
 
     return { success: true, username: username.trim() };
   } catch (error: unknown) {

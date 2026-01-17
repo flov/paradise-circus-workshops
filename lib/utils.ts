@@ -179,10 +179,10 @@ export function validateUsername(username: string): { isValid: boolean; error?: 
     return { isValid: false, error: "Username must be no more than 30 characters" }
   }
   
-  // Format check: alphanumeric + hyphens/underscores, no spaces
-  const usernameRegex = /^[a-zA-Z0-9_-]+$/
+  // Format check: alphanumeric + hyphens/underscores/dots, no spaces
+  const usernameRegex = /^[a-zA-Z0-9._-]+$/
   if (!usernameRegex.test(trimmed)) {
-    return { isValid: false, error: "Username can only contain letters, numbers, hyphens, and underscores" }
+    return { isValid: false, error: "Username can only contain letters, numbers, dots, hyphens, and underscores" }
   }
   
   return { isValid: true }
