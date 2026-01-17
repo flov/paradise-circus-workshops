@@ -16,32 +16,30 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Pencil, Loader2 } from "lucide-react"
-import { updateEvent, getEventProps } from "@/app/admin/actions"
+import { updateEvent } from "@/app/admin/actions"
 import { getAllProps } from "@/app/profile/actions"
 import { useRouter } from "next/navigation"
 import type { Event } from "@/db/schema"
 
-export function EditEventButton({ event }: { event: Pick<Event, "id" | "title" | "description" | "instructor" | "date" | "startTime" | "endTime" | "location" | "whatToBring" | "isWorkshop"> }) {
+export function EditEventButton({ event }: { event: Pick<Event, "id" | "title" | "description" | "instructor" | "date" | "startTime" | "endTime" | "location" | "whatToBring" | "isWorkshop" | "propId"> }) {
   const router = useRouter()
   const [open, setOpen] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [availableProps, setAvailableProps] = useState<Array<{ id: number; name: string }>>([])
-  const [selectedProps, setSelectedProps] = useState<number[]>([])
+  const [selectedPropId, setSelectedPropId] = useState<number | null>(null)
 
   // Format date for input
   const formattedDate = new Date(event.date).toISOString().split("T")[0]
 
-  // Fetch available props and current event props
+  // Fetch available props and set current prop
   useEffect(() => {
     async function fetchData() {
       try {
-        const [propsList, eventPropsList] = await Promise.all([
-          getAllProps(),
-          getEventProps(event.id),
-        ])
+        const propsList = await getAllProps()
         setAvailableProps(propsList)
-        setSelectedProps(eventPropsList.map(ep => ep.propId))
+        // Set the current propId from the event
+        setSelectedPropId(event.propId || null)
       } catch (error) {
         console.error("Failed to fetch props:", error)
       }
@@ -49,7 +47,7 @@ export function EditEventButton({ event }: { event: Pick<Event, "id" | "title" |
     if (open) {
       fetchData()
     }
-  }, [open, event.id])
+  }, [open, event.propId])
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -58,7 +56,9 @@ export function EditEventButton({ event }: { event: Pick<Event, "id" | "title" |
 
     const formData = new FormData(e.currentTarget)
     formData.append("id", event.id.toString())
-    formData.append("props", JSON.stringify(selectedProps))
+    if (selectedPropId !== null) {
+      formData.append("propId", selectedPropId.toString())
+    }
 
     try {
       const result = await updateEvent(formData)
@@ -196,33 +196,27 @@ export function EditEventButton({ event }: { event: Pick<Event, "id" | "title" |
           </div>
 
           <div className="space-y-2">
-            <Label>Props (Optional)</Label>
-            <div className="space-y-2 max-h-40 overflow-y-auto border rounded-md p-2">
-              {availableProps.length === 0 ? (
-                <p className="text-sm text-muted-foreground">No props available. Create props in user profiles first.</p>
-              ) : (
-                availableProps.map((prop) => (
-                  <label key={prop.id} className="flex items-center space-x-2 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={selectedProps.includes(prop.id)}
-                      onChange={(e) => {
-                        if (e.target.checked) {
-                          setSelectedProps([...selectedProps, prop.id])
-                        } else {
-                          setSelectedProps(selectedProps.filter(id => id !== prop.id))
-                        }
-                      }}
-                      disabled={isSubmitting}
-                      className="h-4 w-4 rounded border-gray-300"
-                    />
-                    <span className="text-sm">{prop.name}</span>
-                  </label>
-                ))
-              )}
-            </div>
+            <Label htmlFor="propId">Prop (Optional)</Label>
+            <select
+              id="propId"
+              name="propId"
+              value={selectedPropId || ""}
+              onChange={(e) => {
+                const value = e.target.value
+                setSelectedPropId(value === "" ? null : parseInt(value, 10))
+              }}
+              disabled={isSubmitting}
+              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <option value="">No prop selected</option>
+              {availableProps.map((prop) => (
+                <option key={prop.id} value={prop.id}>
+                  {prop.name}
+                </option>
+              ))}
+            </select>
             <p className="text-xs text-muted-foreground">
-              Select props used in this event. You can select multiple props.
+              Select a prop used in this event. Leave empty if no prop is needed.
             </p>
           </div>
 

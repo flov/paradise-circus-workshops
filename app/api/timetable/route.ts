@@ -26,6 +26,7 @@ export async function GET(request: NextRequest) {
         whatToBring: events.whatToBring,
         isWorkshop: events.isWorkshop,
         currentBookings: events.currentBookings,
+        propId: events.propId,
       })
       .from(events)
       .where(and(gte(events.date, startDate), lte(events.date, endDate)))

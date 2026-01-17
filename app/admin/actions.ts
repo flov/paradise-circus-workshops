@@ -1,7 +1,7 @@
 "use server"
 
 import { db } from "@/db"
-import { events, bookings, eventProps, props, users } from "@/db/schema"
+import { events, bookings, props, users } from "@/db/schema"
 import { eq, sql, inArray, asc } from "drizzle-orm"
 import { revalidatePath } from "next/cache"
 import { createEventSlug } from "@/lib/utils"
@@ -32,13 +32,16 @@ export async function createEvent(formData: FormData) {
   const end_time = formData.get("end_time") as string
   const location = formData.get("location") as string
   const whatToBring = formData.get("whatToBring") as string
-  const propsInput = formData.get("props") as string
+  const propIdInput = formData.get("propId") as string
   const isWorkshop = formData.get("isWorkshop") === "on" || formData.get("isWorkshop") === "true"
   if (!title || !description || !instructor || !date || !start_time || !end_time || !location) {
     return { success: false, error: "Missing required fields" }
   }
 
   try {
+    // Parse propId if provided
+    const propId = propIdInput ? parseInt(propIdInput, 10) : null
+
     // Insert event
     const [newEvent] = await db.insert(events).values({
       title,
@@ -50,24 +53,8 @@ export async function createEvent(formData: FormData) {
       location,
       whatToBring: whatToBring || null,
       isWorkshop,
+      propId: propId || null,
     }).returning({ id: events.id })
-
-    // Handle event props
-    if (propsInput && newEvent) {
-      try {
-        const propIds = JSON.parse(propsInput) as number[]
-        if (propIds.length > 0) {
-          await db.insert(eventProps).values(
-            propIds.map(propId => ({
-              eventId: newEvent.id,
-              propId,
-            }))
-          )
-        }
-      } catch (error) {
-        console.error("Error processing event props:", error)
-      }
-    }
 
     revalidatePath("/admin")
     revalidatePath("/")
@@ -96,7 +83,7 @@ export async function updateEvent(formData: FormData) {
   const end_time = formData.get("end_time") as string
   const location = formData.get("location") as string
   const whatToBring = formData.get("whatToBring") as string
-  const propsInput = formData.get("props") as string
+  const propIdInput = formData.get("propId") as string
   const isWorkshop = formData.get("isWorkshop") === "on" || formData.get("isWorkshop") === "true"
   if (!id || !title || !description || !instructor || !date || !start_time || !end_time || !location) {
     return { success: false, error: "Missing required fields" }
@@ -137,6 +124,9 @@ export async function updateEvent(formData: FormData) {
   }
 
   try {
+    // Parse propId if provided
+    const propId = propIdInput ? parseInt(propIdInput, 10) : null
+
     await db
       .update(events)
       .set({
@@ -149,30 +139,10 @@ export async function updateEvent(formData: FormData) {
         location,
         whatToBring: whatToBring || null,
         isWorkshop,
+        propId: propId || null,
         updatedAt: sql`CURRENT_TIMESTAMP`,
       })
       .where(eq(events.id, eventId))
-
-    // Handle event props
-    if (propsInput !== null) {
-      try {
-        // Delete existing props
-        await db.delete(eventProps).where(eq(eventProps.eventId, eventId))
-        
-        // Insert new props
-        const propIds = JSON.parse(propsInput) as number[]
-        if (propIds.length > 0) {
-          await db.insert(eventProps).values(
-            propIds.map(propId => ({
-              eventId,
-              propId,
-            }))
-          )
-        }
-      } catch (error) {
-        console.error("Error processing event props:", error)
-      }
-    }
 
     revalidatePath("/admin")
     revalidatePath("/")
@@ -236,30 +206,6 @@ export async function deleteEvent(eventId: number) {
   }
 }
 
-/**
- * Get event props
- */
-export async function getEventProps(eventId: number) {
-  try {
-    const result = await db
-      .select({
-        id: eventProps.id,
-        eventId: eventProps.eventId,
-        propId: eventProps.propId,
-        propName: props.name,
-        createdAt: eventProps.createdAt,
-      })
-      .from(eventProps)
-      .innerJoin(props, eq(eventProps.propId, props.id))
-      .where(eq(eventProps.eventId, eventId))
-      .orderBy(asc(props.name))
-
-    return result
-  } catch (error) {
-    console.error("Get event props error:", error)
-    return []
-  }
-}
 
 export async function deleteBooking(bookingId: number, eventId: number) {
   // Check authentication

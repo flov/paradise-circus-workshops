@@ -16,6 +16,7 @@ export const events = pgTable(
     location: varchar("location", { length: 255 }),
     whatToBring: text("what_to_bring"),
     isWorkshop: boolean("is_workshop").notNull().default(true),
+    propId: integer("prop_id").references(() => props.id, { onDelete: "set null" }),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at").defaultNow().notNull(),
   },
@@ -64,10 +65,13 @@ export const comments = pgTable(
   })
 );
 
-export const eventsRelations = relations(events, ({ many }) => ({
+export const eventsRelations = relations(events, ({ many, one }) => ({
   bookings: many(bookings),
   comments: many(comments),
-  props: many(eventProps),
+  prop: one(props, {
+    fields: [events.propId],
+    references: [props.id],
+  }),
 }));
 
 export const bookingsRelations = relations(bookings, ({ one }) => ({
@@ -143,19 +147,6 @@ export const userProps = pgTable(
   })
 );
 
-export const eventProps = pgTable(
-  "event_props",
-  {
-    id: serial("id").primaryKey(),
-    eventId: integer("event_id").notNull().references(() => events.id, { onDelete: "cascade" }),
-    propId: integer("prop_id").notNull().references(() => props.id, { onDelete: "cascade" }),
-    createdAt: timestamp("created_at").defaultNow().notNull(),
-  },
-  (table) => ({
-    eventIdIdx: index("idx_event_props_event_id").on(table.eventId),
-    propIdIdx: index("idx_event_props_prop_id").on(table.propId),
-  })
-);
 
 export const usersRelations = relations(users, ({ many }) => ({
   props: many(userProps),
@@ -163,7 +154,7 @@ export const usersRelations = relations(users, ({ many }) => ({
 
 export const propsRelations = relations(props, ({ many }) => ({
   userProps: many(userProps),
-  eventProps: many(eventProps),
+  events: many(events),
 }));
 
 export const userPropsRelations = relations(userProps, ({ one }) => ({
@@ -177,16 +168,6 @@ export const userPropsRelations = relations(userProps, ({ one }) => ({
   }),
 }));
 
-export const eventPropsRelations = relations(eventProps, ({ one }) => ({
-  event: one(events, {
-    fields: [eventProps.eventId],
-    references: [events.id],
-  }),
-  prop: one(props, {
-    fields: [eventProps.propId],
-    references: [props.id],
-  }),
-}));
 
 // Export inferred types for each table
 export type Event = InferSelectModel<typeof events>;
@@ -207,8 +188,6 @@ export type NewProp = InferInsertModel<typeof props>;
 export type UserProp = InferSelectModel<typeof userProps>;
 export type NewUserProp = InferInsertModel<typeof userProps>;
 
-export type EventProp = InferSelectModel<typeof eventProps>;
-export type NewEventProp = InferInsertModel<typeof eventProps>;
 
 export type AdminSetting = InferSelectModel<typeof adminSettings>;
 export type NewAdminSetting = InferInsertModel<typeof adminSettings>;

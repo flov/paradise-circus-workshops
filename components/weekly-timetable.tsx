@@ -18,6 +18,7 @@ type TimeSlot = {
   location: string | null;
   whatToBring: string | null;
   isWorkshop: boolean;
+  propId: number | null;
 };
 
 type TimetableData = {
@@ -170,6 +171,7 @@ export function WeeklyTimetable({
           location: event.location,
           whatToBring: event.whatToBring,
           isWorkshop: event.isWorkshop,
+          propId: event.propId || null,
         });
       });
 
@@ -475,6 +477,7 @@ export function WeeklyTimetable({
                                             location: slot.location,
                                             whatToBring: slot.whatToBring,
                                             isWorkshop: slot.isWorkshop,
+                                            propId: slot.propId,
                                           }}
                                         />
                                       </div>
@@ -649,6 +652,7 @@ export function WeeklyTimetable({
                                         location: slot.location,
                                         whatToBring: slot.whatToBring,
                                         isWorkshop: slot.isWorkshop,
+                                        propId: slot.propId,
                                       }}
                                     />
                                   </div>

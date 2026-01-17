@@ -1,7 +1,6 @@
 import { db } from "@/db";
-import { events, bookings, comments, type Event } from "@/db/schema";
+import { events, bookings, comments, props, type Event } from "@/db/schema";
 import { eq, asc } from "drizzle-orm";
-import { getEventProps } from "@/app/admin/actions";
 import { BookEventButton } from "@/components/book-event-button";
 import { CancelBookingButton } from "@/components/cancel-booking-button";
 import {
@@ -61,8 +60,22 @@ export default async function BookEventPage({
 
   const event = eventResults[0];
 
-  // Get event props
-  const eventPropsList = await getEventProps(eventId);
+  // Get event prop (single prop now)
+  let eventProp: { id: number; name: string } | null = null;
+  if (event.propId) {
+    const propResults = await db
+      .select({
+        id: props.id,
+        name: props.name,
+      })
+      .from(props)
+      .where(eq(props.id, event.propId))
+      .limit(1);
+    
+    if (propResults.length > 0) {
+      eventProp = propResults[0];
+    }
+  }
 
   // If the slug is in old format (numeric only), redirect to new format for SEO
   if (/^\d+$/.test(slug)) {
@@ -253,19 +266,17 @@ export default async function BookEventPage({
                     </div>
                   </div>
                 </div>
-                {eventPropsList.length > 0 && (
+                {eventProp && (
                   <div className="flex items-start gap-3 text-sm">
                     <div className="h-5 w-5 text-primary mt-0.5">🎪</div>
                     <div>
                       <div className="font-medium text-foreground">
-                        Props
+                        Prop
                       </div>
-                      <div className="text-muted-foreground flex flex-wrap gap-1 mt-1">
-                        {eventPropsList.map((ep) => (
-                          <Badge key={ep.id} variant="secondary" className="text-xs">
-                            {ep.propName}
-                          </Badge>
-                        ))}
+                      <div className="text-muted-foreground mt-1">
+                        <Badge variant="secondary" className="text-xs">
+                          {eventProp.name}
+                        </Badge>
                       </div>
                     </div>
                   </div>

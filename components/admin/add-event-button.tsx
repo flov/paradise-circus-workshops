@@ -42,7 +42,7 @@ export function AddEventButton({
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [availableProps, setAvailableProps] = useState<Array<{ id: number; name: string }>>([])
-  const [selectedProps, setSelectedProps] = useState<number[]>([])
+  const [selectedPropId, setSelectedPropId] = useState<number | null>(null)
 
   // Use controlled open state if provided, otherwise use internal state
   const open = controlledOpen !== undefined ? controlledOpen : internalOpen
@@ -65,7 +65,7 @@ export function AddEventButton({
       }
     }
     if (open) {
-      setSelectedProps([]) // Reset selected props when dialog opens
+      setSelectedPropId(null) // Reset selected prop when dialog opens
       fetchProps()
     }
   }, [open])
@@ -76,13 +76,15 @@ export function AddEventButton({
     setError(null)
 
     const formData = new FormData(e.currentTarget)
-    formData.append("props", JSON.stringify(selectedProps))
+    if (selectedPropId !== null) {
+      formData.append("propId", selectedPropId.toString())
+    }
 
     try {
       const result = await createEvent(formData)
 
       if (result.success) {
-        setSelectedProps([]) // Reset selected props on successful submission
+        setSelectedPropId(null) // Reset selected prop on successful submission
         setOpen(false)
         // Reset form by clearing initialValues effect
         router.refresh()
@@ -215,33 +217,27 @@ export function AddEventButton({
           </div>
 
           <div className="space-y-2">
-            <Label>Props (Optional)</Label>
-            <div className="space-y-2 max-h-40 overflow-y-auto border rounded-md p-2">
-              {availableProps.length === 0 ? (
-                <p className="text-sm text-muted-foreground">No props available. Create props in user profiles first.</p>
-              ) : (
-                availableProps.map((prop) => (
-                  <label key={prop.id} className="flex items-center space-x-2 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={selectedProps.includes(prop.id)}
-                      onChange={(e) => {
-                        if (e.target.checked) {
-                          setSelectedProps([...selectedProps, prop.id])
-                        } else {
-                          setSelectedProps(selectedProps.filter(id => id !== prop.id))
-                        }
-                      }}
-                      disabled={isSubmitting}
-                      className="h-4 w-4 rounded border-gray-300"
-                    />
-                    <span className="text-sm">{prop.name}</span>
-                  </label>
-                ))
-              )}
-            </div>
+            <Label htmlFor="propId">Prop (Optional)</Label>
+            <select
+              id="propId"
+              name="propId"
+              value={selectedPropId || ""}
+              onChange={(e) => {
+                const value = e.target.value
+                setSelectedPropId(value === "" ? null : parseInt(value, 10))
+              }}
+              disabled={isSubmitting}
+              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <option value="">No prop selected</option>
+              {availableProps.map((prop) => (
+                <option key={prop.id} value={prop.id}>
+                  {prop.name}
+                </option>
+              ))}
+            </select>
             <p className="text-xs text-muted-foreground">
-              Select props used in this event. You can select multiple props.
+              Select a prop used in this event. Leave empty if no prop is needed.
             </p>
           </div>
 
