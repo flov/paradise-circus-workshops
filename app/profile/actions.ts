@@ -34,7 +34,7 @@ export async function createUserRecord(
     }
 
     // Create user record - database unique constraint will handle race conditions
-    const trimmedUsername = username.trim();
+    const trimmedUsername = username.trim().toLowerCase();
     try {
       const result = await db
         .insert(users)
@@ -156,7 +156,7 @@ export async function createProfile(formData: FormData) {
     if (userRecord.length === 0) {
       // Create new user record with all profile data
       try {
-        const trimmedUsername = username.trim();
+        const trimmedUsername = username.trim().toLowerCase();
         const result = await db
           .insert(users)
           .values({
@@ -188,7 +188,7 @@ export async function createProfile(formData: FormData) {
       const existingUser = userRecord[0];
       
       // Validate username if changed
-      if (username.trim() !== existingUser.username) {
+      if (username.trim().toLowerCase() !== existingUser.username) {
         const validation = validateUsername(username);
         if (!validation.isValid) {
           return { success: false, error: validation.error };
@@ -196,10 +196,11 @@ export async function createProfile(formData: FormData) {
       }
 
       try {
+        const trimmedUsername = username.trim().toLowerCase();
         await db
           .update(users)
           .set({
-            username: username.trim(),
+            username: trimmedUsername,
             bio: bio || null,
             instagramHandle: normalizedInstagramHandle,
             isInstructor,
@@ -212,7 +213,7 @@ export async function createProfile(formData: FormData) {
           })
           .where(eq(users.id, existingUser.id));
         
-        user = { id: existingUser.id, username: username.trim() };
+        user = { id: existingUser.id, username: trimmedUsername };
       } catch (error: unknown) {
         const errorMessage = error instanceof Error ? error.message : String(error);
         // Handle unique constraint violation for username
@@ -260,11 +261,12 @@ export async function createProfile(formData: FormData) {
       }
     }
 
-    revalidatePath(`/artist/${username.trim()}`);
+    const normalizedUsername = username.trim().toLowerCase();
+    revalidatePath(`/artist/${normalizedUsername}`);
     revalidatePath("/profile/edit");
     revalidatePath("/onboarding");
 
-    return { success: true, username: username.trim() };
+    return { success: true, username: normalizedUsername };
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     console.error("Create profile error:", error);
@@ -286,10 +288,11 @@ export async function createProfile(formData: FormData) {
  */
 export async function getUserByUsername(username: string): Promise<UserProfile | null> {
   try {
+    const normalizedUsername = username.trim().toLowerCase();
     const result = await db
       .select()
       .from(users)
-      .where(eq(users.username, username))
+      .where(eq(users.username, normalizedUsername))
       .limit(1);
 
     if (result.length === 0) {
@@ -565,8 +568,8 @@ export async function canManageEvent(eventId: number): Promise<boolean> {
       return false;
     }
 
-    // Match instructor string with username
-    return eventResult[0].instructor === userResult[0].username;
+    // Match instructor string with username (case-insensitive comparison)
+    return eventResult[0].instructor.toLowerCase() === userResult[0].username.toLowerCase();
   } catch (error: unknown) {
     console.error("Check event management permission error:", error);
     return false;
