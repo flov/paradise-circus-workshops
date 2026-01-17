@@ -64,6 +64,13 @@
       "when": 1768549987667,
       "tag": "0008_freezing_mandroid",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1768554866262,
+      "tag": "0009_nosy_boomer",
+      "breakpoints": true
     }
   ]
 }

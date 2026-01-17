@@ -41,7 +41,15 @@ const TIME_SLOTS = [
   "10pm",
 ];
 
-export function WeeklyTimetable({ isInstructor = false }: { isInstructor?: boolean }) {
+export function WeeklyTimetable({
+  isInstructor = false,
+  isAdmin = false,
+  username,
+}: {
+  isInstructor?: boolean;
+  isAdmin?: boolean;
+  username?: string | null;
+}) {
   const [currentWeek, setCurrentWeek] = useState(0); // 0 = current week
   const [timetableData, setTimetableData] = useState<TimetableData>({});
   const [weekDates, setWeekDates] = useState<Date[]>([]);
@@ -73,7 +81,7 @@ export function WeeklyTimetable({ isInstructor = false }: { isInstructor?: boole
     // Remove "pm" or "am" and convert to number
     const timeStr = timeSlot.replace(/[ap]m/i, "");
     const hour = Number.parseInt(timeStr);
-    
+
     // Convert to 24-hour format
     // "12pm" -> 12, "1pm" -> 13, etc.
     if (timeSlot.toLowerCase().includes("pm")) {
@@ -100,11 +108,23 @@ export function WeeklyTimetable({ isInstructor = false }: { isInstructor?: boole
   // Handle clicking on "+" button in empty slot
   const handleAddEventClick = (dayIndex: number, timeSlot: string) => {
     if (!weekDates[dayIndex]) return;
-    
+
     const date = formatLocalDate(weekDates[dayIndex]);
     const startTime = convertTimeSlotToTime(timeSlot);
     const endTime = getNextTimeSlot(timeSlot);
-    
+
+    setPrefillValues({ date, startTime, endTime });
+    setAddEventOpen(true);
+  };
+
+  // Handle clicking on "Add Event" button for a day (mobile view)
+  const handleAddEventForDay = (dayIndex: number) => {
+    if (!weekDates[dayIndex]) return;
+
+    const date = formatLocalDate(weekDates[dayIndex]);
+    const startTime = "13:00"; // 1pm
+    const endTime = "14:00"; // 2pm
+
     setPrefillValues({ date, startTime, endTime });
     setAddEventOpen(true);
   };
@@ -204,14 +224,14 @@ export function WeeklyTimetable({ isInstructor = false }: { isInstructor?: boole
   const getCurrentTimeSlot = (): string | null => {
     const now = new Date();
     const hour = now.getHours();
-    
+
     // Map hours to time slots
     // 12pm = hour 12, 1pm = hour 13, ..., 10pm = hour 22
     if (hour >= 12 && hour <= 22) {
       if (hour === 12) return "12pm";
       return `${hour - 12}pm`;
     }
-    
+
     // For times before 12pm or after 10pm, return null to just scroll to day
     return null;
   };
@@ -224,7 +244,7 @@ export function WeeklyTimetable({ isInstructor = false }: { isInstructor?: boole
       setShouldScrollToNow(true);
       return;
     }
-    
+
     // Perform scroll after a short delay to ensure DOM is ready
     setTimeout(() => {
       performScrollToNow();
@@ -241,17 +261,17 @@ export function WeeklyTimetable({ isInstructor = false }: { isInstructor?: boole
     const currentDay = now.getDay();
     // Convert Sunday=0 to Monday=0 (0=Monday, 6=Sunday)
     const dayIndex = currentDay === 0 ? 6 : currentDay - 1;
-    
+
     // Ensure dayIndex is valid
     if (dayIndex < 0 || dayIndex >= DAYS.length) {
       return;
     }
-    
+
     // Scroll to the day card
     const dayCard = dayCardRefs.current[dayIndex];
     if (dayCard) {
       dayCard.scrollIntoView({ behavior: "smooth", block: "start" });
-      
+
       // Try to scroll to the current time slot within the day
       const currentTimeSlot = getCurrentTimeSlot();
       if (currentTimeSlot) {
@@ -259,7 +279,10 @@ export function WeeklyTimetable({ isInstructor = false }: { isInstructor?: boole
           const timeSlotKey = `${dayIndex}-${currentTimeSlot}`;
           const timeSlotElement = timeSlotRefs.current.get(timeSlotKey);
           if (timeSlotElement) {
-            timeSlotElement.scrollIntoView({ behavior: "smooth", block: "center" });
+            timeSlotElement.scrollIntoView({
+              behavior: "smooth",
+              block: "center",
+            });
           }
         }, 300);
       }
@@ -268,7 +291,12 @@ export function WeeklyTimetable({ isInstructor = false }: { isInstructor?: boole
 
   // Effect to scroll when week changes and shouldScrollToNow is true
   useEffect(() => {
-    if (shouldScrollToNow && !isLoading && weekDates.length > 0 && currentWeek === 0) {
+    if (
+      shouldScrollToNow &&
+      !isLoading &&
+      weekDates.length > 0 &&
+      currentWeek === 0
+    ) {
       setShouldScrollToNow(false);
       // Add a small delay to ensure refs are set up after DOM update
       setTimeout(() => {
@@ -428,8 +456,13 @@ export function WeeklyTimetable({ isInstructor = false }: { isInstructor?: boole
                                         {slot.instructor}
                                       </div>
                                     </a>
-                                    {isInstructor && (
-                                      <div className="absolute top-1 right-1 z-10" onClick={(e) => e.stopPropagation()}>
+                                    {(isAdmin ||
+                                      (isInstructor &&
+                                        slot.instructor === username)) && (
+                                      <div
+                                        className="absolute top-1 right-1 z-10"
+                                        onClick={(e) => e.stopPropagation()}
+                                      >
                                         <EditEventButton
                                           event={{
                                             id: slot.id,
@@ -452,12 +485,14 @@ export function WeeklyTimetable({ isInstructor = false }: { isInstructor?: boole
                             </div>
                           ) : (
                             <div className="p-2 h-full min-h-[60px] bg-muted/20 rounded relative group">
-                              {isInstructor && (
+                              {(isInstructor || isAdmin) && (
                                 <Button
                                   variant="ghost"
                                   size="icon"
                                   className="absolute inset-0 w-full h-full opacity-30 hover:opacity-100 transition-opacity flex items-center justify-center hover:bg-muted/40"
-                                  onClick={() => handleAddEventClick(dayIndex, time)}
+                                  onClick={() =>
+                                    handleAddEventClick(dayIndex, time)
+                                  }
                                   aria-label={`Add event at ${day} ${time}`}
                                 >
                                   <Plus className="h-5 w-5 text-muted-foreground group-hover:text-foreground transition-colors" />
@@ -539,31 +574,8 @@ export function WeeklyTimetable({ isInstructor = false }: { isInstructor?: boole
                       const timeSlotKey = `${dayIndex}-${time}`;
 
                       if (slots.length === 0) {
-                        // Show "+" button for empty slots when instructor
-                        if (!isInstructor) return null;
-                        return (
-                          <div
-                            key={time}
-                            ref={(el) => {
-                              if (el) {
-                                timeSlotRefs.current.set(timeSlotKey, el);
-                              }
-                            }}
-                            data-time-slot={time}
-                            data-day-index={dayIndex}
-                            className="space-y-2"
-                          >
-                            <Button
-                              variant="outline"
-                              className="w-full h-16 border-dashed border-2 hover:border-solid"
-                              onClick={() => handleAddEventClick(dayIndex, time)}
-                              aria-label={`Add event at ${day} ${time}`}
-                            >
-                              <Plus className="h-5 w-5 text-muted-foreground mr-2" />
-                              <span className="text-sm text-muted-foreground">Add Event</span>
-                            </Button>
-                          </div>
-                        );
+                        // Don't show individual "+" buttons for empty slots in mobile view
+                        return null;
                       }
 
                       return (
@@ -618,8 +630,13 @@ export function WeeklyTimetable({ isInstructor = false }: { isInstructor?: boole
                                     {slot.instructor}
                                   </div>
                                 </a>
-                                {isInstructor && (
-                                  <div className="absolute top-2 right-2 z-10" onClick={(e) => e.stopPropagation()}>
+                                {(isAdmin ||
+                                  (isInstructor &&
+                                    slot.instructor === username)) && (
+                                  <div
+                                    className="absolute top-2 right-2 z-10"
+                                    onClick={(e) => e.stopPropagation()}
+                                  >
                                     <EditEventButton
                                       event={{
                                         id: slot.id,
@@ -646,6 +663,20 @@ export function WeeklyTimetable({ isInstructor = false }: { isInstructor?: boole
                     <div className="text-sm text-muted-foreground text-center py-4">
                       No workshops scheduled
                     </div>
+                  )}
+                  {/* Single Add Event button per day (mobile view) */}
+                  {(isInstructor || isAdmin) && (
+                    <Button
+                      variant="outline"
+                      className="w-full h-16 border-dashed border-2 hover:border-solid mt-2"
+                      onClick={() => handleAddEventForDay(dayIndex)}
+                      aria-label={`Add event for ${day}`}
+                    >
+                      <Plus className="h-5 w-5 text-muted-foreground mr-2" />
+                      <span className="text-sm text-muted-foreground">
+                        Add Event
+                      </span>
+                    </Button>
                   )}
                 </div>
               </div>

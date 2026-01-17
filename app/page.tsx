@@ -25,9 +25,10 @@ export default async function Home() {
     .where(gte(eventsTable.date, today))
     .orderBy(asc(eventsTable.date), asc(eventsTable.startTime));
 
-  // Fetch current user profile to check instructor status
+  // Fetch current user profile to check instructor and admin status
   const userProfile = await getCurrentUserProfile();
   const isInstructor = userProfile?.isInstructor ?? false;
+  const isAdmin = userProfile?.isAdmin ?? false;
 
   return (
     <div className="min-h-screen bg-background">
@@ -37,7 +38,7 @@ export default async function Home() {
         suppressHydrationWarning
       >
         {/* Weekly Timetable Section */}
-        <WeeklyTimetable isInstructor={isInstructor} />
+        <WeeklyTimetable isInstructor={isInstructor} isAdmin={isAdmin} username={userProfile?.username ?? null} />
       </main>
 
       {/* Footer */}
@@ -88,7 +89,7 @@ export default async function Home() {
 
           <div className="border-t border-border pt-8">
             <p className="text-center text-sm text-muted-foreground">
-              Paradise Circus - Where dreams take flight
+              Paradise Circus
             </p>
           </div>
         </div>
