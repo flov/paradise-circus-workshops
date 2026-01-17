@@ -36,7 +36,11 @@ export function CustomUserButton() {
         />
         <UserButton.Link
           label="My Profile"
-          href={`/artist/${profileData?.username || "onboarding"}`}
+          href={
+            profileData?.username
+              ? `/artist/${profileData?.username}`
+              : "onboarding"
+          }
           labelIcon={<User className="h-4 w-4" />}
         />
       </UserButton.MenuItems>
