@@ -16,7 +16,7 @@ export function EventCalendarButtons({
   const googleCalendarUrl = generateGoogleCalendarURL(eventData);
 
   return (
-    <div className={`flex gap-2 ${className || ""}`}>
+    <div className={`flex flex-col sm:flex-row gap-2 ${className || ""}`}>
       <Button
         asChild
         variant="outline"
