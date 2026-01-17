@@ -58,7 +58,8 @@ export const BookingConfirmationEmail = ({
   whatToBring,
 }: BookingConfirmationEmailProps) => {
   const formattedDate = formatDate(eventDate);
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://paradise-circus.app";
+  const appUrl =
+    process.env.NEXT_PUBLIC_APP_URL || "https://paradise-circus.app";
 
   // Build "What to Bring" list
   const whatToBringItems: string[] = [];
@@ -84,8 +85,8 @@ export const BookingConfirmationEmail = ({
             <Text style={text}>Dear {participantName},</Text>
 
             <Text style={text}>
-              Thank you for booking an event with Paradise Circus! Your spot
-              has been confirmed.
+              Thank you for booking an event with Paradise Circus! Your spot has
+              been confirmed.
             </Text>
 
             <Section style={workshopDetails}>
@@ -152,9 +153,9 @@ export const BookingConfirmationEmail = ({
             </Section>
 
             <Text style={text}>
-              We're excited to see you at the event! If you have any
-              questions or need to make changes to your booking, please don't
-              hesitate to reach out.
+              We're excited to see you at the event! If you have any questions
+              or need to make changes to your booking, please don't hesitate to
+              reach out.
             </Text>
 
             <Text style={text}>See you under the big top!</Text>
@@ -167,9 +168,7 @@ export const BookingConfirmationEmail = ({
           </Section>
 
           <Section style={footer}>
-            <Text style={footerText}>
-              Paradise Circus - Where dreams take flight
-            </Text>
+            <Text style={footerText}>Paradise Circus</Text>
             <Text style={footerSmall}>
               This is an automated confirmation email. Please do not reply to
               this message.
@@ -350,4 +349,3 @@ const footerSmall = {
 };
 
 export default BookingConfirmationEmail;
-

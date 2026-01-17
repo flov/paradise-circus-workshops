@@ -20,13 +20,39 @@ import { createEvent } from "@/app/admin/actions"
 import { getAllProps } from "@/app/profile/actions"
 import { useRouter } from "next/navigation"
 
-export function AddEventButton() {
+type AddEventButtonProps = {
+  initialValues?: {
+    date?: string
+    startTime?: string
+    endTime?: string
+  }
+  open?: boolean
+  onOpenChange?: (open: boolean) => void
+  showTrigger?: boolean
+}
+
+export function AddEventButton({
+  initialValues,
+  open: controlledOpen,
+  onOpenChange,
+  showTrigger = true,
+}: AddEventButtonProps = {}) {
   const router = useRouter()
-  const [open, setOpen] = useState(false)
+  const [internalOpen, setInternalOpen] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [availableProps, setAvailableProps] = useState<Array<{ id: number; name: string }>>([])
   const [selectedProps, setSelectedProps] = useState<number[]>([])
+
+  // Use controlled open state if provided, otherwise use internal state
+  const open = controlledOpen !== undefined ? controlledOpen : internalOpen
+  const setOpen = (value: boolean) => {
+    if (controlledOpen === undefined) {
+      setInternalOpen(value)
+    } else {
+      onOpenChange?.(value)
+    }
+  }
 
   // Fetch available props and reset selected props when dialog opens
   useEffect(() => {
@@ -58,6 +84,7 @@ export function AddEventButton() {
       if (result.success) {
         setSelectedProps([]) // Reset selected props on successful submission
         setOpen(false)
+        // Reset form by clearing initialValues effect
         router.refresh()
       } else {
         setError(result.error || "Failed to create event")
@@ -71,18 +98,24 @@ export function AddEventButton() {
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button>
-          <Plus className="h-4 w-4 mr-2" />
-          Add Event
-        </Button>
-      </DialogTrigger>
+      {showTrigger && (
+        <DialogTrigger asChild>
+          <Button>
+            <Plus className="h-4 w-4 mr-2" />
+            Add Event
+          </Button>
+        </DialogTrigger>
+      )}
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Add New Event</DialogTitle>
           <DialogDescription>Create a new event for participants to book</DialogDescription>
         </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form
+          key={JSON.stringify(initialValues)}
+          onSubmit={handleSubmit}
+          className="space-y-4"
+        >
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="title">Event Title *</Label>
@@ -102,15 +135,36 @@ export function AddEventButton() {
           <div className="grid gap-4 md:grid-cols-3">
             <div className="space-y-2">
               <Label htmlFor="date">Date *</Label>
-              <Input id="date" name="date" type="date" required disabled={isSubmitting} />
+              <Input
+                id="date"
+                name="date"
+                type="date"
+                required
+                disabled={isSubmitting}
+                defaultValue={initialValues?.date}
+              />
             </div>
             <div className="space-y-2">
               <Label htmlFor="start_time">Start Time *</Label>
-              <Input id="start_time" name="start_time" type="time" required disabled={isSubmitting} />
+              <Input
+                id="start_time"
+                name="start_time"
+                type="time"
+                required
+                disabled={isSubmitting}
+                defaultValue={initialValues?.startTime}
+              />
             </div>
             <div className="space-y-2">
               <Label htmlFor="end_time">End Time *</Label>
-              <Input id="end_time" name="end_time" type="time" required disabled={isSubmitting} />
+              <Input
+                id="end_time"
+                name="end_time"
+                type="time"
+                required
+                disabled={isSubmitting}
+                defaultValue={initialValues?.endTime}
+              />
             </div>
           </div>
 

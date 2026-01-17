@@ -17,11 +17,14 @@ export async function GET(request: NextRequest) {
       .select({
         id: events.id,
         title: events.title,
+        description: events.description,
         instructor: events.instructor,
         date: events.date,
         startTime: events.startTime,
         endTime: events.endTime,
         location: events.location,
+        whatToBring: events.whatToBring,
+        isWorkshop: events.isWorkshop,
         currentBookings: events.currentBookings,
       })
       .from(events)

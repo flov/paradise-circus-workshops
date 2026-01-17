@@ -1,11 +1,12 @@
 "use server"
 
 import { db } from "@/db"
-import { events, bookings, eventProps, props } from "@/db/schema"
+import { events, bookings, eventProps, props, users } from "@/db/schema"
 import { eq, sql, inArray, asc } from "drizzle-orm"
 import { revalidatePath } from "next/cache"
 import { createEventSlug } from "@/lib/utils"
 import { auth } from "@clerk/nextjs/server"
+import { isAdmin, isInstructor } from "@/app/profile/actions"
 
 export async function createEvent(formData: FormData) {
   // Check authentication
@@ -13,6 +14,14 @@ export async function createEvent(formData: FormData) {
   
   if (!userId) {
     return { success: false, error: "Unauthorized. You must be signed in to create events." }
+  }
+
+  // Check authorization: must be instructor OR admin
+  const userIsAdmin = await isAdmin()
+  const userIsInstructor = await isInstructor()
+  
+  if (!userIsAdmin && !userIsInstructor) {
+    return { success: false, error: "Unauthorized. Only instructors and admins can create events." }
   }
 
   const title = formData.get("title") as string
@@ -95,6 +104,38 @@ export async function updateEvent(formData: FormData) {
 
   const eventId = parseInt(id)
 
+  // Check authorization: must be admin OR (instructor AND matching event instructor)
+  const userIsAdmin = await isAdmin()
+  
+  if (!userIsAdmin) {
+    // Check if user is instructor and matches event's instructor
+    const userResult = await db
+      .select({ username: users.username, isInstructor: users.isInstructor })
+      .from(users)
+      .where(eq(users.clerkUserId, userId))
+      .limit(1)
+
+    if (userResult.length === 0 || !userResult[0].isInstructor) {
+      return { success: false, error: "Unauthorized. Only admins and event instructors can update events." }
+    }
+
+    // Fetch event to check instructor
+    const eventResult = await db
+      .select({ instructor: events.instructor })
+      .from(events)
+      .where(eq(events.id, eventId))
+      .limit(1)
+
+    if (eventResult.length === 0) {
+      return { success: false, error: "Event not found." }
+    }
+
+    // Match instructor string with username
+    if (eventResult[0].instructor !== userResult[0].username) {
+      return { success: false, error: "Unauthorized. You can only update events you are instructing." }
+    }
+  }
+
   try {
     await db
       .update(events)
@@ -150,6 +191,38 @@ export async function deleteEvent(eventId: number) {
   
   if (!userId) {
     throw new Error("Unauthorized. You must be signed in to delete events.")
+  }
+
+  // Check authorization: must be admin OR (instructor AND matching event instructor)
+  const userIsAdmin = await isAdmin()
+  
+  if (!userIsAdmin) {
+    // Check if user is instructor and matches event's instructor
+    const userResult = await db
+      .select({ username: users.username, isInstructor: users.isInstructor })
+      .from(users)
+      .where(eq(users.clerkUserId, userId))
+      .limit(1)
+
+    if (userResult.length === 0 || !userResult[0].isInstructor) {
+      throw new Error("Unauthorized. Only admins and event instructors can delete events.")
+    }
+
+    // Fetch event to check instructor
+    const eventResult = await db
+      .select({ instructor: events.instructor })
+      .from(events)
+      .where(eq(events.id, eventId))
+      .limit(1)
+
+    if (eventResult.length === 0) {
+      throw new Error("Event not found.")
+    }
+
+    // Match instructor string with username
+    if (eventResult[0].instructor !== userResult[0].username) {
+      throw new Error("Unauthorized. You can only delete events you are instructing.")
+    }
   }
 
   try {

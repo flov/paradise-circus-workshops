@@ -1,7 +1,7 @@
 "use server";
 
 import { db } from "@/db";
-import { users, userProps, props } from "@/db/schema";
+import { users, userProps, props, events } from "@/db/schema";
 import { eq, asc, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { auth, currentUser } from "@clerk/nextjs/server";
@@ -367,6 +367,7 @@ export async function getCurrentUserProfile(): Promise<UserProfile | null> {
         clerkUserId: users.clerkUserId,
         username: users.username,
         isInstructor: users.isInstructor,
+        isAdmin: users.isAdmin,
         bio: users.bio,
         instagramHandle: users.instagramHandle,
         youtubeVideos: users.youtubeVideos,
@@ -438,5 +439,100 @@ export async function getProfileLinksData(): Promise<{
   } catch (error: unknown) {
     console.error("Get profile links data error:", error);
     return { username: null };
+  }
+}
+
+/**
+ * Check if current user is an admin
+ */
+export async function isAdmin(): Promise<boolean> {
+  const { userId } = await auth();
+
+  if (!userId) {
+    return false;
+  }
+
+  try {
+    const result = await db
+      .select({ isAdmin: users.isAdmin })
+      .from(users)
+      .where(eq(users.clerkUserId, userId))
+      .limit(1);
+
+    return result.length > 0 && result[0].isAdmin === true;
+  } catch (error: unknown) {
+    console.error("Check admin status error:", error);
+    return false;
+  }
+}
+
+/**
+ * Check if current user is an instructor
+ */
+export async function isInstructor(): Promise<boolean> {
+  const { userId } = await auth();
+
+  if (!userId) {
+    return false;
+  }
+
+  try {
+    const result = await db
+      .select({ isInstructor: users.isInstructor })
+      .from(users)
+      .where(eq(users.clerkUserId, userId))
+      .limit(1);
+
+    return result.length > 0 && result[0].isInstructor === true;
+  } catch (error: unknown) {
+    console.error("Check instructor status error:", error);
+    return false;
+  }
+}
+
+/**
+ * Check if current user can manage a specific event
+ * Returns true if user is admin OR (user is instructor AND event's instructor matches user's username)
+ */
+export async function canManageEvent(eventId: number): Promise<boolean> {
+  const { userId } = await auth();
+
+  if (!userId) {
+    return false;
+  }
+
+  try {
+    // Check if user is admin
+    const adminCheck = await isAdmin();
+    if (adminCheck) {
+      return true;
+    }
+
+    // Check if user is instructor and matches event's instructor
+    const userResult = await db
+      .select({ username: users.username, isInstructor: users.isInstructor })
+      .from(users)
+      .where(eq(users.clerkUserId, userId))
+      .limit(1);
+
+    if (userResult.length === 0 || !userResult[0].isInstructor) {
+      return false;
+    }
+
+    const eventResult = await db
+      .select({ instructor: events.instructor })
+      .from(events)
+      .where(eq(events.id, eventId))
+      .limit(1);
+
+    if (eventResult.length === 0) {
+      return false;
+    }
+
+    // Match instructor string with username
+    return eventResult[0].instructor === userResult[0].username;
+  } catch (error: unknown) {
+    console.error("Check event management permission error:", error);
+    return false;
   }
 }

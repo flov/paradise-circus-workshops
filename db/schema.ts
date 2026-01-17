@@ -98,6 +98,7 @@ export const users = pgTable(
     clerkUserId: varchar("clerk_user_id", { length: 255 }).notNull().unique(),
     username: varchar("username", { length: 50 }).notNull().unique(),
     isInstructor: boolean("is_instructor").notNull().default(false),
+    isAdmin: boolean("is_admin").notNull().default(false),
     bio: text("bio"),
     instagramHandle: varchar("instagram_handle", { length: 100 }),
     youtubeVideos: text("youtube_videos").array(),

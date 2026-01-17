@@ -61,7 +61,8 @@ const generatePlainText = (props: BookingConfirmationEmailProps) => {
     whatToBringItems.push(...customItems);
   }
 
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://paradise-circus.app";
+  const appUrl =
+    process.env.NEXT_PUBLIC_APP_URL || "https://paradise-circus.app";
 
   return `
 Paradise Circus - Event Booking Confirmation
@@ -76,10 +77,14 @@ Event Details:
 - Time: ${formatTime(eventStartTime)} - ${formatTime(eventEndTime)}
 - Location: ${eventLocation}
 - Instructor: ${instructorName}
-${whatToBringItems.length > 0 ? `
+${
+  whatToBringItems.length > 0
+    ? `
 What to Bring:
 ${whatToBringItems.map((item) => `- ${item}`).join("\n")}
-` : ""}
+`
+    : ""
+}
 Important Information:
 - All equipment will be provided
 - Contact us if you need to make any changes
@@ -93,22 +98,16 @@ We're excited to see you at the event!
 Booking Reference: #${bookingId}
 
 The Paradise Circus Team
-Where dreams take flight
   `.trim();
 };
 
 export async function sendBookingConfirmationEmail(
   props: BookingConfirmationEmailProps,
 ) {
-  const {
-    participantEmail,
-    eventTitle,
-  } = props;
+  const { participantEmail, eventTitle } = props;
 
   // Render React Email component to HTML
-  const emailHtml = await render(
-    <BookingConfirmationEmail {...props} />
-  );
+  const emailHtml = await render(<BookingConfirmationEmail {...props} />);
 
   // Generate plain text version
   const emailText = generatePlainText(props);

@@ -1,14 +1,30 @@
 import { db } from "@/db"
-import { events } from "@/db/schema"
-import { desc } from "drizzle-orm"
+import { events, users } from "@/db/schema"
+import { desc, eq } from "drizzle-orm"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { EditEventButton } from "./edit-event-button"
 import { DeleteEventButton } from "./delete-event-button"
 import Link from "next/link"
 import { createEventSlug } from "@/lib/utils"
+import { auth } from "@clerk/nextjs/server"
 
 export async function EventsList() {
+  const { userId } = await auth()
+  
+  // Get current user profile to check permissions
+  let userProfile: { username: string | null; isAdmin: boolean; isInstructor: boolean } | null = null
+  if (userId) {
+    const result = await db
+      .select({ username: users.username, isAdmin: users.isAdmin, isInstructor: users.isInstructor })
+      .from(users)
+      .where(eq(users.clerkUserId, userId))
+      .limit(1)
+    if (result.length > 0) {
+      userProfile = result[0]
+    }
+  }
+
   const eventsList = await db
     .select()
     .from(events)
@@ -90,10 +106,12 @@ export async function EventsList() {
                   </div>
                 </TableCell>
                 <TableCell className="text-right">
-                  <div className="flex items-center justify-end gap-2">
-                    <EditEventButton event={event} />
-                    <DeleteEventButton eventId={event.id} eventTitle={event.title} />
-                  </div>
+                  {userProfile && (userProfile.isAdmin || (userProfile.isInstructor && event.instructor === userProfile.username)) && (
+                    <div className="flex items-center justify-end gap-2">
+                      <EditEventButton event={event} />
+                      <DeleteEventButton eventId={event.id} eventTitle={event.title} />
+                    </div>
+                  )}
                 </TableCell>
               </TableRow>
             )
