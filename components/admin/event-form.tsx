@@ -21,6 +21,7 @@ export type EventFormInitialValues = {
   location?: string | null
   whatToBring?: string | null
   isWorkshop?: boolean
+  isPublished?: boolean
   propId?: number | null
 }
 
@@ -353,6 +354,25 @@ export function EventForm({
           Check this box if this event is a workshop. Uncheck for other event types.
         </p>
       </div>
+
+      {userProfile && userProfile.isAdmin && initialValues?.id && (
+        <div className="space-y-2">
+          <label className="flex items-center space-x-2 cursor-pointer">
+            <input
+              type="checkbox"
+              id="isPublished"
+              name="isPublished"
+              defaultChecked={initialValues?.isPublished ?? true}
+              disabled={isSubmitting}
+              className="h-4 w-4 rounded border-gray-300"
+            />
+            <Label htmlFor="isPublished" className="cursor-pointer">Published</Label>
+          </label>
+          <p className="text-xs text-muted-foreground">
+            Check this box to publish the event and make it visible to participants. Uncheck to unpublish.
+          </p>
+        </div>
+      )}
 
       <div className="space-y-2">
         <Label htmlFor="propId">Prop (Optional)</Label>

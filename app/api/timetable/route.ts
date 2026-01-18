@@ -43,7 +43,11 @@ export async function GET(request: NextRequest) {
       })
       .from(events)
       .leftJoin(users, eq(events.instructorId, users.id))
-      .where(and(gte(events.date, startDate), lte(events.date, endDate)))
+      .where(and(
+        gte(events.date, startDate), 
+        lte(events.date, endDate),
+        eq(events.isPublished, true)
+      ))
       .orderBy(asc(events.date), asc(events.startTime))
 
     // Add instructor display name to events

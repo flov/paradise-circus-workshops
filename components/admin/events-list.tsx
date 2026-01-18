@@ -5,6 +5,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge"
 import { EditEventButton } from "./edit-event-button"
 import { DeleteEventButton } from "./delete-event-button"
+import { ApproveEventButton } from "./approve-event-button"
 import Link from "next/link"
 import { createEventSlug } from "@/lib/utils"
 import { auth } from "@clerk/nextjs/server"
@@ -38,6 +39,7 @@ export async function EventsList() {
       location: events.location,
       currentBookings: events.currentBookings,
       isWorkshop: events.isWorkshop,
+      isPublished: events.isPublished,
       propId: events.propId,
       instructorProfile: {
         id: users.id,
@@ -91,6 +93,7 @@ export async function EventsList() {
             <TableHead>Date & Time</TableHead>
             <TableHead>Location</TableHead>
             <TableHead>Instructor</TableHead>
+            <TableHead>Status</TableHead>
             <TableHead>Participants</TableHead>
             <TableHead className="text-right">Actions</TableHead>
           </TableRow>
@@ -134,27 +137,42 @@ export async function EventsList() {
                 </TableCell>
                 <TableCell>
                   <div className="flex items-center gap-2">
-                    <span className="text-sm">
-                      {event.currentBookings} {event.currentBookings === 1 ? 'participant' : 'participants'}
-                    </span>
+                    {event.isPublished ? (
+                      <Badge variant="default">Published</Badge>
+                    ) : (
+                      <Badge variant="secondary">Pending</Badge>
+                    )}
                     {isPast && (
-                      <Badge variant="secondary">Past</Badge>
+                      <Badge variant="outline">Past</Badge>
                     )}
                   </div>
                 </TableCell>
+                <TableCell>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm">
+                      {event.currentBookings} {event.currentBookings === 1 ? 'participant' : 'participants'}
+                    </span>
+                  </div>
+                </TableCell>
                 <TableCell className="text-right">
-                  {userProfile && (userProfile.isAdmin || (userProfile.isInstructor && (
-                    (event.instructorId !== null && event.instructorId === userProfile.id) || 
-                    (event.instructorId === null && event.instructor === userProfile.username)
-                  ))) && (
-                    <div className="flex items-center justify-end gap-2">
-                      <EditEventButton event={{
-                        ...event,
-                        instructorId: event.instructorId || undefined,
-                      }} />
-                      <DeleteEventButton eventId={event.id} eventTitle={event.title} />
-                    </div>
-                  )}
+                  <div className="flex items-center justify-end gap-2">
+                    {!event.isPublished && userProfile?.isAdmin && (
+                      <ApproveEventButton eventId={event.id} />
+                    )}
+                    {userProfile && (userProfile.isAdmin || (userProfile.isInstructor && (
+                      (event.instructorId !== null && event.instructorId === userProfile.id) || 
+                      (event.instructorId === null && event.instructor === userProfile.username)
+                    ))) && (
+                      <>
+                        <EditEventButton event={{
+                          ...event,
+                          instructorId: event.instructorId || undefined,
+                          isPublished: event.isPublished,
+                        }} />
+                        <DeleteEventButton eventId={event.id} eventTitle={event.title} />
+                      </>
+                    )}
+                  </div>
                 </TableCell>
               </TableRow>
             )

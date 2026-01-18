@@ -17,6 +17,7 @@ export const events = pgTable(
     location: varchar("location", { length: 255 }),
     whatToBring: text("what_to_bring"),
     isWorkshop: boolean("is_workshop").notNull().default(true),
+    isPublished: boolean("is_published").notNull().default(true),
     propId: integer("prop_id").references(() => props.id, { onDelete: "set null" }),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at").defaultNow().notNull(),

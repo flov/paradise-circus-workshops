@@ -6,7 +6,8 @@ import { eq, sql, inArray, asc } from "drizzle-orm"
 import { revalidatePath } from "next/cache"
 import { createEventSlug } from "@/lib/utils"
 import { auth } from "@clerk/nextjs/server"
-import { isAdmin, isInstructor } from "@/app/profile/actions"
+import { isAdmin, isInstructor, getAllAdmins } from "@/app/profile/actions"
+import { sendEventPendingApprovalEmail, sendAdminEventPendingEmail, sendEventApprovedEmail } from "@/lib/email"
 
 export async function createEvent(formData: FormData) {
   // Check authentication
@@ -105,6 +106,9 @@ export async function createEvent(formData: FormData) {
       }
     }
 
+    // Determine isPublished: true for admins, false for instructors
+    const isPublished = userIsAdmin
+
     // Insert event
     const [newEvent] = await db.insert(events).values({
       title,
@@ -117,8 +121,63 @@ export async function createEvent(formData: FormData) {
       location,
       whatToBring: whatToBring || null,
       isWorkshop,
+      isPublished,
       propId: propId || null,
     }).returning({ id: events.id })
+
+    // If instructor created event (not published), send emails
+    if (!isPublished && instructorId) {
+      try {
+        // Fetch instructor details for email
+        const instructorResult = await db
+          .select({ 
+            email: users.email, 
+            displayName: users.displayName, 
+            username: users.username 
+          })
+          .from(users)
+          .where(eq(users.id, instructorId))
+          .limit(1)
+
+        if (instructorResult.length > 0 && instructorResult[0].email) {
+          const instructorEmail = instructorResult[0].email
+          const instructorDisplayName = instructorResult[0].displayName || instructorResult[0].username
+
+          // Send email to instructor about pending approval
+          await sendEventPendingApprovalEmail({
+            instructorName: instructorDisplayName,
+            instructorEmail,
+            eventTitle: title,
+            eventDate: date,
+            eventStartTime: start_time,
+            eventEndTime: end_time,
+            eventLocation: location,
+          })
+
+          // Send email to all admins about pending event
+          const adminUsers = await getAllAdmins()
+          for (const admin of adminUsers) {
+            if (admin.email) {
+              await sendAdminEventPendingEmail({
+                instructorName: instructorDisplayName,
+                instructorEmail,
+                eventTitle: title,
+                eventDate: date,
+                eventStartTime: start_time,
+                eventEndTime: end_time,
+                eventLocation: location,
+                eventId: newEvent.id,
+              }, admin.email).catch((error) => {
+                console.error(`Failed to send admin notification to ${admin.email}:`, error)
+              })
+            }
+          }
+        }
+      } catch (error) {
+        console.error("Error sending event creation emails:", error)
+        // Don't fail the event creation if emails fail
+      }
+    }
 
     revalidatePath("/admin")
     revalidatePath("/")
@@ -127,6 +186,100 @@ export async function createEvent(formData: FormData) {
   } catch (error) {
     console.error("Error creating event:", error)
     return { success: false, error: "Failed to create event" }
+  }
+}
+
+export async function approveEvent(eventId: number) {
+  // Check authentication
+  const { userId } = await auth()
+  
+  if (!userId) {
+    return { success: false, error: "Unauthorized. You must be signed in to approve events." }
+  }
+
+  // Check authorization: must be admin
+  const userIsAdmin = await isAdmin()
+  
+  if (!userIsAdmin) {
+    return { success: false, error: "Unauthorized. Only admins can approve events." }
+  }
+
+  try {
+    // Fetch event details
+    const eventResult = await db
+      .select({
+        id: events.id,
+        title: events.title,
+        instructor: events.instructor,
+        instructorId: events.instructorId,
+        date: events.date,
+        startTime: events.startTime,
+        endTime: events.endTime,
+        location: events.location,
+        isPublished: events.isPublished,
+      })
+      .from(events)
+      .where(eq(events.id, eventId))
+      .limit(1)
+
+    if (eventResult.length === 0) {
+      return { success: false, error: "Event not found." }
+    }
+
+    const event = eventResult[0]
+
+    // If already published, no need to do anything
+    if (event.isPublished) {
+      return { success: true, message: "Event is already published." }
+    }
+
+    // Update event to published
+    await db
+      .update(events)
+      .set({ isPublished: true, updatedAt: sql`CURRENT_TIMESTAMP` })
+      .where(eq(events.id, eventId))
+
+    // Send approval email to instructor
+    if (event.instructorId) {
+      try {
+        const instructorResult = await db
+          .select({ 
+            email: users.email, 
+            displayName: users.displayName, 
+            username: users.username 
+          })
+          .from(users)
+          .where(eq(users.id, event.instructorId))
+          .limit(1)
+
+        if (instructorResult.length > 0 && instructorResult[0].email) {
+          const instructorEmail = instructorResult[0].email
+          const instructorDisplayName = instructorResult[0].displayName || instructorResult[0].username
+
+          await sendEventApprovedEmail({
+            instructorName: instructorDisplayName,
+            instructorEmail,
+            eventTitle: event.title,
+            eventDate: event.date,
+            eventStartTime: event.startTime,
+            eventEndTime: event.endTime,
+            eventLocation: event.location || "",
+            eventId: event.id,
+          })
+        }
+      } catch (error) {
+        console.error("Error sending approval email:", error)
+        // Don't fail the approval if email fails
+      }
+    }
+
+    revalidatePath("/admin")
+    revalidatePath("/")
+
+    return { success: true }
+  } catch (error) {
+    console.error("Error approving event:", error)
+    return { success: false, error: "Failed to approve event" }
   }
 }
 
@@ -150,6 +303,8 @@ export async function updateEvent(formData: FormData) {
   const whatToBring = formData.get("whatToBring") as string
   const propIdInput = formData.get("propId") as string
   const isWorkshop = formData.get("isWorkshop") === "on" || formData.get("isWorkshop") === "true"
+  const isPublishedInput = formData.get("isPublished") as string
+  const isPublished = isPublishedInput === "on" || isPublishedInput === "true"
   
   if (!id || !title || !description || !date || !start_time || !end_time || !location) {
     return { success: false, error: "Missing required fields" }
@@ -165,6 +320,29 @@ export async function updateEvent(formData: FormData) {
   // Check authorization: must be admin OR (instructor AND matching event instructor)
   const userIsAdmin = await isAdmin()
   const userIsInstructor = await isInstructor()
+  
+  // Fetch current event state to check if isPublished is changing
+  const currentEventResult = await db
+    .select({
+      isPublished: events.isPublished,
+      instructorId: events.instructorId,
+      title: events.title,
+      date: events.date,
+      startTime: events.startTime,
+      endTime: events.endTime,
+      location: events.location,
+    })
+    .from(events)
+    .where(eq(events.id, eventId))
+    .limit(1)
+
+  if (currentEventResult.length === 0) {
+    return { success: false, error: "Event not found." }
+  }
+
+  const currentEvent = currentEventResult[0]
+  const wasPublished = currentEvent.isPublished
+  const isBeingPublished = isPublished && !wasPublished && userIsAdmin
   
   if (!userIsAdmin) {
     // Check if user is instructor
@@ -265,23 +443,79 @@ export async function updateEvent(formData: FormData) {
       }
     }
 
+    // Only allow admins to change isPublished
+    const updateData: {
+      title: string
+      description: string
+      instructor: string | null
+      instructorId: number | null
+      date: string
+      startTime: string
+      endTime: string
+      location: string
+      whatToBring: string | null
+      isWorkshop: boolean
+      propId: number | null
+      updatedAt: ReturnType<typeof sql>
+      isPublished?: boolean
+    } = {
+      title,
+      description,
+      instructor: instructorName,
+      instructorId: instructorId,
+      date,
+      startTime: start_time,
+      endTime: end_time,
+      location,
+      whatToBring: whatToBring || null,
+      isWorkshop,
+      propId: propId || null,
+      updatedAt: sql`CURRENT_TIMESTAMP`,
+    }
+
+    // Only update isPublished if user is admin
+    if (userIsAdmin) {
+      updateData.isPublished = isPublished
+    }
+
     await db
       .update(events)
-      .set({
-        title,
-        description,
-        instructor: instructorName,
-        instructorId: instructorId,
-        date,
-        startTime: start_time,
-        endTime: end_time,
-        location,
-        whatToBring: whatToBring || null,
-        isWorkshop,
-        propId: propId || null,
-        updatedAt: sql`CURRENT_TIMESTAMP`,
-      })
+      .set(updateData)
       .where(eq(events.id, eventId))
+
+    // If admin is publishing an event that was unpublished, send approval email
+    if (isBeingPublished && currentEvent.instructorId) {
+      try {
+        const instructorResult = await db
+          .select({ 
+            email: users.email, 
+            displayName: users.displayName, 
+            username: users.username 
+          })
+          .from(users)
+          .where(eq(users.id, currentEvent.instructorId))
+          .limit(1)
+
+        if (instructorResult.length > 0 && instructorResult[0].email) {
+          const instructorEmail = instructorResult[0].email
+          const instructorDisplayName = instructorResult[0].displayName || instructorResult[0].username
+
+          await sendEventApprovedEmail({
+            instructorName: instructorDisplayName,
+            instructorEmail,
+            eventTitle: currentEvent.title,
+            eventDate: currentEvent.date,
+            eventStartTime: currentEvent.startTime,
+            eventEndTime: currentEvent.endTime,
+            eventLocation: currentEvent.location || "",
+            eventId: eventId,
+          })
+        }
+      } catch (error) {
+        console.error("Error sending approval email:", error)
+        // Don't fail the update if email fails
+      }
+    }
 
     revalidatePath("/admin")
     revalidatePath("/")

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { db } from "@/db";
 import { events as eventsTable, type Event } from "@/db/schema";
-import { gte, asc } from "drizzle-orm";
+import { gte, asc, eq, and } from "drizzle-orm";
 import { WeeklyTimetable } from "@/components/weekly-timetable";
 import { getCurrentUserProfile } from "@/app/profile/actions";
 
@@ -22,7 +22,7 @@ export default async function Home() {
       location: eventsTable.location,
     })
     .from(eventsTable)
-    .where(gte(eventsTable.date, today))
+    .where(and(gte(eventsTable.date, today), eq(eventsTable.isPublished, true)))
     .orderBy(asc(eventsTable.date), asc(eventsTable.startTime));
 
   // Fetch current user profile to check instructor and admin status
@@ -38,7 +38,11 @@ export default async function Home() {
         suppressHydrationWarning
       >
         {/* Weekly Timetable Section */}
-        <WeeklyTimetable isInstructor={isInstructor} isAdmin={isAdmin} userId={userProfile?.id ?? null} />
+        <WeeklyTimetable
+          isInstructor={isInstructor}
+          isAdmin={isAdmin}
+          userId={userProfile?.id ?? null}
+        />
       </main>
 
       {/* Footer */}

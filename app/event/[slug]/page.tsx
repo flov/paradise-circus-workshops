@@ -82,7 +82,7 @@ export default async function BookEventPage({
     })
     .from(events)
     .leftJoin(users, eq(events.instructorId, users.id))
-    .where(eq(events.id, eventId));
+    .where(and(eq(events.id, eventId), eq(events.isPublished, true)));
 
   if (eventResults.length === 0) {
     notFound();

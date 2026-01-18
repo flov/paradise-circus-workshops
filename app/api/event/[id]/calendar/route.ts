@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
 import { events, users } from "@/db/schema";
-import { eq } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 import { generateICSFile } from "@/lib/calendar";
 import { createEventSlug } from "@/lib/utils";
 
@@ -40,7 +40,7 @@ export async function GET(
       })
       .from(events)
       .leftJoin(users, eq(events.instructorId, users.id))
-      .where(eq(events.id, eventId));
+      .where(and(eq(events.id, eventId), eq(events.isPublished, true)));
 
     if (eventResults.length === 0) {
       return NextResponse.json(

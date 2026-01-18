@@ -371,6 +371,29 @@ export async function getAllInstructors(): Promise<Array<{ id: number; displayNa
 }
 
 /**
+ * Get all admin users with email addresses
+ */
+export async function getAllAdmins(): Promise<Array<{ id: number; email: string | null; displayName: string | null; username: string }>> {
+  try {
+    const result = await db
+      .select({
+        id: users.id,
+        email: users.email,
+        displayName: users.displayName,
+        username: users.username,
+      })
+      .from(users)
+      .where(eq(users.isAdmin, true))
+      .orderBy(asc(users.username));
+
+    return result;
+  } catch (error: unknown) {
+    console.error("Get all admins error:", error);
+    return [];
+  }
+}
+
+/**
  * Get or create a prop by name (case-insensitive)
  */
 async function getOrCreateProp(propName: string): Promise<number> {
