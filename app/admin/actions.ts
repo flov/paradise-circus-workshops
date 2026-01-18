@@ -27,6 +27,7 @@ export async function createEvent(formData: FormData) {
   const title = formData.get("title") as string
   const description = formData.get("description") as string
   const instructor = formData.get("instructor") as string
+  const instructorIdInput = formData.get("instructorId") as string
   const date = formData.get("date") as string
   const start_time = formData.get("start_time") as string
   const end_time = formData.get("end_time") as string
@@ -34,19 +35,82 @@ export async function createEvent(formData: FormData) {
   const whatToBring = formData.get("whatToBring") as string
   const propIdInput = formData.get("propId") as string
   const isWorkshop = formData.get("isWorkshop") === "on" || formData.get("isWorkshop") === "true"
-  if (!title || !description || !instructor || !date || !start_time || !end_time || !location) {
+  
+  // Validate required fields
+  if (!title || !description || !date || !start_time || !end_time || !location) {
     return { success: false, error: "Missing required fields" }
+  }
+
+  // Validate that either instructorId or instructor string is provided
+  if (!instructorIdInput && !instructor) {
+    return { success: false, error: "Either instructorId or instructor name must be provided" }
   }
 
   try {
     // Parse propId if provided
     const propId = propIdInput ? parseInt(propIdInput, 10) : null
+    
+    let instructorId: number | null = null
+    let instructorName: string | null = null
+
+    // If instructorId is provided, fetch user info and use it
+    if (instructorIdInput) {
+      instructorId = parseInt(instructorIdInput, 10)
+      if (isNaN(instructorId)) {
+        return { success: false, error: "Invalid instructorId" }
+      }
+
+      // Fetch user's displayName || username to populate instructor string
+      const userResult = await db
+        .select({ displayName: users.displayName, username: users.username })
+        .from(users)
+        .where(eq(users.id, instructorId))
+        .limit(1)
+
+      if (userResult.length === 0) {
+        return { success: false, error: "Instructor user not found" }
+      }
+
+      instructorName = userResult[0].displayName || userResult[0].username
+    } else {
+      // Only instructor string provided (admin-only case)
+      instructorName = instructor
+      instructorId = null
+    }
+
+    // If user is instructor (not admin), ensure instructorId matches their user id
+    if (!userIsAdmin && userIsInstructor) {
+      const currentUserResult = await db
+        .select({ id: users.id })
+        .from(users)
+        .where(eq(users.clerkUserId, userId))
+        .limit(1)
+
+      if (currentUserResult.length === 0) {
+        return { success: false, error: "User record not found" }
+      }
+
+      // Force instructorId to be the current user's id
+      instructorId = currentUserResult[0].id
+      
+      // Fetch user's displayName || username
+      const userResult = await db
+        .select({ displayName: users.displayName, username: users.username })
+        .from(users)
+        .where(eq(users.id, instructorId))
+        .limit(1)
+
+      if (userResult.length > 0) {
+        instructorName = userResult[0].displayName || userResult[0].username
+      }
+    }
 
     // Insert event
     const [newEvent] = await db.insert(events).values({
       title,
       description,
-      instructor,
+      instructor: instructorName,
+      instructorId: instructorId,
       date,
       startTime: start_time,
       endTime: end_time,
@@ -78,6 +142,7 @@ export async function updateEvent(formData: FormData) {
   const title = formData.get("title") as string
   const description = formData.get("description") as string
   const instructor = formData.get("instructor") as string
+  const instructorIdInput = formData.get("instructorId") as string
   const date = formData.get("date") as string
   const start_time = formData.get("start_time") as string
   const end_time = formData.get("end_time") as string
@@ -85,19 +150,26 @@ export async function updateEvent(formData: FormData) {
   const whatToBring = formData.get("whatToBring") as string
   const propIdInput = formData.get("propId") as string
   const isWorkshop = formData.get("isWorkshop") === "on" || formData.get("isWorkshop") === "true"
-  if (!id || !title || !description || !instructor || !date || !start_time || !end_time || !location) {
+  
+  if (!id || !title || !description || !date || !start_time || !end_time || !location) {
     return { success: false, error: "Missing required fields" }
+  }
+
+  // Validate that either instructorId or instructor string is provided
+  if (!instructorIdInput && !instructor) {
+    return { success: false, error: "Either instructorId or instructor name must be provided" }
   }
 
   const eventId = parseInt(id)
 
   // Check authorization: must be admin OR (instructor AND matching event instructor)
   const userIsAdmin = await isAdmin()
+  const userIsInstructor = await isInstructor()
   
   if (!userIsAdmin) {
-    // Check if user is instructor and matches event's instructor
+    // Check if user is instructor
     const userResult = await db
-      .select({ username: users.username, isInstructor: users.isInstructor })
+      .select({ id: users.id, username: users.username, isInstructor: users.isInstructor })
       .from(users)
       .where(eq(users.clerkUserId, userId))
       .limit(1)
@@ -106,9 +178,11 @@ export async function updateEvent(formData: FormData) {
       return { success: false, error: "Unauthorized. Only admins and event instructors can update events." }
     }
 
+    const currentUserId = userResult[0].id
+
     // Fetch event to check instructor
     const eventResult = await db
-      .select({ instructor: events.instructor })
+      .select({ instructor: events.instructor, instructorId: events.instructorId })
       .from(events)
       .where(eq(events.id, eventId))
       .limit(1)
@@ -117,22 +191,87 @@ export async function updateEvent(formData: FormData) {
       return { success: false, error: "Event not found." }
     }
 
-    // Match instructor string with username
-    if (eventResult[0].instructor !== userResult[0].username) {
-      return { success: false, error: "Unauthorized. You can only update events you are instructing." }
+    // Check authorization: if instructorId exists, check that; otherwise check instructor string
+    const eventInstructorId = eventResult[0].instructorId
+    if (eventInstructorId !== null) {
+      // Match instructorId
+      if (eventInstructorId !== currentUserId) {
+        return { success: false, error: "Unauthorized. You can only update events you are instructing." }
+      }
+    } else {
+      // Fallback to instructor string comparison
+      if (eventResult[0].instructor !== userResult[0].username) {
+        return { success: false, error: "Unauthorized. You can only update events you are instructing." }
+      }
     }
   }
 
   try {
     // Parse propId if provided
     const propId = propIdInput ? parseInt(propIdInput, 10) : null
+    
+    let instructorId: number | null = null
+    let instructorName: string | null = null
+
+    // If instructorId is provided, fetch user info and use it
+    if (instructorIdInput) {
+      instructorId = parseInt(instructorIdInput, 10)
+      if (isNaN(instructorId)) {
+        return { success: false, error: "Invalid instructorId" }
+      }
+
+      // Fetch user's displayName || username to populate instructor string
+      const userResult = await db
+        .select({ displayName: users.displayName, username: users.username })
+        .from(users)
+        .where(eq(users.id, instructorId))
+        .limit(1)
+
+      if (userResult.length === 0) {
+        return { success: false, error: "Instructor user not found" }
+      }
+
+      instructorName = userResult[0].displayName || userResult[0].username
+    } else {
+      // Only instructor string provided (admin-only case)
+      instructorName = instructor
+      instructorId = null
+    }
+
+    // If user is instructor (not admin), ensure instructorId matches their user id
+    if (!userIsAdmin && userIsInstructor) {
+      const currentUserResult = await db
+        .select({ id: users.id })
+        .from(users)
+        .where(eq(users.clerkUserId, userId))
+        .limit(1)
+
+      if (currentUserResult.length === 0) {
+        return { success: false, error: "User record not found" }
+      }
+
+      // Force instructorId to be the current user's id
+      instructorId = currentUserResult[0].id
+      
+      // Fetch user's displayName || username
+      const userResult = await db
+        .select({ displayName: users.displayName, username: users.username })
+        .from(users)
+        .where(eq(users.id, instructorId))
+        .limit(1)
+
+      if (userResult.length > 0) {
+        instructorName = userResult[0].displayName || userResult[0].username
+      }
+    }
 
     await db
       .update(events)
       .set({
         title,
         description,
-        instructor,
+        instructor: instructorName,
+        instructorId: instructorId,
         date,
         startTime: start_time,
         endTime: end_time,
@@ -167,9 +306,9 @@ export async function deleteEvent(eventId: number) {
   const userIsAdmin = await isAdmin()
   
   if (!userIsAdmin) {
-    // Check if user is instructor and matches event's instructor
+    // Check if user is instructor
     const userResult = await db
-      .select({ username: users.username, isInstructor: users.isInstructor })
+      .select({ id: users.id, username: users.username, isInstructor: users.isInstructor })
       .from(users)
       .where(eq(users.clerkUserId, userId))
       .limit(1)
@@ -178,9 +317,11 @@ export async function deleteEvent(eventId: number) {
       throw new Error("Unauthorized. Only admins and event instructors can delete events.")
     }
 
+    const currentUserId = userResult[0].id
+
     // Fetch event to check instructor
     const eventResult = await db
-      .select({ instructor: events.instructor })
+      .select({ instructor: events.instructor, instructorId: events.instructorId })
       .from(events)
       .where(eq(events.id, eventId))
       .limit(1)
@@ -189,9 +330,18 @@ export async function deleteEvent(eventId: number) {
       throw new Error("Event not found.")
     }
 
-    // Match instructor string with username
-    if (eventResult[0].instructor !== userResult[0].username) {
-      throw new Error("Unauthorized. You can only delete events you are instructing.")
+    // Check authorization: if instructorId exists, check that; otherwise check instructor string
+    const eventInstructorId = eventResult[0].instructorId
+    if (eventInstructorId !== null) {
+      // Match instructorId
+      if (eventInstructorId !== currentUserId) {
+        throw new Error("Unauthorized. You can only delete events you are instructing.")
+      }
+    } else {
+      // Fallback to instructor string comparison
+      if (eventResult[0].instructor !== userResult[0].username) {
+        throw new Error("Unauthorized. You can only delete events you are instructing.")
+      }
     }
   }
 

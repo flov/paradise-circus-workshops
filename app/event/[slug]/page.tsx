@@ -1,5 +1,5 @@
 import { db } from "@/db";
-import { events, bookings, comments, props, type Event } from "@/db/schema";
+import { events, bookings, comments, props, users, type Event } from "@/db/schema";
 import { eq, asc } from "drizzle-orm";
 import { BookEventButton } from "@/components/book-event-button";
 import { CancelBookingButton } from "@/components/cancel-booking-button";
@@ -60,6 +60,20 @@ export default async function BookEventPage({
 
   const event = eventResults[0];
 
+  // Fetch instructor user info if instructorId exists
+  let instructorDisplayName: string | null = null;
+  if (event.instructorId) {
+    const instructorResult = await db
+      .select({ displayName: users.displayName, username: users.username })
+      .from(users)
+      .where(eq(users.id, event.instructorId))
+      .limit(1);
+    
+    if (instructorResult.length > 0) {
+      instructorDisplayName = instructorResult[0].displayName || instructorResult[0].username;
+    }
+  }
+
   // Get event prop (single prop now)
   let eventProp: { id: number; name: string } | null = null;
   if (event.propId) {
@@ -79,10 +93,11 @@ export default async function BookEventPage({
 
   // If the slug is in old format (numeric only), redirect to new format for SEO
   if (/^\d+$/.test(slug)) {
+    const instructorName = instructorDisplayName || event.instructor || '';
     const newSlug = createEventSlug(
       event.id,
       event.title,
-      event.instructor,
+      instructorName,
     );
     redirect(`/event/${newSlug}`);
   }
@@ -262,7 +277,7 @@ export default async function BookEventPage({
                       Instructor
                     </div>
                     <div className="text-muted-foreground">
-                      {event.instructor}
+                      {instructorDisplayName || event.instructor || 'Unknown'}
                     </div>
                   </div>
                 </div>
@@ -303,14 +318,14 @@ export default async function BookEventPage({
                       startTime: event.startTime,
                       endTime: event.endTime,
                       location: event.location,
-                      instructor: event.instructor,
+                      instructor: instructorDisplayName || event.instructor || '',
                       description: event.description,
                       whatToBring: event.whatToBring || null,
                       bookingId: event.id,
                       confirmationToken: `event-${createEventSlug(
                         event.id,
                         event.title,
-                        event.instructor
+                        instructorDisplayName || event.instructor || ''
                       )}`,
                     }}
                     className="w-full"

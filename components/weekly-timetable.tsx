@@ -11,7 +11,9 @@ type TimeSlot = {
   id: number;
   title: string;
   description: string | null;
-  instructor: string;
+  instructor: string | null;
+  instructorId: number | null;
+  instructorDisplayName: string | null;
   date: string;
   startTime: string;
   endTime: string;
@@ -45,11 +47,11 @@ const TIME_SLOTS = [
 export function WeeklyTimetable({
   isInstructor = false,
   isAdmin = false,
-  username,
+  userId,
 }: {
   isInstructor?: boolean;
   isAdmin?: boolean;
-  username?: string | null;
+  userId?: number | null;
 }) {
   const [currentWeek, setCurrentWeek] = useState(0); // 0 = current week
   const [timetableData, setTimetableData] = useState<TimetableData>({});
@@ -165,6 +167,8 @@ export function WeeklyTimetable({
           title: event.title,
           description: event.description,
           instructor: event.instructor,
+          instructorId: event.instructorId || null,
+          instructorDisplayName: (event as any).instructorDisplayName || null,
           date: event.date,
           startTime: event.startTime,
           endTime: event.endTime,
@@ -448,19 +452,20 @@ export function WeeklyTimetable({
                                     }`}
                                   >
                                     <a
-                                      href={`/event/${createEventSlug(slot.id, slot.title, slot.instructor)}`}
+                                      href={`/event/${createEventSlug(slot.id, slot.title, slot.instructorDisplayName || slot.instructor || '')}`}
                                       className="block p-2 pr-8"
                                     >
                                       <div className="text-sm font-medium text-foreground line-clamp-2">
                                         {slot.title}
                                       </div>
                                       <div className="text-xs text-muted-foreground mt-0.5 line-clamp-1">
-                                        {slot.instructor}
+                                        {slot.instructorDisplayName || slot.instructor || 'Unknown'}
                                       </div>
                                     </a>
                                     {(isAdmin ||
                                       (isInstructor &&
-                                        slot.instructor === username)) && (
+                                        slot.instructorId !== null &&
+                                        slot.instructorId === userId)) && (
                                       <div
                                         className="absolute top-1 right-1 z-10"
                                         onClick={(e) => e.stopPropagation()}
@@ -470,7 +475,8 @@ export function WeeklyTimetable({
                                             id: slot.id,
                                             title: slot.title,
                                             description: slot.description,
-                                            instructor: slot.instructor,
+                                            instructor: slot.instructor || '',
+                                            instructorId: slot.instructorId !== null && slot.instructorId !== undefined ? slot.instructorId : null,
                                             date: slot.date,
                                             startTime: slot.startTime,
                                             endTime: slot.endTime,
@@ -609,7 +615,7 @@ export function WeeklyTimetable({
                                 }`}
                               >
                                 <a
-                                  href={`/event/${createEventSlug(slot.id, slot.title, slot.instructor)}`}
+                                  href={`/event/${createEventSlug(slot.id, slot.title, slot.instructorDisplayName || slot.instructor || '')}`}
                                   className="block p-4 pr-12 cursor-pointer"
                                 >
                                   <div className="flex justify-between items-start gap-2 mb-1">
@@ -630,30 +636,32 @@ export function WeeklyTimetable({
                                     </div>
                                   </div>
                                   <div className="text-sm text-muted-foreground">
-                                    {slot.instructor}
+                                    {slot.instructorDisplayName || slot.instructor || 'Unknown'}
                                   </div>
                                 </a>
                                 {(isAdmin ||
                                   (isInstructor &&
-                                    slot.instructor === username)) && (
+                                    slot.instructorId !== null &&
+                                    slot.instructorId === userId)) && (
                                   <div
                                     className="absolute top-2 right-2 z-10"
                                     onClick={(e) => e.stopPropagation()}
                                   >
                                     <EditEventButton
-                                      event={{
-                                        id: slot.id,
-                                        title: slot.title,
-                                        description: slot.description,
-                                        instructor: slot.instructor,
-                                        date: slot.date,
-                                        startTime: slot.startTime,
-                                        endTime: slot.endTime,
-                                        location: slot.location,
-                                        whatToBring: slot.whatToBring,
-                                        isWorkshop: slot.isWorkshop,
-                                        propId: slot.propId,
-                                      }}
+                                        event={{
+                                          id: slot.id,
+                                          title: slot.title,
+                                          description: slot.description,
+                                          instructor: slot.instructor || '',
+                                          instructorId: slot.instructorId !== null && slot.instructorId !== undefined ? slot.instructorId : null,
+                                          date: slot.date,
+                                          startTime: slot.startTime,
+                                          endTime: slot.endTime,
+                                          location: slot.location,
+                                          whatToBring: slot.whatToBring,
+                                          isWorkshop: slot.isWorkshop,
+                                          propId: slot.propId,
+                                        }}
                                     />
                                   </div>
                                 )}

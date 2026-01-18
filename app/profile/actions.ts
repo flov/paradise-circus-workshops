@@ -349,6 +349,28 @@ export async function getAllProps(): Promise<PropOption[]> {
 }
 
 /**
+ * Get all instructors/users for admin dropdown
+ */
+export async function getAllInstructors(): Promise<Array<{ id: number; displayName: string | null; username: string }>> {
+  try {
+    const result = await db
+      .select({
+        id: users.id,
+        displayName: users.displayName,
+        username: users.username,
+      })
+      .from(users)
+      .where(eq(users.isInstructor, true))
+      .orderBy(asc(users.username));
+
+    return result;
+  } catch (error: unknown) {
+    console.error("Get all instructors error:", error);
+    return [];
+  }
+}
+
+/**
  * Get or create a prop by name (case-insensitive)
  */
 async function getOrCreateProp(propName: string): Promise<number> {
@@ -548,7 +570,7 @@ export async function isInstructor(): Promise<boolean> {
 
 /**
  * Check if current user can manage a specific event
- * Returns true if user is admin OR (user is instructor AND event's instructor matches user's username)
+ * Returns true if user is admin OR (user is instructor AND event's instructor matches user's username or instructorId)
  */
 export async function canManageEvent(eventId: number): Promise<boolean> {
   const { userId } = await auth();
@@ -566,7 +588,7 @@ export async function canManageEvent(eventId: number): Promise<boolean> {
 
     // Check if user is instructor and matches event's instructor
     const userResult = await db
-      .select({ username: users.username, isInstructor: users.isInstructor })
+      .select({ id: users.id, username: users.username, isInstructor: users.isInstructor })
       .from(users)
       .where(eq(users.clerkUserId, userId))
       .limit(1);
@@ -575,8 +597,10 @@ export async function canManageEvent(eventId: number): Promise<boolean> {
       return false;
     }
 
+    const currentUserId = userResult[0].id;
+
     const eventResult = await db
-      .select({ instructor: events.instructor })
+      .select({ instructor: events.instructor, instructorId: events.instructorId })
       .from(events)
       .where(eq(events.id, eventId))
       .limit(1);
@@ -585,8 +609,17 @@ export async function canManageEvent(eventId: number): Promise<boolean> {
       return false;
     }
 
-    // Match instructor string with username (case-insensitive comparison)
-    return eventResult[0].instructor.toLowerCase() === userResult[0].username.toLowerCase();
+    // If instructorId exists, check that it matches current user's id
+    if (eventResult[0].instructorId !== null) {
+      return eventResult[0].instructorId === currentUserId;
+    }
+
+    // Fallback to instructor string comparison (case-insensitive)
+    if (eventResult[0].instructor) {
+      return eventResult[0].instructor.toLowerCase() === userResult[0].username.toLowerCase();
+    }
+
+    return false;
   } catch (error: unknown) {
     console.error("Check event management permission error:", error);
     return false;

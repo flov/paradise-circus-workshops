@@ -1,6 +1,6 @@
 import { db } from "@/db"
 import { events, users } from "@/db/schema"
-import { desc, eq } from "drizzle-orm"
+import { desc, eq, inArray } from "drizzle-orm"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { EditEventButton } from "./edit-event-button"
@@ -13,10 +13,10 @@ export async function EventsList() {
   const { userId } = await auth()
   
   // Get current user profile to check permissions
-  let userProfile: { username: string | null; isAdmin: boolean; isInstructor: boolean } | null = null
+  let userProfile: { id: number; username: string | null; isAdmin: boolean; isInstructor: boolean } | null = null
   if (userId) {
     const result = await db
-      .select({ username: users.username, isAdmin: users.isAdmin, isInstructor: users.isInstructor })
+      .select({ id: users.id, username: users.username, isAdmin: users.isAdmin, isInstructor: users.isInstructor })
       .from(users)
       .where(eq(users.clerkUserId, userId))
       .limit(1)
@@ -26,9 +26,41 @@ export async function EventsList() {
   }
 
   const eventsList = await db
-    .select()
+    .select({
+      id: events.id,
+      title: events.title,
+      description: events.description,
+      instructor: events.instructor,
+      instructorId: events.instructorId,
+      date: events.date,
+      startTime: events.startTime,
+      endTime: events.endTime,
+      location: events.location,
+      currentBookings: events.currentBookings,
+      isWorkshop: events.isWorkshop,
+      propId: events.propId,
+    })
     .from(events)
     .orderBy(desc(events.date), desc(events.startTime))
+
+  // Fetch instructor user info for events with instructorId
+  const instructorIds = eventsList.filter(e => e.instructorId !== null).map(e => e.instructorId!)
+  const instructorMap = new Map<number, { displayName: string | null; username: string }>()
+  
+  if (instructorIds.length > 0) {
+    const instructorUsers = await db
+      .select({
+        id: users.id,
+        displayName: users.displayName,
+        username: users.username,
+      })
+      .from(users)
+      .where(inArray(users.id, instructorIds))
+    
+    instructorUsers.forEach(user => {
+      instructorMap.set(user.id, { displayName: user.displayName, username: user.username })
+    })
+  }
 
   if (eventsList.length === 0) {
     return (
@@ -94,7 +126,11 @@ export async function EventsList() {
                   </div>
                 </TableCell>
                 <TableCell className="text-sm">{event.location}</TableCell>
-                <TableCell className="text-sm">{event.instructor}</TableCell>
+                <TableCell className="text-sm">
+                  {event.instructorId && instructorMap.has(event.instructorId)
+                    ? (instructorMap.get(event.instructorId)!.displayName || instructorMap.get(event.instructorId)!.username)
+                    : (event.instructor || 'Unknown')}
+                </TableCell>
                 <TableCell>
                   <div className="flex items-center gap-2">
                     <span className="text-sm">
@@ -106,9 +142,15 @@ export async function EventsList() {
                   </div>
                 </TableCell>
                 <TableCell className="text-right">
-                  {userProfile && (userProfile.isAdmin || (userProfile.isInstructor && event.instructor === userProfile.username)) && (
+                  {userProfile && (userProfile.isAdmin || (userProfile.isInstructor && (
+                    (event.instructorId !== null && event.instructorId === userProfile.id) || 
+                    (event.instructorId === null && event.instructor === userProfile.username)
+                  ))) && (
                     <div className="flex items-center justify-end gap-2">
-                      <EditEventButton event={event} />
+                      <EditEventButton event={{
+                        ...event,
+                        instructorId: event.instructorId || undefined,
+                      }} />
                       <DeleteEventButton eventId={event.id} eventTitle={event.title} />
                     </div>
                   )}

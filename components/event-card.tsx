@@ -7,7 +7,7 @@ import { isEventPast, createEventSlug } from "@/lib/utils"
 import ReactMarkdown from "react-markdown"
 import type { Event } from "@/db/schema"
 
-export function EventCard({ event }: { event: Pick<Event, "id" | "title" | "description" | "instructor" | "date" | "startTime" | "endTime" | "currentBookings" | "location"> }) {
+export function EventCard({ event, instructorDisplayName }: { event: Pick<Event, "id" | "title" | "description" | "instructor" | "date" | "startTime" | "endTime" | "currentBookings" | "location">, instructorDisplayName?: string | null }) {
   const isPast = isEventPast(event.date, event.endTime)
 
   // Format date
@@ -68,7 +68,7 @@ export function EventCard({ event }: { event: Pick<Event, "id" | "title" | "desc
           </div>
           <div className="flex items-center gap-2 text-muted-foreground">
             <Users className="h-4 w-4 shrink-0" />
-            <span>Instructor: {event.instructor}</span>
+            <span>Instructor: {instructorDisplayName || event.instructor || 'Unknown'}</span>
           </div>
         </div>
 
@@ -79,7 +79,7 @@ export function EventCard({ event }: { event: Pick<Event, "id" | "title" | "desc
             </Button>
           </div>
         ) : (
-          <Link href={`/event/${createEventSlug(event.id, event.title, event.instructor)}`} className="mt-auto">
+          <Link href={`/event/${createEventSlug(event.id, event.title, instructorDisplayName || event.instructor || '')}`} className="mt-auto">
             <Button className="w-full">Book Now</Button>
           </Link>
         )}

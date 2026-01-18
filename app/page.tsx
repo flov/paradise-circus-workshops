@@ -38,7 +38,7 @@ export default async function Home() {
         suppressHydrationWarning
       >
         {/* Weekly Timetable Section */}
-        <WeeklyTimetable isInstructor={isInstructor} isAdmin={isAdmin} username={userProfile?.username ?? null} />
+        <WeeklyTimetable isInstructor={isInstructor} isAdmin={isAdmin} userId={userProfile?.id ?? null} />
       </main>
 
       {/* Footer */}

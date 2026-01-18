@@ -27,7 +27,9 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
   const [error, setError] = useState<string | null>(null);
 
   const [username, setUsername] = useState(initialData?.username || "");
-  const [displayName, setDisplayName] = useState(initialData?.displayName || "");
+  const [displayName, setDisplayName] = useState(
+    initialData?.displayName || "",
+  );
   const [bio, setBio] = useState(initialData?.bio || "");
   const [instagramHandle, setInstagramHandle] = useState(
     initialData?.instagramHandle || "",
@@ -179,12 +181,15 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
               aria-describedby="username-help"
             />
             <p id="username-help" className="text-xs text-muted-foreground">
-              3-30 characters, letters, numbers, dots, hyphens, and underscores only
+              3-30 characters, letters, numbers, dots, hyphens, and underscores
+              only
             </p>
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="displayName">What would you like to be called?</Label>
+            <Label htmlFor="displayName">
+              How would you like to be called?
+            </Label>
             <Input
               id="displayName"
               value={displayName}
@@ -394,7 +399,7 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   Saving...
                 </>
-              ) : initialData && 'id' in initialData ? (
+              ) : initialData && "id" in initialData ? (
                 "Update Profile"
               ) : (
                 "Complete Setup"

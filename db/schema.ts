@@ -7,7 +7,8 @@ export const events = pgTable(
     id: serial("id").primaryKey(),
     title: varchar("title", { length: 255 }).notNull(),
     description: text("description"),
-    instructor: varchar("instructor", { length: 255 }).notNull(),
+    instructor: varchar("instructor", { length: 255 }),
+    instructorId: integer("instructor_id").references(() => users.id, { onDelete: "set null" }),
     date: date("date").notNull(),
     startTime: time("start_time").notNull(),
     endTime: time("end_time").notNull(),
@@ -71,6 +72,10 @@ export const eventsRelations = relations(events, ({ many, one }) => ({
   prop: one(props, {
     fields: [events.propId],
     references: [props.id],
+  }),
+  instructor: one(users, {
+    fields: [events.instructorId],
+    references: [users.id],
   }),
 }));
 

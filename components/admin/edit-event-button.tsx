@@ -17,22 +17,25 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Pencil, Loader2 } from "lucide-react"
 import { updateEvent } from "@/app/admin/actions"
-import { getAllProps } from "@/app/profile/actions"
+import { getAllProps, getCurrentUserProfile, getAllInstructors } from "@/app/profile/actions"
 import { useRouter } from "next/navigation"
 import type { Event } from "@/db/schema"
 
-export function EditEventButton({ event }: { event: Pick<Event, "id" | "title" | "description" | "instructor" | "date" | "startTime" | "endTime" | "location" | "whatToBring" | "isWorkshop" | "propId"> }) {
+export function EditEventButton({ event }: { event: Pick<Event, "id" | "title" | "description" | "instructor" | "instructorId" | "date" | "startTime" | "endTime" | "location" | "whatToBring" | "isWorkshop" | "propId"> }) {
   const router = useRouter()
   const [open, setOpen] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [availableProps, setAvailableProps] = useState<Array<{ id: number; name: string }>>([])
   const [selectedPropId, setSelectedPropId] = useState<number | null>(null)
+  const [userProfile, setUserProfile] = useState<{ id: number; displayName: string | null; username: string; isAdmin: boolean; isInstructor: boolean } | null>(null)
+  const [instructors, setInstructors] = useState<Array<{ id: number; displayName: string | null; username: string }>>([])
+  const [selectedInstructorId, setSelectedInstructorId] = useState<number | null>(null)
 
   // Format date for input
   const formattedDate = new Date(event.date).toISOString().split("T")[0]
 
-  // Fetch available props and set current prop
+  // Fetch available props, user profile, instructors, and set current values
   useEffect(() => {
     async function fetchData() {
       try {
@@ -40,14 +43,37 @@ export function EditEventButton({ event }: { event: Pick<Event, "id" | "title" |
         setAvailableProps(propsList)
         // Set the current propId from the event
         setSelectedPropId(event.propId || null)
+        
+        // Set the current instructorId from the event
+        setSelectedInstructorId(event.instructorId || null)
+        
+        const profile = await getCurrentUserProfile()
+        if (profile) {
+          setUserProfile({
+            id: profile.id,
+            displayName: profile.displayName,
+            username: profile.username,
+            isAdmin: profile.isAdmin,
+            isInstructor: profile.isInstructor,
+          })
+          
+          // If user is instructor (not admin) and event doesn't have instructorId, set their id
+          if (profile.isInstructor && !profile.isAdmin && !event.instructorId) {
+            setSelectedInstructorId(profile.id)
+          }
+        }
+        
+        // Fetch instructors for admin dropdown
+        const instructorsList = await getAllInstructors()
+        setInstructors(instructorsList)
       } catch (error) {
-        console.error("Failed to fetch props:", error)
+        console.error("Failed to fetch data:", error)
       }
     }
     if (open) {
       fetchData()
     }
-  }, [open, event.propId])
+  }, [open, event.propId, event.instructorId])
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -58,6 +84,13 @@ export function EditEventButton({ event }: { event: Pick<Event, "id" | "title" |
     formData.append("id", event.id.toString())
     if (selectedPropId !== null) {
       formData.append("propId", selectedPropId.toString())
+    }
+    if (selectedInstructorId !== null) {
+      formData.append("instructorId", selectedInstructorId.toString())
+    }
+    // If user is instructor (not admin), always include their instructorId
+    if (userProfile && userProfile.isInstructor && !userProfile.isAdmin) {
+      formData.append("instructorId", userProfile.id.toString())
     }
 
     try {
@@ -94,17 +127,71 @@ export function EditEventButton({ event }: { event: Pick<Event, "id" | "title" |
               <Label htmlFor="title">Event Title *</Label>
               <Input id="title" name="title" defaultValue={event.title} required disabled={isSubmitting} />
             </div>
+            {userProfile && userProfile.isInstructor && !userProfile.isAdmin ? (
+              <div className="space-y-2">
+                <Label htmlFor="instructorId">Instructor *</Label>
+                <Input
+                  id="instructorId"
+                  name="instructorId"
+                  value={userProfile.displayName || userProfile.username || `User ${userProfile.id}`}
+                  disabled
+                  className="bg-muted"
+                />
+                <input type="hidden" name="instructorId" value={userProfile.id} />
+              </div>
+            ) : userProfile && userProfile.isAdmin ? (
+              <div className="space-y-2">
+                <Label htmlFor="instructorId">Instructor (User)</Label>
+                <select
+                  id="instructorId"
+                  name="instructorId"
+                  value={selectedInstructorId || ""}
+                  onChange={(e) => {
+                    const value = e.target.value
+                    setSelectedInstructorId(value === "" ? null : parseInt(value, 10))
+                  }}
+                  disabled={isSubmitting}
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  <option value="">Select an instructor</option>
+                  {instructors.map((instructor) => (
+                    <option key={instructor.id} value={instructor.id}>
+                      {instructor.displayName || instructor.username}
+                    </option>
+                  ))}
+                </select>
+                <p className="text-xs text-muted-foreground">
+                  Select an instructor from registered users. Leave empty to use instructor name below.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <Label htmlFor="instructor">Instructor *</Label>
+                <Input
+                  id="instructor"
+                  name="instructor"
+                  defaultValue={event.instructor || ""}
+                  required
+                  disabled={isSubmitting}
+                />
+              </div>
+            )}
+          </div>
+          {userProfile && userProfile.isAdmin && (
             <div className="space-y-2">
-              <Label htmlFor="instructor">Instructor *</Label>
+              <Label htmlFor="instructor">Instructor Name (if not registered)</Label>
               <Input
                 id="instructor"
                 name="instructor"
-                defaultValue={event.instructor}
-                required
-                disabled={isSubmitting}
+                defaultValue={event.instructor || ""}
+                disabled={isSubmitting || selectedInstructorId !== null}
+                placeholder={selectedInstructorId ? "Will use selected instructor's name" : "Enter instructor name if not registered"}
               />
+              <p className="text-xs text-muted-foreground">
+                Only fill this if the instructor hasn't signed up yet. If instructorId is selected above, this will be ignored.
+              </p>
             </div>
-          </div>
+          )}
 
           <div className="space-y-2">
             <Label htmlFor="description">Description *</Label>
