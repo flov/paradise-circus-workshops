@@ -21,6 +21,7 @@ export type PropOption = Pick<Prop, 'id' | 'name'>;
 // Form-specific type for profile creation/editing
 export interface ProfileFormData {
   username: string;
+  displayName?: string;
   bio?: string;
   instagramHandle?: string;
   isInstructor: boolean;

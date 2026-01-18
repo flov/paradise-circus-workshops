@@ -13,7 +13,7 @@ export default async function OnboardingPage() {
   // Check if user already has a record
   const hasRecord = await hasUserRecord(userId)
   if (hasRecord) {
-    redirect("/")
+    redirect("/profile/edit")
   }
 
   // Get Clerk user to extract username

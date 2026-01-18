@@ -102,6 +102,7 @@ export const users = pgTable(
     clerkUserId: varchar("clerk_user_id", { length: 255 }).notNull().unique(),
     email: varchar("email", { length: 255 }),
     username: varchar("username", { length: 50 }).notNull().unique(),
+    displayName: varchar("display_name", { length: 255 }),
     isInstructor: boolean("is_instructor").notNull().default(false),
     isAdmin: boolean("is_admin").notNull().default(false),
     bio: text("bio"),

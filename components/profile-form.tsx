@@ -27,6 +27,7 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
   const [error, setError] = useState<string | null>(null);
 
   const [username, setUsername] = useState(initialData?.username || "");
+  const [displayName, setDisplayName] = useState(initialData?.displayName || "");
   const [bio, setBio] = useState(initialData?.bio || "");
   const [instagramHandle, setInstagramHandle] = useState(
     initialData?.instagramHandle || "",
@@ -123,6 +124,7 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
 
     const formData = new FormData();
     formData.append("username", username.trim());
+    formData.append("displayName", displayName.trim());
     formData.append("bio", bio.trim());
     formData.append("instagramHandle", instagramHandle.trim());
     formData.append("isInstructor", isInstructor.toString());
@@ -178,6 +180,20 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
             />
             <p id="username-help" className="text-xs text-muted-foreground">
               3-30 characters, letters, numbers, dots, hyphens, and underscores only
+            </p>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="displayName">What would you like to be called?</Label>
+            <Input
+              id="displayName"
+              value={displayName}
+              onChange={(e) => setDisplayName(e.target.value)}
+              placeholder="Your display name (e.g., John, Alex, etc.)"
+              aria-describedby="displayName-help"
+            />
+            <p id="displayName-help" className="text-xs text-muted-foreground">
+              This is how others will see your name on the platform
             </p>
           </div>
 

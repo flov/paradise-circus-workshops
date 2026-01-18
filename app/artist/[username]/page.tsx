@@ -45,13 +45,13 @@ export default async function ArtistProfilePage({
             {profileImageUrl ? (
               <img
                 src={profileImageUrl}
-                alt={user.username}
+                alt={user.displayName || user.username}
                 className="w-32 h-32 rounded-full object-cover border-4 border-primary"
               />
             ) : (
               <div className="w-32 h-32 rounded-full bg-muted flex items-center justify-center border-4 border-primary">
                 <span className="text-4xl font-bold text-muted-foreground">
-                  {user.username.charAt(0).toUpperCase()}
+                  {(user.displayName || user.username).charAt(0).toUpperCase()}
                 </span>
               </div>
             )}
@@ -59,7 +59,7 @@ export default async function ArtistProfilePage({
 
           <div className="flex-1 space-y-4">
             <div className="flex flex-wrap items-center gap-2">
-              <h1 className="text-4xl font-bold">{user.username}</h1>
+              <h1 className="text-4xl font-bold">{user.displayName || user.username}</h1>
               {user.isInstructor && (
                 <Badge variant="default" className="text-sm">
                   <Award className="h-3 w-3 mr-1" />

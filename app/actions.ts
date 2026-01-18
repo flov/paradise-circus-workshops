@@ -23,8 +23,25 @@ export async function createBooking(formData: FormData) {
   }
 
   // Get user's name and email from Clerk, fallback to form data
-  const clerkName = getUserName(user)
+  let clerkName = getUserName(user)
   const clerkEmail = getUserEmail(user)
+
+  // Try to get displayName from database, fallback to Clerk firstName/username
+  try {
+    const { users } = await import("@/db/schema")
+    const userRecord = await db
+      .select({ displayName: users.displayName })
+      .from(users)
+      .where(eq(users.clerkUserId, userId))
+      .limit(1)
+    
+    if (userRecord.length > 0 && userRecord[0].displayName) {
+      clerkName = userRecord[0].displayName
+    }
+  } catch (error) {
+    // If database lookup fails, fall back to Clerk name
+    console.error("Failed to fetch user displayName:", error)
+  }
 
   const eventId = formData.get("eventId") as string
   const formName = formData.get("name") as string
@@ -266,7 +283,24 @@ export async function addComment(eventId: number, content: string) {
     return { success: false, error: "Unable to retrieve user information" }
   }
 
-  const authorName = getUserName(user)
+  // Try to get displayName from database, fallback to Clerk firstName/username
+  let authorName = getUserName(user)
+  try {
+    const { users } = await import("@/db/schema")
+    const userRecord = await db
+      .select({ displayName: users.displayName })
+      .from(users)
+      .where(eq(users.clerkUserId, userId))
+      .limit(1)
+    
+    if (userRecord.length > 0 && userRecord[0].displayName) {
+      authorName = userRecord[0].displayName
+    }
+  } catch (error) {
+    // If database lookup fails, fall back to Clerk name
+    console.error("Failed to fetch user displayName:", error)
+  }
+
   const authorImageUrl = user.imageUrl || null
 
   if (!content.trim()) {

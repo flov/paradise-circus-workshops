@@ -46,6 +46,7 @@ export async function createUserRecord(
           clerkUserId,
           email,
           username: trimmedUsername,
+          displayName: null,
         })
         .returning({ id: users.id, username: users.username });
       
@@ -107,6 +108,7 @@ export async function createProfile(formData: FormData) {
 
     // Get form data
     const username = formData.get("username") as string;
+    const displayName = formData.get("displayName") as string;
     const bio = formData.get("bio") as string;
     const instagramHandle = formData.get("instagramHandle") as string;
     const isInstructor = formData.get("isInstructor") === "true";
@@ -172,6 +174,7 @@ export async function createProfile(formData: FormData) {
             clerkUserId: userId,
             email,
             username: trimmedUsername,
+            displayName: displayName?.trim() || null,
             bio: bio || null,
             instagramHandle: normalizedInstagramHandle,
             isInstructor,
@@ -212,6 +215,7 @@ export async function createProfile(formData: FormData) {
           .set({
             username: trimmedUsername,
             email,
+            displayName: displayName?.trim() || null,
             bio: bio || null,
             instagramHandle: normalizedInstagramHandle,
             isInstructor,
@@ -417,6 +421,7 @@ export async function getCurrentUserProfile(): Promise<UserProfile | null> {
         clerkUserId: users.clerkUserId,
         email: users.email,
         username: users.username,
+        displayName: users.displayName,
         isInstructor: users.isInstructor,
         isAdmin: users.isAdmin,
         bio: users.bio,

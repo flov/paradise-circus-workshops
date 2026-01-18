@@ -92,6 +92,13 @@
       "when": 1768721734660,
       "tag": "0012_white_living_mummy",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1768722616957,
+      "tag": "0013_unknown_garia",
+      "breakpoints": true
     }
   ]
 }
