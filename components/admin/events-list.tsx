@@ -41,6 +41,8 @@ export async function EventsList() {
       isWorkshop: events.isWorkshop,
       isPublished: events.isPublished,
       propId: events.propId,
+      isRecurring: events.isRecurring,
+      recurringSeriesId: events.recurringSeriesId,
       instructorProfile: {
         id: users.id,
         displayName: users.displayName,
@@ -136,11 +138,16 @@ export async function EventsList() {
                   )}
                 </TableCell>
                 <TableCell>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-wrap">
                     {event.isPublished ? (
                       <Badge variant="default">Published</Badge>
                     ) : (
                       <Badge variant="secondary">Pending</Badge>
+                    )}
+                    {event.isRecurring && (
+                      <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950 dark:text-blue-300 dark:border-blue-800">
+                        Recurring
+                      </Badge>
                     )}
                     {isPast && (
                       <Badge variant="outline">Past</Badge>
@@ -165,9 +172,19 @@ export async function EventsList() {
                     ))) && (
                       <>
                         <EditEventButton event={{
-                          ...event,
+                          id: event.id,
+                          title: event.title,
+                          description: event.description,
+                          instructor: event.instructor,
                           instructorId: event.instructorId || undefined,
+                          date: event.date,
+                          startTime: event.startTime,
+                          endTime: event.endTime,
+                          location: event.location,
+                          whatToBring: event.whatToBring,
+                          isWorkshop: event.isWorkshop,
                           isPublished: event.isPublished,
+                          propId: event.propId,
                         }} />
                         <DeleteEventButton eventId={event.id} eventTitle={event.title} />
                       </>

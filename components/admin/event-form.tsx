@@ -23,6 +23,8 @@ export type EventFormInitialValues = {
   isWorkshop?: boolean
   isPublished?: boolean
   propId?: number | null
+  isRecurring?: boolean
+  recurUntil?: string
 }
 
 type EventFormProps = {
@@ -49,6 +51,19 @@ export function EventForm({
   const [userProfile, setUserProfile] = useState<{ id: number; displayName: string | null; username: string; isAdmin: boolean; isInstructor: boolean } | null>(null)
   const [instructors, setInstructors] = useState<Array<{ id: number; displayName: string | null; username: string }>>([])
   const [selectedInstructorId, setSelectedInstructorId] = useState<number | null>(null)
+  const [isRecurring, setIsRecurring] = useState<boolean>(initialValues?.isRecurring ?? false)
+  const [recurUntil, setRecurUntil] = useState<string>(initialValues?.recurUntil || "")
+  
+  // Initialize date state
+  const getInitialDate = (): string => {
+    if (initialValues?.date) {
+      return typeof initialValues.date === "string" && initialValues.date.includes("T")
+        ? new Date(initialValues.date).toISOString().split("T")[0]
+        : initialValues.date
+    }
+    return ""
+  }
+  const [date, setDate] = useState<string>(getInitialDate())
   
   // Initialize location state based on initialValues
   const getInitialSelectedLocation = (): string => {
@@ -158,15 +173,43 @@ export function EventForm({
       selectedLocation === "Other" ? customLocation.trim() : selectedLocation
     formData.append("location", locationValue)
 
+    // Add recurring fields if recurring is enabled
+    // Note: Server-side validation will ensure only admins can create recurring events
+    if (isRecurring) {
+      formData.append("isRecurring", "true")
+      if (recurUntil) {
+        formData.append("recurUntil", recurUntil)
+      }
+    }
+
     await onSubmit(formData)
   }
 
   const isEditMode = !!initialValues?.id
-  const formattedDate = initialValues?.date 
-    ? (typeof initialValues.date === "string" && initialValues.date.includes("T")
-        ? new Date(initialValues.date).toISOString().split("T")[0]
-        : initialValues.date)
-    : ""
+  const formattedDate = date
+
+  // Calculate number of events that will be created
+  const calculateEventCount = (): number => {
+    if (!isRecurring || !recurUntil || !formattedDate) return 0
+    
+    const startDate = new Date(formattedDate)
+    const endDate = new Date(recurUntil)
+    
+    if (endDate < startDate) return 0
+    
+    let count = 0
+    let currentDate = new Date(startDate)
+    
+    while (currentDate <= endDate) {
+      count++
+      currentDate = new Date(currentDate)
+      currentDate.setDate(currentDate.getDate() + 7)
+    }
+    
+    return count
+  }
+
+  const eventCount = calculateEventCount()
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
@@ -266,7 +309,8 @@ export function EventForm({
             id="date"
             name="date"
             type="date"
-            defaultValue={formattedDate}
+            value={date}
+            onChange={(e) => setDate(e.target.value)}
             required
             disabled={isSubmitting}
           />
@@ -398,6 +442,59 @@ export function EventForm({
           Select a prop used in this event. Leave empty if no prop is needed.
         </p>
       </div>
+
+      {userProfile && userProfile.isAdmin && (
+        <div className="space-y-4 border-t pt-4">
+          <div className="space-y-2">
+            <label className="flex items-center space-x-2 cursor-pointer">
+              <input
+                type="checkbox"
+                id="isRecurring"
+                name="isRecurring"
+                checked={isRecurring}
+                onChange={(e) => {
+                  setIsRecurring(e.target.checked)
+                  if (!e.target.checked) {
+                    setRecurUntil("")
+                  }
+                }}
+                disabled={isSubmitting}
+                className="h-4 w-4 rounded border-gray-300"
+              />
+              <Label htmlFor="isRecurring" className="cursor-pointer">Recurring Workshop</Label>
+            </label>
+            <p className="text-xs text-muted-foreground">
+              Check this box to create this workshop weekly until the end date. Only admins can create recurring workshops.
+            </p>
+          </div>
+
+          {isRecurring && (
+            <div className="space-y-2">
+              <Label htmlFor="recurUntil">Recur Until *</Label>
+              <Input
+                id="recurUntil"
+                name="recurUntil"
+                type="date"
+                value={recurUntil}
+                onChange={(e) => setRecurUntil(e.target.value)}
+                required={isRecurring}
+                disabled={isSubmitting}
+                min={formattedDate || undefined}
+              />
+              {recurUntil && formattedDate && new Date(recurUntil) < new Date(formattedDate) && (
+                <p className="text-xs text-destructive">
+                  End date must be after the start date.
+                </p>
+              )}
+              {eventCount > 0 && (
+                <p className="text-xs text-muted-foreground">
+                  This will create {eventCount} event{eventCount !== 1 ? "s" : ""} weekly from {formattedDate} until {recurUntil}.
+                </p>
+              )}
+            </div>
+          )}
+        </div>
+      )}
 
       {error && (
         <div className="rounded-md bg-destructive/10 border border-destructive/20 p-3 text-sm text-destructive">

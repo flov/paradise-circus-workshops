@@ -19,11 +19,14 @@ export const events = pgTable(
     isWorkshop: boolean("is_workshop").notNull().default(true),
     isPublished: boolean("is_published").notNull().default(true),
     propId: integer("prop_id").references(() => props.id, { onDelete: "set null" }),
+    recurringSeriesId: varchar("recurring_series_id", { length: 36 }),
+    isRecurring: boolean("is_recurring").notNull().default(false),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at").defaultNow().notNull(),
   },
   (table) => ({
     dateIdx: index("idx_events_date").on(table.date),
+    recurringSeriesIdIdx: index("idx_events_recurring_series_id").on(table.recurringSeriesId),
   })
 );
 

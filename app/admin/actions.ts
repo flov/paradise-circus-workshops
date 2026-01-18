@@ -8,6 +8,7 @@ import { createEventSlug } from "@/lib/utils"
 import { auth } from "@clerk/nextjs/server"
 import { isAdmin, isInstructor, getAllAdmins } from "@/app/profile/actions"
 import { sendEventPendingApprovalEmail, sendAdminEventPendingEmail, sendEventApprovedEmail } from "@/lib/email"
+import { randomUUID } from "crypto"
 
 export async function createEvent(formData: FormData) {
   // Check authentication
@@ -36,10 +37,36 @@ export async function createEvent(formData: FormData) {
   const whatToBring = formData.get("whatToBring") as string
   const propIdInput = formData.get("propId") as string
   const isWorkshop = formData.get("isWorkshop") === "on" || formData.get("isWorkshop") === "true"
+  const isRecurringInput = formData.get("isRecurring") as string
+  const isRecurring = isRecurringInput === "on" || isRecurringInput === "true"
+  const recurUntil = formData.get("recurUntil") as string
   
   // Validate required fields
   if (!title || !description || !date || !start_time || !end_time || !location) {
     return { success: false, error: "Missing required fields" }
+  }
+
+  // Validate recurring fields - only admins can create recurring events
+  if (isRecurring && !userIsAdmin) {
+    return { success: false, error: "Unauthorized. Only admins can create recurring events." }
+  }
+
+  // Validate recurUntil if recurring is enabled
+  if (isRecurring) {
+    if (!recurUntil) {
+      return { success: false, error: "Recur Until date is required for recurring events." }
+    }
+    const startDate = new Date(date)
+    const endDate = new Date(recurUntil)
+    if (endDate < startDate) {
+      return { success: false, error: "Recur Until date must be after the start date." }
+    }
+    // Limit recurring period to 1 year to prevent abuse
+    const maxDate = new Date(startDate)
+    maxDate.setFullYear(maxDate.getFullYear() + 1)
+    if (endDate > maxDate) {
+      return { success: false, error: "Recurring period cannot exceed 1 year." }
+    }
   }
 
   // Validate that either instructorId or instructor string is provided
@@ -109,7 +136,123 @@ export async function createEvent(formData: FormData) {
     // Determine isPublished: true for admins, false for instructors
     const isPublished = userIsAdmin
 
-    // Insert event
+    // Handle recurring events
+    if (isRecurring && recurUntil) {
+      // Generate UUID for recurring series
+      const recurringSeriesId = randomUUID()
+      
+      // Calculate all dates (weekly from start date until recurUntil)
+      const startDate = new Date(date)
+      const endDate = new Date(recurUntil)
+      const eventDates: string[] = []
+      
+      let currentDate = new Date(startDate)
+      while (currentDate <= endDate) {
+        eventDates.push(currentDate.toISOString().split("T")[0])
+        currentDate = new Date(currentDate)
+        currentDate.setDate(currentDate.getDate() + 7)
+      }
+
+      if (eventDates.length === 0) {
+        return { success: false, error: "No valid dates found for recurring event." }
+      }
+
+      // Create all events in a transaction
+      const eventValues = eventDates.map((eventDate) => ({
+        title,
+        description,
+        instructor: instructorName,
+        instructorId: instructorId,
+        date: eventDate,
+        startTime: start_time,
+        endTime: end_time,
+        location,
+        whatToBring: whatToBring || null,
+        isWorkshop,
+        isPublished,
+        propId: propId || null,
+        recurringSeriesId,
+        isRecurring: true,
+      }))
+
+      const newEvents = await db.insert(events).values(eventValues).returning({ id: events.id })
+
+      // Send emails only for the first event if instructor created (not published)
+      if (!isPublished && instructorId && newEvents.length > 0) {
+        try {
+          // Fetch instructor details for email
+          const instructorResult = await db
+            .select({ 
+              email: users.email, 
+              displayName: users.displayName, 
+              username: users.username 
+            })
+            .from(users)
+            .where(eq(users.id, instructorId))
+            .limit(1)
+
+          if (instructorResult.length > 0) {
+            const instructorEmail = instructorResult[0].email
+            const instructorDisplayName = instructorResult[0].displayName || instructorResult[0].username
+
+            if (!instructorEmail) {
+              console.error(`Instructor ${instructorId} (${instructorDisplayName}) does not have an email address. Cannot send pending approval email.`)
+            } else {
+              // Send email to instructor about pending approval (mentioning recurring)
+              try {
+                await sendEventPendingApprovalEmail({
+                  instructorName: instructorDisplayName,
+                  instructorEmail,
+                  eventTitle: `${title} (Recurring - ${eventDates.length} events)`,
+                  eventDate: date,
+                  eventStartTime: start_time,
+                  eventEndTime: end_time,
+                  eventLocation: location,
+                })
+                console.log(`Pending approval email sent to instructor: ${instructorEmail}`)
+              } catch (emailError) {
+                console.error(`Failed to send pending approval email to instructor ${instructorEmail}:`, emailError)
+              }
+
+              // Send email to all admins about pending recurring events
+              try {
+                const adminUsers = await getAllAdmins()
+                for (const admin of adminUsers) {
+                  if (admin.email) {
+                    await sendAdminEventPendingEmail({
+                      instructorName: instructorDisplayName,
+                      instructorEmail,
+                      eventTitle: `${title} (Recurring - ${eventDates.length} events)`,
+                      eventDate: date,
+                      eventStartTime: start_time,
+                      eventEndTime: end_time,
+                      eventLocation: location,
+                      eventId: newEvents[0].id,
+                    }, admin.email).catch((error) => {
+                      console.error(`Failed to send admin notification to ${admin.email}:`, error)
+                    })
+                  }
+                }
+              } catch (adminEmailError) {
+                console.error("Error sending admin notifications:", adminEmailError)
+              }
+            }
+          } else {
+            console.error(`Instructor with id ${instructorId} not found. Cannot send pending approval email.`)
+          }
+        } catch (error) {
+          console.error("Error sending event creation emails:", error)
+          // Don't fail the event creation if emails fail
+        }
+      }
+
+      revalidatePath("/admin")
+      revalidatePath("/")
+
+      return { success: true }
+    }
+
+    // Insert single event (non-recurring)
     const [newEvent] = await db.insert(events).values({
       title,
       description,
@@ -123,6 +266,7 @@ export async function createEvent(formData: FormData) {
       isWorkshop,
       isPublished,
       propId: propId || null,
+      isRecurring: false,
     }).returning({ id: events.id })
 
     // If instructor created event (not published), send emails
@@ -193,7 +337,6 @@ export async function createEvent(formData: FormData) {
         // Don't fail the event creation if emails fail
       }
     } else {
-      console.log(`Skipping email send: isPublished=${isPublished}, instructorId=${instructorId}`)
     }
 
     revalidatePath("/admin")
@@ -335,6 +478,9 @@ export async function updateEvent(formData: FormData) {
   const isWorkshop = formData.get("isWorkshop") === "on" || formData.get("isWorkshop") === "true"
   const isPublishedInput = formData.get("isPublished") as string
   const isPublished = isPublishedInput === "on" || isPublishedInput === "true"
+  const isRecurringInput = formData.get("isRecurring") as string
+  const isRecurring = isRecurringInput === "on" || isRecurringInput === "true"
+  const recurUntil = formData.get("recurUntil") as string
   
   if (!id || !title || !description || !date || !start_time || !end_time || !location) {
     return { success: false, error: "Missing required fields" }
@@ -351,7 +497,30 @@ export async function updateEvent(formData: FormData) {
   const userIsAdmin = await isAdmin()
   const userIsInstructor = await isInstructor()
   
-  // Fetch current event state to check if isPublished is changing
+  // Validate recurring fields - only admins can create/update recurring events
+  if (isRecurring && !userIsAdmin) {
+    return { success: false, error: "Unauthorized. Only admins can create recurring events." }
+  }
+
+  // Validate recurUntil if recurring is enabled
+  if (isRecurring) {
+    if (!recurUntil) {
+      return { success: false, error: "Recur Until date is required for recurring events." }
+    }
+    const startDate = new Date(date)
+    const endDate = new Date(recurUntil)
+    if (endDate < startDate) {
+      return { success: false, error: "Recur Until date must be after the start date." }
+    }
+    // Limit recurring period to 1 year to prevent abuse
+    const maxDate = new Date(startDate)
+    maxDate.setFullYear(maxDate.getFullYear() + 1)
+    if (endDate > maxDate) {
+      return { success: false, error: "Recurring period cannot exceed 1 year." }
+    }
+  }
+  
+  // Fetch current event state to check if isPublished is changing and if it's recurring
   const currentEventResult = await db
     .select({
       isPublished: events.isPublished,
@@ -361,6 +530,8 @@ export async function updateEvent(formData: FormData) {
       startTime: events.startTime,
       endTime: events.endTime,
       location: events.location,
+      recurringSeriesId: events.recurringSeriesId,
+      isRecurring: events.isRecurring,
     })
     .from(events)
     .where(eq(events.id, eventId))
@@ -373,6 +544,12 @@ export async function updateEvent(formData: FormData) {
   const currentEvent = currentEventResult[0]
   const wasPublished = currentEvent.isPublished
   const isBeingPublished = isPublished && !wasPublished && userIsAdmin
+  const isRecurringEvent = currentEvent.recurringSeriesId !== null && currentEvent.isRecurring
+
+  // Only admins can update recurring events (to update all instances)
+  if (isRecurringEvent && !userIsAdmin) {
+    return { success: false, error: "Unauthorized. Only admins can update recurring events." }
+  }
   
   if (!userIsAdmin) {
     // Check if user is instructor
@@ -508,10 +685,117 @@ export async function updateEvent(formData: FormData) {
       updateData.isPublished = isPublished
     }
 
-    await db
-      .update(events)
-      .set(updateData)
-      .where(eq(events.id, eventId))
+    // Handle converting non-recurring event to recurring
+    if (!isRecurringEvent && isRecurring && userIsAdmin && recurUntil) {
+      // Generate UUID for recurring series
+      const recurringSeriesId = randomUUID()
+      
+      // Calculate all dates (weekly from start date until recurUntil)
+      const startDate = new Date(date)
+      const endDate = new Date(recurUntil)
+      const eventDates: string[] = []
+      
+      let currentDate = new Date(startDate)
+      while (currentDate <= endDate) {
+        eventDates.push(currentDate.toISOString().split("T")[0])
+        currentDate = new Date(currentDate)
+        currentDate.setDate(currentDate.getDate() + 7)
+      }
+
+      if (eventDates.length === 0) {
+        return { success: false, error: "No valid dates found for recurring event." }
+      }
+
+      // Update the current event to be part of the recurring series
+      await db
+        .update(events)
+        .set({
+          ...updateData,
+          recurringSeriesId,
+          isRecurring: true,
+        })
+        .where(eq(events.id, eventId))
+
+      // Create additional events for remaining dates (skip the first date as it's the current event)
+      if (eventDates.length > 1) {
+        const additionalEventValues = eventDates.slice(1).map((eventDate) => ({
+          title,
+          description,
+          instructor: instructorName,
+          instructorId: instructorId,
+          date: eventDate,
+          startTime: start_time,
+          endTime: end_time,
+          location,
+          whatToBring: whatToBring || null,
+          isWorkshop,
+          isPublished,
+          propId: propId || null,
+          recurringSeriesId,
+          isRecurring: true,
+        }))
+
+        await db.insert(events).values(additionalEventValues)
+      }
+
+      revalidatePath("/admin")
+      revalidatePath("/")
+
+      return { success: true }
+    }
+
+    // Handle recurring events - update all events in the series
+    if (isRecurringEvent && userIsAdmin && currentEvent.recurringSeriesId) {
+      // Check if start date changed - if so, we need to recalculate dates
+      const startDateChanged = currentEvent.date !== date
+      
+      if (startDateChanged) {
+        // For recurring events, we need to find all events in the series and update their dates
+        // Get all events in the series ordered by date
+        const seriesEvents = await db
+          .select({
+            id: events.id,
+            date: events.date,
+          })
+          .from(events)
+          .where(eq(events.recurringSeriesId, currentEvent.recurringSeriesId))
+          .orderBy(asc(events.date))
+
+        if (seriesEvents.length > 0) {
+          const originalStartDate = new Date(currentEvent.date)
+          const newStartDate = new Date(date)
+          const dateDiff = Math.round((newStartDate.getTime() - originalStartDate.getTime()) / (1000 * 60 * 60 * 24))
+
+          // Update all events in the series with new dates
+          for (const seriesEvent of seriesEvents) {
+            const originalDate = new Date(seriesEvent.date)
+            const newDate = new Date(originalDate)
+            newDate.setDate(newDate.getDate() + dateDiff)
+            const newDateStr = newDate.toISOString().split("T")[0]
+
+            await db
+              .update(events)
+              .set({
+                ...updateData,
+                date: newDateStr,
+              })
+              .where(eq(events.id, seriesEvent.id))
+          }
+        }
+      } else {
+        // Start date didn't change, just update all events in the series with the same data
+        await db
+          .update(events)
+          .set(updateData)
+          .where(eq(events.recurringSeriesId, currentEvent.recurringSeriesId))
+      }
+    } else {
+      // Non-recurring event or non-admin updating - update single event
+      await db
+        .update(events)
+        .set(updateData)
+        .where(eq(events.id, eventId))
+    }
 
     // If admin is publishing an event that was unpublished, send approval email
     if (isBeingPublished && currentEvent.instructorId) {
