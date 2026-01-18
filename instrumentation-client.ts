@@ -11,16 +11,21 @@ Sentry.init({
   integrations: [Sentry.replayIntegration()],
 
   // Define how likely traces are sampled. Adjust this value in production, or use tracesSampler for greater control.
-  tracesSampleRate: 1,
+  // Sample 100% in development, 10% in production to manage costs
+  tracesSampleRate: process.env.NODE_ENV === "production" ? 0.1 : 1.0,
+
+  // Set environment
+  environment: process.env.NODE_ENV || process.env.VERCEL_ENV || "development",
+
   // Enable logs to be sent to Sentry
   enableLogs: true,
 
   // Define how likely Replay events are sampled.
-  // This sets the sample rate to be 10%. You may want this to be 100% while
-  // in development and sample at a lower rate in production
-  replaysSessionSampleRate: 0.1,
+  // Sample 10% of sessions in production, 100% in development
+  replaysSessionSampleRate: process.env.NODE_ENV === "production" ? 0.1 : 1.0,
 
   // Define how likely Replay events are sampled when an error occurs.
+  // Always capture replays when errors occur
   replaysOnErrorSampleRate: 1.0,
 
   // Enable sending user PII (Personally Identifiable Information)
