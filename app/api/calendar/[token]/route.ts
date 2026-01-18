@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
-import { bookings, events } from "@/db/schema";
+import { bookings, events, users } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { generateICSFile } from "@/lib/calendar";
 
@@ -42,10 +42,16 @@ export async function GET(
         endTime: events.endTime,
         location: events.location,
         instructor: events.instructor,
+        instructorId: events.instructorId,
         description: events.description,
         whatToBring: events.whatToBring,
+        instructorProfile: {
+          displayName: users.displayName,
+          username: users.username,
+        },
       })
       .from(events)
+      .leftJoin(users, eq(events.instructorId, users.id))
       .where(eq(events.id, booking.eventId));
 
     if (eventResults.length === 0) {
@@ -56,6 +62,9 @@ export async function GET(
     }
 
     const event = eventResults[0];
+    const instructorName = event.instructorProfile
+      ? (event.instructorProfile.displayName || event.instructorProfile.username)
+      : event.instructor || '';
 
     // Generate iCalendar content
     const icsContent = generateICSFile({
@@ -64,7 +73,7 @@ export async function GET(
       startTime: event.startTime,
       endTime: event.endTime,
       location: event.location,
-      instructor: event.instructor,
+      instructor: instructorName,
       description: event.description,
       whatToBring: event.whatToBring,
       bookingId: booking.id,

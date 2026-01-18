@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
-import { events } from "@/db/schema";
+import { events, users } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { generateICSFile } from "@/lib/calendar";
 import { createEventSlug } from "@/lib/utils";
@@ -20,7 +20,7 @@ export async function GET(
       );
     }
 
-    // Fetch event data
+    // Fetch event data with instructor profile
     const eventResults = await db
       .select({
         id: events.id,
@@ -30,10 +30,16 @@ export async function GET(
         endTime: events.endTime,
         location: events.location,
         instructor: events.instructor,
+        instructorId: events.instructorId,
         description: events.description,
         whatToBring: events.whatToBring,
+        instructorProfile: {
+          displayName: users.displayName,
+          username: users.username,
+        },
       })
       .from(events)
+      .leftJoin(users, eq(events.instructorId, users.id))
       .where(eq(events.id, eventId));
 
     if (eventResults.length === 0) {
@@ -44,12 +50,15 @@ export async function GET(
     }
 
     const event = eventResults[0];
+    const instructorName = event.instructorProfile
+      ? (event.instructorProfile.displayName || event.instructorProfile.username)
+      : event.instructor || '';
 
     // Generate event slug for URL
     const eventSlug = createEventSlug(
       event.id,
       event.title,
-      event.instructor
+      instructorName
     );
 
     // Generate iCalendar content (without booking info)
@@ -59,7 +68,7 @@ export async function GET(
       startTime: event.startTime,
       endTime: event.endTime,
       location: event.location,
-      instructor: event.instructor,
+      instructor: instructorName,
       description: event.description,
       whatToBring: event.whatToBring,
       bookingId: event.id, // Use event ID as fallback

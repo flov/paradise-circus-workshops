@@ -50,29 +50,66 @@ export default async function BookEventPage({
   }
 
   const eventResults = await db
-    .select()
+    .select({
+      id: events.id,
+      title: events.title,
+      description: events.description,
+      instructor: events.instructor,
+      instructorId: events.instructorId,
+      date: events.date,
+      startTime: events.startTime,
+      endTime: events.endTime,
+      maxCapacity: events.maxCapacity,
+      currentBookings: events.currentBookings,
+      location: events.location,
+      whatToBring: events.whatToBring,
+      isWorkshop: events.isWorkshop,
+      propId: events.propId,
+      createdAt: events.createdAt,
+      updatedAt: events.updatedAt,
+      instructorProfile: {
+        id: users.id,
+        displayName: users.displayName,
+        username: users.username,
+        bio: users.bio,
+        instagramHandle: users.instagramHandle,
+        youtubeVideos: users.youtubeVideos,
+        experienceStartDate: users.experienceStartDate,
+        performanceStyle: users.performanceStyle,
+        availableForPerformances: users.availableForPerformances,
+        location: users.location,
+      },
+    })
     .from(events)
+    .leftJoin(users, eq(events.instructorId, users.id))
     .where(eq(events.id, eventId));
 
   if (eventResults.length === 0) {
     notFound();
   }
 
-  const event = eventResults[0];
+  const eventResult = eventResults[0];
+  const event = {
+    id: eventResult.id,
+    title: eventResult.title,
+    description: eventResult.description,
+    instructor: eventResult.instructor,
+    instructorId: eventResult.instructorId,
+    date: eventResult.date,
+    startTime: eventResult.startTime,
+    endTime: eventResult.endTime,
+    maxCapacity: eventResult.maxCapacity,
+    currentBookings: eventResult.currentBookings,
+    location: eventResult.location,
+    whatToBring: eventResult.whatToBring,
+    isWorkshop: eventResult.isWorkshop,
+    propId: eventResult.propId,
+    createdAt: eventResult.createdAt,
+    updatedAt: eventResult.updatedAt,
+  };
 
-  // Fetch instructor user info if instructorId exists
-  let instructorDisplayName: string | null = null;
-  if (event.instructorId) {
-    const instructorResult = await db
-      .select({ displayName: users.displayName, username: users.username })
-      .from(users)
-      .where(eq(users.id, event.instructorId))
-      .limit(1);
-    
-    if (instructorResult.length > 0) {
-      instructorDisplayName = instructorResult[0].displayName || instructorResult[0].username;
-    }
-  }
+  // Get instructor display name from joined profile
+  const instructorDisplayName = eventResult.instructorProfile?.displayName || eventResult.instructorProfile?.username || null;
 
   // Get event prop (single prop now)
   let eventProp: { id: number; name: string } | null = null;
@@ -276,9 +313,18 @@ export default async function BookEventPage({
                     <div className="font-medium text-foreground">
                       Instructor
                     </div>
-                    <div className="text-muted-foreground">
-                      {instructorDisplayName || event.instructor || 'Unknown'}
-                    </div>
+                    {eventResult.instructorProfile?.username ? (
+                      <Link
+                        href={`/artist/${eventResult.instructorProfile.username}`}
+                        className="text-primary hover:underline"
+                      >
+                        {instructorDisplayName || event.instructor || 'Unknown'}
+                      </Link>
+                    ) : (
+                      <div className="text-muted-foreground">
+                        {instructorDisplayName || event.instructor || 'Unknown'}
+                      </div>
+                    )}
                   </div>
                 </div>
                 {eventProp && (

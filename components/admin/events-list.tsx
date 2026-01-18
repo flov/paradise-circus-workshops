@@ -1,6 +1,6 @@
 import { db } from "@/db"
 import { events, users } from "@/db/schema"
-import { desc, eq, inArray } from "drizzle-orm"
+import { desc, eq } from "drizzle-orm"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { EditEventButton } from "./edit-event-button"
@@ -39,28 +39,22 @@ export async function EventsList() {
       currentBookings: events.currentBookings,
       isWorkshop: events.isWorkshop,
       propId: events.propId,
-    })
-    .from(events)
-    .orderBy(desc(events.date), desc(events.startTime))
-
-  // Fetch instructor user info for events with instructorId
-  const instructorIds = eventsList.filter(e => e.instructorId !== null).map(e => e.instructorId!)
-  const instructorMap = new Map<number, { displayName: string | null; username: string }>()
-  
-  if (instructorIds.length > 0) {
-    const instructorUsers = await db
-      .select({
+      instructorProfile: {
         id: users.id,
         displayName: users.displayName,
         username: users.username,
-      })
-      .from(users)
-      .where(inArray(users.id, instructorIds))
-    
-    instructorUsers.forEach(user => {
-      instructorMap.set(user.id, { displayName: user.displayName, username: user.username })
+        bio: users.bio,
+        instagramHandle: users.instagramHandle,
+        youtubeVideos: users.youtubeVideos,
+        experienceStartDate: users.experienceStartDate,
+        performanceStyle: users.performanceStyle,
+        availableForPerformances: users.availableForPerformances,
+        location: users.location,
+      },
     })
-  }
+    .from(events)
+    .leftJoin(users, eq(events.instructorId, users.id))
+    .orderBy(desc(events.date), desc(events.startTime))
 
   if (eventsList.length === 0) {
     return (
@@ -127,9 +121,16 @@ export async function EventsList() {
                 </TableCell>
                 <TableCell className="text-sm">{event.location}</TableCell>
                 <TableCell className="text-sm">
-                  {event.instructorId && instructorMap.has(event.instructorId)
-                    ? (instructorMap.get(event.instructorId)!.displayName || instructorMap.get(event.instructorId)!.username)
-                    : (event.instructor || 'Unknown')}
+                  {event.instructorProfile?.username ? (
+                    <Link
+                      href={`/artist/${event.instructorProfile.username}`}
+                      className="text-primary hover:underline"
+                    >
+                      {event.instructorProfile.displayName || event.instructorProfile.username}
+                    </Link>
+                  ) : (
+                    event.instructor || 'Unknown'
+                  )}
                 </TableCell>
                 <TableCell>
                   <div className="flex items-center gap-2">

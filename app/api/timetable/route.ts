@@ -1,6 +1,6 @@
 import { db } from "@/db"
 import { events, users } from "@/db/schema"
-import { and, gte, lte, asc, inArray } from "drizzle-orm"
+import { and, gte, lte, asc, eq } from "drizzle-orm"
 import type { NextRequest } from "next/server"
 
 export async function GET(request: NextRequest) {
@@ -28,36 +28,43 @@ export async function GET(request: NextRequest) {
         isWorkshop: events.isWorkshop,
         currentBookings: events.currentBookings,
         propId: events.propId,
-      })
-      .from(events)
-      .where(and(gte(events.date, startDate), lte(events.date, endDate)))
-      .orderBy(asc(events.date), asc(events.startTime))
-
-    // Fetch instructor user info for events with instructorId
-    const instructorIds = eventsData.filter(e => e.instructorId !== null).map(e => e.instructorId!)
-    const instructorMap = new Map<number, { displayName: string | null; username: string }>()
-    
-    if (instructorIds.length > 0) {
-      const instructorUsers = await db
-        .select({
+        instructorProfile: {
           id: users.id,
           displayName: users.displayName,
           username: users.username,
-        })
-        .from(users)
-        .where(inArray(users.id, instructorIds))
-      
-      instructorUsers.forEach(user => {
-        instructorMap.set(user.id, { displayName: user.displayName, username: user.username })
+          bio: users.bio,
+          instagramHandle: users.instagramHandle,
+          youtubeVideos: users.youtubeVideos,
+          experienceStartDate: users.experienceStartDate,
+          performanceStyle: users.performanceStyle,
+          availableForPerformances: users.availableForPerformances,
+          location: users.location,
+        },
       })
-    }
+      .from(events)
+      .leftJoin(users, eq(events.instructorId, users.id))
+      .where(and(gte(events.date, startDate), lte(events.date, endDate)))
+      .orderBy(asc(events.date), asc(events.startTime))
 
     // Add instructor display name to events
     const eventsWithInstructorInfo = eventsData.map(event => ({
-      ...event,
-      instructorDisplayName: event.instructorId && instructorMap.has(event.instructorId)
-        ? (instructorMap.get(event.instructorId)!.displayName || instructorMap.get(event.instructorId)!.username)
+      id: event.id,
+      title: event.title,
+      description: event.description,
+      instructor: event.instructor,
+      instructorId: event.instructorId,
+      date: event.date,
+      startTime: event.startTime,
+      endTime: event.endTime,
+      location: event.location,
+      whatToBring: event.whatToBring,
+      isWorkshop: event.isWorkshop,
+      currentBookings: event.currentBookings,
+      propId: event.propId,
+      instructorDisplayName: event.instructorProfile
+        ? (event.instructorProfile.displayName || event.instructorProfile.username)
         : null,
+      instructorProfile: event.instructorProfile,
     }))
 
     return Response.json(eventsWithInstructorInfo)
