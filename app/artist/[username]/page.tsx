@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { clerkClient } from "@clerk/nextjs/server";
 import { getUserByUsername, getUserProps } from "@/app/profile/actions";
-import { getYouTubeEmbedUrl, calculateYearsOfExperience } from "@/lib/utils";
+import { getYouTubeEmbedUrl } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { MapPin, Instagram, Youtube, Award } from "lucide-react";
@@ -30,11 +30,6 @@ export default async function ArtistProfilePage({
   } catch (error) {
     console.error("Failed to fetch Clerk user:", error);
   }
-
-  // Calculate years of experience once
-  const yearsOfExperience = calculateYearsOfExperience(
-    user.experienceStartDate,
-  );
 
   return (
     <div className="container mx-auto max-w-4xl py-12 px-4">
@@ -95,13 +90,6 @@ export default async function ArtistProfilePage({
                   <span>{user.instagramHandle}</span>
                 </a>
               </div>
-            )}
-
-            {yearsOfExperience !== null && (
-              <p className="text-muted-foreground">
-                {yearsOfExperience} {yearsOfExperience === 1 ? "year" : "years"}{" "}
-                of experience
-              </p>
             )}
 
             {user.performanceStyle && (

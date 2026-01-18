@@ -37,13 +37,6 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
   const [isInstructor, setIsInstructor] = useState(
     initialData?.isInstructor || false,
   );
-  const [experienceStartDate, setExperienceStartDate] = useState(
-    initialData?.experienceStartDate
-      ? typeof initialData.experienceStartDate === "string"
-        ? initialData.experienceStartDate
-        : new Date(initialData.experienceStartDate).toISOString().split("T")[0]
-      : "",
-  );
   const [performanceStyle, setPerformanceStyle] = useState(
     initialData?.performanceStyle || "",
   );
@@ -130,7 +123,6 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
     formData.append("bio", bio.trim());
     formData.append("instagramHandle", instagramHandle.trim());
     formData.append("isInstructor", isInstructor.toString());
-    formData.append("experienceStartDate", experienceStartDate);
     formData.append("performanceStyle", performanceStyle.trim());
     formData.append(
       "availableForPerformances",
@@ -258,20 +250,6 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="experienceStartDate">Experience Start Date</Label>
-              <Input
-                id="experienceStartDate"
-                type="date"
-                value={experienceStartDate}
-                onChange={(e) => setExperienceStartDate(e.target.value)}
-              />
-              <p className="text-xs text-muted-foreground">
-                When did you start playing? Years of experience will be
-                calculated automatically.
-              </p>
-            </div>
-
             <div className="space-y-2">
               <Label htmlFor="performanceStyle">Performance Style</Label>
               <Input

@@ -25,7 +25,6 @@ export interface ProfileFormData {
   bio?: string;
   instagramHandle?: string;
   isInstructor: boolean;
-  experienceStartDate?: string;
   performanceStyle?: string;
   availableForPerformances: boolean;
   location?: string;

@@ -5,7 +5,7 @@ import { users, userProps, props, events } from "@/db/schema";
 import { eq, asc, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { auth, currentUser } from "@clerk/nextjs/server";
-import { validateUsername, extractYouTubeId, validateInstagramHandle, normalizeExperienceStartDate } from "@/lib/utils";
+import { validateUsername, extractYouTubeId, validateInstagramHandle } from "@/lib/utils";
 import type { UserProfile, UserProp, PropOption } from "@/lib/types";
 
 /**
@@ -112,9 +112,6 @@ export async function createProfile(formData: FormData) {
     const bio = formData.get("bio") as string;
     const instagramHandle = formData.get("instagramHandle") as string;
     const isInstructor = formData.get("isInstructor") === "true";
-    const experienceStartDateInput = formData.get(
-      "experienceStartDate",
-    ) as string;
     const performanceStyle = formData.get("performanceStyle") as string;
     const availableForPerformances =
       formData.get("availableForPerformances") === "true";
@@ -153,11 +150,6 @@ export async function createProfile(formData: FormData) {
       ? instagramHandle.replace(/^@/, '').trim() || null 
       : null;
 
-    // Normalize experience start date
-    const normalizedExperienceDate = normalizeExperienceStartDate(
-      experienceStartDateInput || null
-    );
-
     // Get email from Clerk
     const clerkUser = await currentUser();
     const email = clerkUser?.emailAddresses?.[0]?.emailAddress || null;
@@ -178,7 +170,6 @@ export async function createProfile(formData: FormData) {
             bio: bio || null,
             instagramHandle: normalizedInstagramHandle,
             isInstructor,
-            experienceStartDate: normalizedExperienceDate,
             performanceStyle: performanceStyle || null,
             availableForPerformances,
             location: location || null,
@@ -219,7 +210,6 @@ export async function createProfile(formData: FormData) {
             bio: bio || null,
             instagramHandle: normalizedInstagramHandle,
             isInstructor,
-            experienceStartDate: normalizedExperienceDate,
             performanceStyle: performanceStyle || null,
             availableForPerformances,
             location: location || null,
@@ -315,10 +305,10 @@ export async function getUserByUsername(username: string): Promise<UserProfile |
     }
 
     const user = result[0];
-    // Normalize experienceStartDate to string format
+    // Return user profile (experienceStartDate column exists but is not populated)
     const normalizedUser: UserProfile = {
       ...user,
-      experienceStartDate: normalizeExperienceStartDate(user.experienceStartDate),
+      experienceStartDate: null,
     };
 
     return normalizedUser;
@@ -488,10 +478,10 @@ export async function getCurrentUserProfile(): Promise<UserProfile | null> {
     }
 
     const user = result[0];
-    // Normalize experienceStartDate to string format
+    // Return user profile (experienceStartDate column exists but is not populated)
     const normalizedUser: UserProfile = {
       ...user,
-      experienceStartDate: normalizeExperienceStartDate(user.experienceStartDate),
+      experienceStartDate: null,
     };
 
     return normalizedUser;
