@@ -139,26 +139,16 @@ export async function createEvent(formData: FormData) {
           .where(eq(users.id, instructorId))
           .limit(1)
 
-        if (instructorResult.length > 0 && instructorResult[0].email) {
+        if (instructorResult.length > 0) {
           const instructorEmail = instructorResult[0].email
           const instructorDisplayName = instructorResult[0].displayName || instructorResult[0].username
 
-          // Send email to instructor about pending approval
-          await sendEventPendingApprovalEmail({
-            instructorName: instructorDisplayName,
-            instructorEmail,
-            eventTitle: title,
-            eventDate: date,
-            eventStartTime: start_time,
-            eventEndTime: end_time,
-            eventLocation: location,
-          })
-
-          // Send email to all admins about pending event
-          const adminUsers = await getAllAdmins()
-          for (const admin of adminUsers) {
-            if (admin.email) {
-              await sendAdminEventPendingEmail({
+          if (!instructorEmail) {
+            console.error(`Instructor ${instructorId} (${instructorDisplayName}) does not have an email address. Cannot send pending approval email.`)
+          } else {
+            // Send email to instructor about pending approval
+            try {
+              await sendEventPendingApprovalEmail({
                 instructorName: instructorDisplayName,
                 instructorEmail,
                 eventTitle: title,
@@ -166,17 +156,44 @@ export async function createEvent(formData: FormData) {
                 eventStartTime: start_time,
                 eventEndTime: end_time,
                 eventLocation: location,
-                eventId: newEvent.id,
-              }, admin.email).catch((error) => {
-                console.error(`Failed to send admin notification to ${admin.email}:`, error)
               })
+              console.log(`Pending approval email sent to instructor: ${instructorEmail}`)
+            } catch (emailError) {
+              console.error(`Failed to send pending approval email to instructor ${instructorEmail}:`, emailError)
+            }
+
+            // Send email to all admins about pending event
+            try {
+              const adminUsers = await getAllAdmins()
+              for (const admin of adminUsers) {
+                if (admin.email) {
+                  await sendAdminEventPendingEmail({
+                    instructorName: instructorDisplayName,
+                    instructorEmail,
+                    eventTitle: title,
+                    eventDate: date,
+                    eventStartTime: start_time,
+                    eventEndTime: end_time,
+                    eventLocation: location,
+                    eventId: newEvent.id,
+                  }, admin.email).catch((error) => {
+                    console.error(`Failed to send admin notification to ${admin.email}:`, error)
+                  })
+                }
+              }
+            } catch (adminEmailError) {
+              console.error("Error sending admin notifications:", adminEmailError)
             }
           }
+        } else {
+          console.error(`Instructor with id ${instructorId} not found. Cannot send pending approval email.`)
         }
       } catch (error) {
         console.error("Error sending event creation emails:", error)
         // Don't fail the event creation if emails fail
       }
+    } else {
+      console.log(`Skipping email send: isPublished=${isPublished}, instructorId=${instructorId}`)
     }
 
     revalidatePath("/admin")
@@ -252,25 +269,38 @@ export async function approveEvent(eventId: number) {
           .where(eq(users.id, event.instructorId))
           .limit(1)
 
-        if (instructorResult.length > 0 && instructorResult[0].email) {
+        if (instructorResult.length > 0) {
           const instructorEmail = instructorResult[0].email
           const instructorDisplayName = instructorResult[0].displayName || instructorResult[0].username
 
-          await sendEventApprovedEmail({
-            instructorName: instructorDisplayName,
-            instructorEmail,
-            eventTitle: event.title,
-            eventDate: event.date,
-            eventStartTime: event.startTime,
-            eventEndTime: event.endTime,
-            eventLocation: event.location || "",
-            eventId: event.id,
-          })
+          if (!instructorEmail) {
+            console.error(`Instructor ${event.instructorId} (${instructorDisplayName}) does not have an email address. Cannot send approval email.`)
+          } else {
+            try {
+              await sendEventApprovedEmail({
+                instructorName: instructorDisplayName,
+                instructorEmail,
+                eventTitle: event.title,
+                eventDate: event.date,
+                eventStartTime: event.startTime,
+                eventEndTime: event.endTime,
+                eventLocation: event.location || "",
+                eventId: event.id,
+              })
+              console.log(`Approval email sent to instructor: ${instructorEmail}`)
+            } catch (emailError) {
+              console.error(`Failed to send approval email to instructor ${instructorEmail}:`, emailError)
+            }
+          }
+        } else {
+          console.error(`Instructor with id ${event.instructorId} not found. Cannot send approval email.`)
         }
       } catch (error) {
         console.error("Error sending approval email:", error)
         // Don't fail the approval if email fails
       }
+    } else {
+      console.log(`Skipping approval email: event ${eventId} has no instructorId`)
     }
 
     revalidatePath("/admin")
@@ -496,20 +526,31 @@ export async function updateEvent(formData: FormData) {
           .where(eq(users.id, currentEvent.instructorId))
           .limit(1)
 
-        if (instructorResult.length > 0 && instructorResult[0].email) {
+        if (instructorResult.length > 0) {
           const instructorEmail = instructorResult[0].email
           const instructorDisplayName = instructorResult[0].displayName || instructorResult[0].username
 
-          await sendEventApprovedEmail({
-            instructorName: instructorDisplayName,
-            instructorEmail,
-            eventTitle: currentEvent.title,
-            eventDate: currentEvent.date,
-            eventStartTime: currentEvent.startTime,
-            eventEndTime: currentEvent.endTime,
-            eventLocation: currentEvent.location || "",
-            eventId: eventId,
-          })
+          if (!instructorEmail) {
+            console.error(`Instructor ${currentEvent.instructorId} (${instructorDisplayName}) does not have an email address. Cannot send approval email.`)
+          } else {
+            try {
+              await sendEventApprovedEmail({
+                instructorName: instructorDisplayName,
+                instructorEmail,
+                eventTitle: currentEvent.title,
+                eventDate: currentEvent.date,
+                eventStartTime: currentEvent.startTime,
+                eventEndTime: currentEvent.endTime,
+                eventLocation: currentEvent.location || "",
+                eventId: eventId,
+              })
+              console.log(`Approval email sent to instructor: ${instructorEmail}`)
+            } catch (emailError) {
+              console.error(`Failed to send approval email to instructor ${instructorEmail}:`, emailError)
+            }
+          }
+        } else {
+          console.error(`Instructor with id ${currentEvent.instructorId} not found. Cannot send approval email.`)
         }
       } catch (error) {
         console.error("Error sending approval email:", error)
@@ -620,7 +661,7 @@ export async function deleteBooking(bookingId: number, eventId: number) {
 
     revalidatePath("/admin")
     revalidatePath("/")
-    if (eventResults.length > 0) {
+    if (eventResults.length > 0 && eventResults[0].instructor) {
       revalidatePath(`/event/${createEventSlug(eventId, eventResults[0].title, eventResults[0].instructor)}`)
     }
   } catch (error) {
