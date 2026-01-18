@@ -65,16 +65,6 @@ export default function FAQPage() {
                   (midnight).
                 </AccordionContent>
               </AccordionItem>
-
-              <AccordionItem value="contact">
-                <AccordionTrigger value="contact">
-                  How can I contact you?
-                </AccordionTrigger>
-                <AccordionContent value="contact">
-                  You can reach us by phone at 089 265 5535 or by email at
-                  contact@paradisepai.com. We'd love to hear from you!
-                </AccordionContent>
-              </AccordionItem>
             </Accordion>
           </CardContent>
         </Card>
