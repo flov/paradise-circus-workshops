@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { createProfile, getAllProps } from "@/app/profile/actions";
 import { Loader2, Plus, X } from "lucide-react";
 import { validateInstagramHandle } from "@/lib/utils";
@@ -160,9 +160,16 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
     }
   }
 
+  const isEditMode = initialData && "id" in initialData;
+
   return (
     <Card>
-      <CardContent className="pt-6">
+      {isEditMode && (
+        <CardHeader>
+          <CardTitle>Update your artist profile information.</CardTitle>
+        </CardHeader>
+      )}
+      <CardContent className={isEditMode ? "" : "pt-6"}>
         <form onSubmit={handleSubmit} className="space-y-6">
           {error && (
             <div className="rounded-md bg-destructive/10 border border-destructive/20 p-4 text-sm text-destructive">

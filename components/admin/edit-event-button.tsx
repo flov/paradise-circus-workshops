@@ -31,6 +31,21 @@ export function EditEventButton({ event }: { event: Pick<Event, "id" | "title" |
   const [userProfile, setUserProfile] = useState<{ id: number; displayName: string | null; username: string; isAdmin: boolean; isInstructor: boolean } | null>(null)
   const [instructors, setInstructors] = useState<Array<{ id: number; displayName: string | null; username: string }>>([])
   const [selectedInstructorId, setSelectedInstructorId] = useState<number | null>(null)
+  
+  // Initialize location state based on event.location
+  const getInitialSelectedLocation = (): string => {
+    const location = event.location || ""
+    if (location === "Paradise Stage" || location === "Paradise River") {
+      return location
+    }
+    return location ? "Other" : ""
+  }
+  const [selectedLocation, setSelectedLocation] = useState<string>(getInitialSelectedLocation())
+  const [customLocation, setCustomLocation] = useState(
+    event.location && event.location !== "Paradise Stage" && event.location !== "Paradise River"
+      ? event.location
+      : "",
+  )
 
   // Format date for input
   const formattedDate = new Date(event.date).toISOString().split("T")[0]
@@ -92,6 +107,10 @@ export function EditEventButton({ event }: { event: Pick<Event, "id" | "title" |
     if (userProfile && userProfile.isInstructor && !userProfile.isAdmin) {
       formData.append("instructorId", userProfile.id.toString())
     }
+    // Determine location value: use selected option or custom text
+    const locationValue =
+      selectedLocation === "Other" ? customLocation.trim() : selectedLocation
+    formData.append("location", locationValue)
 
     try {
       const result = await updateEvent(formData)
@@ -198,7 +217,7 @@ export function EditEventButton({ event }: { event: Pick<Event, "id" | "title" |
             <Textarea
               id="description"
               name="description"
-              defaultValue={event.description}
+              defaultValue={event.description || ""}
               required
               disabled={isSubmitting}
               rows={3}
@@ -238,8 +257,8 @@ export function EditEventButton({ event }: { event: Pick<Event, "id" | "title" |
             <Label htmlFor="location">Location *</Label>
             <select
               id="location"
-              name="location"
-              defaultValue={event.location}
+              value={selectedLocation}
+              onChange={(e) => setSelectedLocation(e.target.value)}
               required
               disabled={isSubmitting}
               className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
@@ -247,7 +266,19 @@ export function EditEventButton({ event }: { event: Pick<Event, "id" | "title" |
               <option value="">Select a location</option>
               <option value="Paradise Stage">Paradise Stage</option>
               <option value="Paradise River">Paradise River</option>
+              <option value="Other">Other</option>
             </select>
+            {selectedLocation === "Other" && (
+              <Input
+                id="customLocation"
+                value={customLocation}
+                onChange={(e) => setCustomLocation(e.target.value)}
+                placeholder="Enter location"
+                disabled={isSubmitting}
+                className="mt-2"
+                required
+              />
+            )}
           </div>
 
           <div className="space-y-2">
