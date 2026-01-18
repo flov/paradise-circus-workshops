@@ -46,16 +46,6 @@ export default function FAQPage() {
                 </AccordionContent>
               </AccordionItem>
 
-              <AccordionItem value="where-located">
-                <AccordionTrigger value="where-located">
-                  Where are you located?
-                </AccordionTrigger>
-                <AccordionContent value="where-located">
-                  We are located at 220 Mae Hi, Pai, Thailand 58130, in the
-                  beautiful mountains of Northern Thailand.
-                </AccordionContent>
-              </AccordionItem>
-
               <AccordionItem value="opening-hours">
                 <AccordionTrigger value="opening-hours">
                   What are your opening hours?
