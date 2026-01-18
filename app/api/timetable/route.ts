@@ -2,6 +2,7 @@ import { db } from "@/db"
 import { events, users } from "@/db/schema"
 import { and, gte, lte, asc, eq, or } from "drizzle-orm"
 import type { NextRequest } from "next/server"
+import { auth } from "@clerk/nextjs/server"
 
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams
@@ -14,26 +15,50 @@ export async function GET(request: NextRequest) {
   }
 
   try {
+    // Check if user is admin
+    const { userId: clerkUserId } = await auth()
+    let userIsAdmin = false
+    
+    if (clerkUserId) {
+      const userResult = await db
+        .select({ isAdmin: users.isAdmin })
+        .from(users)
+        .where(eq(users.clerkUserId, clerkUserId))
+        .limit(1)
+      
+      userIsAdmin = userResult.length > 0 && userResult[0].isAdmin === true
+    }
+
     // Build where conditions
     const dateConditions = and(
       gte(events.date, startDate), 
       lte(events.date, endDate)
     )
 
-    // If userId is provided and valid, include both published events and unpublished events for that instructor
-    // Otherwise, only show published events
+    // Build publish condition:
+    // - If user is admin: show all events (published and unpublished)
+    // - If userId is provided and valid: show published events + unpublished events for that instructor
+    // - Otherwise: only show published events
     const parsedUserId = userId ? Number.parseInt(userId, 10) : null
     const isValidUserId = parsedUserId !== null && !Number.isNaN(parsedUserId)
     
-    const publishCondition = isValidUserId
-      ? or(
-          eq(events.isPublished, true),
-          and(
-            eq(events.isPublished, false),
-            eq(events.instructorId, parsedUserId)
-          )
+    let publishCondition
+    if (userIsAdmin) {
+      // Admins see all events (published and unpublished)
+      publishCondition = undefined // No filter needed
+    } else if (isValidUserId) {
+      // Instructors see published events + their own unpublished events
+      publishCondition = or(
+        eq(events.isPublished, true),
+        and(
+          eq(events.isPublished, false),
+          eq(events.instructorId, parsedUserId)
         )
-      : eq(events.isPublished, true)
+      )
+    } else {
+      // Regular users only see published events
+      publishCondition = eq(events.isPublished, true)
+    }
 
     const eventsData = await db
       .select({
@@ -66,7 +91,7 @@ export async function GET(request: NextRequest) {
       })
       .from(events)
       .leftJoin(users, eq(events.instructorId, users.id))
-      .where(and(dateConditions, publishCondition))
+      .where(publishCondition ? and(dateConditions, publishCondition) : dateConditions)
       .orderBy(asc(events.date), asc(events.startTime))
 
     // Add instructor display name to events
