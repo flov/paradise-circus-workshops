@@ -373,6 +373,10 @@ export function WeeklyTimetable({
           <div className="w-4 h-4 rounded bg-red-500/20 border border-red-500/40"></div>
           <span className="text-muted-foreground">Paradise Stage</span>
         </div>
+        <div className="flex items-center gap-2">
+          <div className="w-4 h-4 rounded bg-purple-500/20 border border-purple-500/40"></div>
+          <span className="text-muted-foreground">Community Events</span>
+        </div>
       </div>
 
       {/* Timetable Grid */}
@@ -442,24 +446,30 @@ export function WeeklyTimetable({
                                     .includes("paradise river") ||
                                   slot.location?.toLowerCase() ===
                                     "paradise river";
+                                const getColorClasses = () => {
+                                  if (!slot.isWorkshop) {
+                                    return "bg-purple-500/20 hover:bg-purple-500/30 border border-purple-500/40";
+                                  }
+                                  return isParadiseRiver
+                                    ? "bg-blue-500/20 hover:bg-blue-500/30 border border-blue-500/40"
+                                    : "bg-red-500/20 hover:bg-red-500/30 border border-red-500/40";
+                                };
                                 return (
                                   <div
                                     key={slot.id}
-                                    className={`relative block rounded transition-colors h-full ${
-                                      isParadiseRiver
-                                        ? "bg-blue-500/20 hover:bg-blue-500/30 border border-blue-500/40"
-                                        : "bg-red-500/20 hover:bg-red-500/30 border border-red-500/40"
-                                    }`}
+                                    className={`relative block rounded transition-colors h-full ${getColorClasses()}`}
                                   >
                                     <a
-                                      href={`/event/${createEventSlug(slot.id, slot.title, slot.instructorDisplayName || slot.instructor || '')}`}
+                                      href={`/event/${createEventSlug(slot.id, slot.title, slot.instructorDisplayName || slot.instructor || "")}`}
                                       className="block p-2 pr-8"
                                     >
                                       <div className="text-sm font-medium text-foreground line-clamp-2">
                                         {slot.title}
                                       </div>
                                       <div className="text-xs text-muted-foreground mt-0.5 line-clamp-1">
-                                        {slot.instructorDisplayName || slot.instructor || 'Unknown'}
+                                        {slot.instructorDisplayName ||
+                                          slot.instructor ||
+                                          "Unknown"}
                                       </div>
                                     </a>
                                     {(isAdmin ||
@@ -475,8 +485,12 @@ export function WeeklyTimetable({
                                             id: slot.id,
                                             title: slot.title,
                                             description: slot.description,
-                                            instructor: slot.instructor || '',
-                                            instructorId: slot.instructorId !== null && slot.instructorId !== undefined ? slot.instructorId : null,
+                                            instructor: slot.instructor || "",
+                                            instructorId:
+                                              slot.instructorId !== null &&
+                                              slot.instructorId !== undefined
+                                                ? slot.instructorId
+                                                : null,
                                             date: slot.date,
                                             startTime: slot.startTime,
                                             endTime: slot.endTime,
@@ -605,17 +619,29 @@ export function WeeklyTimetable({
                                 ?.toLowerCase()
                                 .includes("paradise river") ||
                               slot.location?.toLowerCase() === "paradise river";
+                            const getMobileColorClasses = () => {
+                              if (!slot.isWorkshop) {
+                                return "bg-purple-500/15 hover:bg-purple-500/25 active:bg-purple-500/30 border-purple-500/40 hover:border-purple-500/50 active:border-purple-500/60";
+                              }
+                              return isParadiseRiver
+                                ? "bg-blue-500/15 hover:bg-blue-500/25 active:bg-blue-500/30 border-blue-500/40 hover:border-blue-500/50 active:border-blue-500/60"
+                                : "bg-red-500/15 hover:bg-red-500/25 active:bg-red-500/30 border-red-500/40 hover:border-red-500/50 active:border-red-500/60";
+                            };
+                            const getArrowColor = () => {
+                              if (!slot.isWorkshop) {
+                                return "text-purple-600 dark:text-purple-400";
+                              }
+                              return isParadiseRiver
+                                ? "text-blue-600 dark:text-blue-400"
+                                : "text-red-600 dark:text-red-400";
+                            };
                             return (
                               <div
                                 key={slot.id}
-                                className={`relative block rounded-lg border-2 shadow-sm hover:shadow-md active:shadow-sm transition-all duration-150 ${
-                                  isParadiseRiver
-                                    ? "bg-blue-500/15 hover:bg-blue-500/25 active:bg-blue-500/30 border-blue-500/40 hover:border-blue-500/50 active:border-blue-500/60"
-                                    : "bg-red-500/15 hover:bg-red-500/25 active:bg-red-500/30 border-red-500/40 hover:border-red-500/50 active:border-red-500/60"
-                                }`}
+                                className={`relative block rounded-lg border-2 shadow-sm hover:shadow-md active:shadow-sm transition-all duration-150 ${getMobileColorClasses()}`}
                               >
                                 <a
-                                  href={`/event/${createEventSlug(slot.id, slot.title, slot.instructorDisplayName || slot.instructor || '')}`}
+                                  href={`/event/${createEventSlug(slot.id, slot.title, slot.instructorDisplayName || slot.instructor || "")}`}
                                   className="block p-4 pr-12 cursor-pointer"
                                 >
                                   <div className="flex justify-between items-start gap-2 mb-1">
@@ -624,19 +650,13 @@ export function WeeklyTimetable({
                                     </div>
                                     <div className="text-sm text-muted-foreground whitespace-nowrap flex-shrink-0 flex items-center gap-1">
                                       {time}
-                                      <span
-                                        className={
-                                          isParadiseRiver
-                                            ? "text-blue-600 dark:text-blue-400"
-                                            : "text-red-600 dark:text-red-400"
-                                        }
-                                      >
-                                        →
-                                      </span>
+                                      <span className={getArrowColor()}>→</span>
                                     </div>
                                   </div>
                                   <div className="text-sm text-muted-foreground">
-                                    {slot.instructorDisplayName || slot.instructor || 'Unknown'}
+                                    {slot.instructorDisplayName ||
+                                      slot.instructor ||
+                                      "Unknown"}
                                   </div>
                                 </a>
                                 {(isAdmin ||
@@ -648,20 +668,24 @@ export function WeeklyTimetable({
                                     onClick={(e) => e.stopPropagation()}
                                   >
                                     <EditEventButton
-                                        event={{
-                                          id: slot.id,
-                                          title: slot.title,
-                                          description: slot.description,
-                                          instructor: slot.instructor || '',
-                                          instructorId: slot.instructorId !== null && slot.instructorId !== undefined ? slot.instructorId : null,
-                                          date: slot.date,
-                                          startTime: slot.startTime,
-                                          endTime: slot.endTime,
-                                          location: slot.location,
-                                          whatToBring: slot.whatToBring,
-                                          isWorkshop: slot.isWorkshop,
-                                          propId: slot.propId,
-                                        }}
+                                      event={{
+                                        id: slot.id,
+                                        title: slot.title,
+                                        description: slot.description,
+                                        instructor: slot.instructor || "",
+                                        instructorId:
+                                          slot.instructorId !== null &&
+                                          slot.instructorId !== undefined
+                                            ? slot.instructorId
+                                            : null,
+                                        date: slot.date,
+                                        startTime: slot.startTime,
+                                        endTime: slot.endTime,
+                                        location: slot.location,
+                                        whatToBring: slot.whatToBring,
+                                        isWorkshop: slot.isWorkshop,
+                                        propId: slot.propId,
+                                      }}
                                     />
                                   </div>
                                 )}
