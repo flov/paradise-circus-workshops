@@ -100,6 +100,7 @@ export const users = pgTable(
   {
     id: serial("id").primaryKey(),
     clerkUserId: varchar("clerk_user_id", { length: 255 }).notNull().unique(),
+    email: varchar("email", { length: 255 }),
     username: varchar("username", { length: 50 }).notNull().unique(),
     isInstructor: boolean("is_instructor").notNull().default(false),
     isAdmin: boolean("is_admin").notNull().default(false),
@@ -116,6 +117,7 @@ export const users = pgTable(
   (table) => ({
     usernameIdx: index("idx_users_username").on(table.username),
     clerkUserIdIdx: index("idx_users_clerk_user_id").on(table.clerkUserId),
+    emailIdx: index("idx_users_email").on(table.email),
   })
 );
 

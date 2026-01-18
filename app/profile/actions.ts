@@ -33,6 +33,10 @@ export async function createUserRecord(
       return { success: false, error: "User record already exists" };
     }
 
+    // Get email from Clerk
+    const clerkUser = await currentUser();
+    const email = clerkUser?.emailAddresses?.[0]?.emailAddress || null;
+
     // Create user record - database unique constraint will handle race conditions
     const trimmedUsername = username.trim().toLowerCase();
     try {
@@ -40,6 +44,7 @@ export async function createUserRecord(
         .insert(users)
         .values({
           clerkUserId,
+          email,
           username: trimmedUsername,
         })
         .returning({ id: users.id, username: users.username });
@@ -151,6 +156,10 @@ export async function createProfile(formData: FormData) {
       experienceStartDateInput || null
     );
 
+    // Get email from Clerk
+    const clerkUser = await currentUser();
+    const email = clerkUser?.emailAddresses?.[0]?.emailAddress || null;
+
     let user: { id: number; username: string };
 
     if (userRecord.length === 0) {
@@ -161,6 +170,7 @@ export async function createProfile(formData: FormData) {
           .insert(users)
           .values({
             clerkUserId: userId,
+            email,
             username: trimmedUsername,
             bio: bio || null,
             instagramHandle: normalizedInstagramHandle,
@@ -201,6 +211,7 @@ export async function createProfile(formData: FormData) {
           .update(users)
           .set({
             username: trimmedUsername,
+            email,
             bio: bio || null,
             instagramHandle: normalizedInstagramHandle,
             isInstructor,
@@ -404,6 +415,7 @@ export async function getCurrentUserProfile(): Promise<UserProfile | null> {
       .select({
         id: users.id,
         clerkUserId: users.clerkUserId,
+        email: users.email,
         username: users.username,
         isInstructor: users.isInstructor,
         isAdmin: users.isAdmin,

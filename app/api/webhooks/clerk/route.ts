@@ -71,7 +71,92 @@ export async function POST(request: NextRequest) {
   const eventType = evt.type
   console.log("📋 [WEBHOOK] Event type received:", eventType)
 
-  if (eventType === "user.deleted") {
+  if (eventType === "user.created") {
+    console.log("👤 [WEBHOOK] Processing user.created event")
+    const clerkUserId = evt.data.id
+    const email = evt.data.email_addresses?.[0]?.email_address || null
+    console.log("👤 [WEBHOOK] Clerk User ID:", clerkUserId)
+    console.log("📧 [WEBHOOK] Email:", email || "No email provided")
+
+    if (!clerkUserId) {
+      console.error("❌ [WEBHOOK] No clerkUserId found in webhook payload")
+      console.error("📋 [WEBHOOK] Event data:", JSON.stringify(evt.data, null, 2))
+      return NextResponse.json(
+        { error: "Invalid webhook payload" },
+        { status: 400 }
+      )
+    }
+
+    try {
+      // Check if user record already exists (may have been created during onboarding)
+      const existingUser = await db
+        .select({ id: users.id })
+        .from(users)
+        .where(eq(users.clerkUserId, clerkUserId))
+        .limit(1)
+
+      if (existingUser.length > 0) {
+        // Update existing user with email
+        await db
+          .update(users)
+          .set({ email, updatedAt: new Date() })
+          .where(eq(users.clerkUserId, clerkUserId))
+        console.log(`✅ [WEBHOOK] Updated email for existing user: ${clerkUserId}`)
+      } else {
+        console.log(`ℹ️  [WEBHOOK] User record not found, email will be saved during onboarding`)
+      }
+    } catch (error) {
+      console.error("❌ [WEBHOOK] Error syncing email for created user:", error)
+      if (error instanceof Error) {
+        console.error("❌ [WEBHOOK] Error message:", error.message)
+        console.error("❌ [WEBHOOK] Error stack:", error.stack)
+      }
+      return NextResponse.json(
+        { error: "Error occurred while syncing user email" },
+        { status: 500 }
+      )
+    }
+  } else if (eventType === "user.updated") {
+    console.log("🔄 [WEBHOOK] Processing user.updated event")
+    const clerkUserId = evt.data.id
+    const email = evt.data.email_addresses?.[0]?.email_address || null
+    console.log("👤 [WEBHOOK] Clerk User ID:", clerkUserId)
+    console.log("📧 [WEBHOOK] Email:", email || "No email provided")
+
+    if (!clerkUserId) {
+      console.error("❌ [WEBHOOK] No clerkUserId found in webhook payload")
+      console.error("📋 [WEBHOOK] Event data:", JSON.stringify(evt.data, null, 2))
+      return NextResponse.json(
+        { error: "Invalid webhook payload" },
+        { status: 400 }
+      )
+    }
+
+    try {
+      // Update email for existing user record
+      const result = await db
+        .update(users)
+        .set({ email, updatedAt: new Date() })
+        .where(eq(users.clerkUserId, clerkUserId))
+        .returning({ id: users.id })
+
+      if (result.length > 0) {
+        console.log(`✅ [WEBHOOK] Updated email for user: ${clerkUserId}`)
+      } else {
+        console.log(`ℹ️  [WEBHOOK] User record not found for updated user: ${clerkUserId}`)
+      }
+    } catch (error) {
+      console.error("❌ [WEBHOOK] Error syncing email for updated user:", error)
+      if (error instanceof Error) {
+        console.error("❌ [WEBHOOK] Error message:", error.message)
+        console.error("❌ [WEBHOOK] Error stack:", error.stack)
+      }
+      return NextResponse.json(
+        { error: "Error occurred while syncing user email" },
+        { status: 500 }
+      )
+    }
+  } else if (eventType === "user.deleted") {
     console.log("🗑️  [WEBHOOK] Processing user.deleted event")
     const clerkUserId = evt.data.id
     console.log("👤 [WEBHOOK] Clerk User ID:", clerkUserId)

@@ -85,6 +85,13 @@
       "when": 1768654285307,
       "tag": "0011_lively_chronomancer",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1768721734660,
+      "tag": "0012_white_living_mummy",
+      "breakpoints": true
     }
   ]
 }
