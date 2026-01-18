@@ -1,7 +1,6 @@
 "use client"
 
 import type React from "react"
-
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import {
@@ -12,13 +11,10 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
-import { Plus, Loader2 } from "lucide-react"
+import { Plus } from "lucide-react"
 import { createEvent } from "@/app/admin/actions"
-import { getAllProps, getCurrentUserProfile, getAllInstructors } from "@/app/profile/actions"
 import { useRouter } from "next/navigation"
+import { EventForm, type EventFormInitialValues } from "./event-form"
 
 type AddEventButtonProps = {
   initialValues?: {
@@ -41,13 +37,6 @@ export function AddEventButton({
   const [internalOpen, setInternalOpen] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [availableProps, setAvailableProps] = useState<Array<{ id: number; name: string }>>([])
-  const [selectedPropId, setSelectedPropId] = useState<number | null>(null)
-  const [userProfile, setUserProfile] = useState<{ id: number; displayName: string | null; username: string; isAdmin: boolean; isInstructor: boolean } | null>(null)
-  const [instructors, setInstructors] = useState<Array<{ id: number; displayName: string | null; username: string }>>([])
-  const [selectedInstructorId, setSelectedInstructorId] = useState<number | null>(null)
-  const [selectedLocation, setSelectedLocation] = useState("")
-  const [customLocation, setCustomLocation] = useState("")
 
   // Use controlled open state if provided, otherwise use internal state
   const open = controlledOpen !== undefined ? controlledOpen : internalOpen
@@ -59,73 +48,22 @@ export function AddEventButton({
     }
   }
 
-  // Fetch available props, user profile, and instructors when dialog opens
+  // Reset error when dialog opens
   useEffect(() => {
-    async function fetchData() {
-      try {
-        const propsList = await getAllProps()
-        setAvailableProps(propsList)
-        
-        const profile = await getCurrentUserProfile()
-        if (profile) {
-          setUserProfile({
-            id: profile.id,
-            displayName: profile.displayName,
-            username: profile.username,
-            isAdmin: profile.isAdmin,
-            isInstructor: profile.isInstructor,
-          })
-          
-          // If user is instructor (not admin), set their instructorId
-          if (profile.isInstructor && !profile.isAdmin) {
-            setSelectedInstructorId(profile.id)
-          }
-        }
-        
-        // Fetch instructors for admin dropdown
-        const instructorsList = await getAllInstructors()
-        setInstructors(instructorsList)
-      } catch (error) {
-        console.error("Failed to fetch data:", error)
-      }
-    }
     if (open) {
-      setSelectedPropId(null) // Reset selected prop when dialog opens
-      setSelectedInstructorId(null) // Reset selected instructor when dialog opens
-      setSelectedLocation("") // Reset location selection when dialog opens
-      setCustomLocation("") // Reset custom location when dialog opens
-      fetchData()
+      setError(null)
     }
   }, [open])
 
-  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault()
+  async function handleSubmit(formData: FormData) {
     setIsSubmitting(true)
     setError(null)
-
-    const formData = new FormData(e.currentTarget)
-    if (selectedPropId !== null) {
-      formData.append("propId", selectedPropId.toString())
-    }
-    if (selectedInstructorId !== null) {
-      formData.append("instructorId", selectedInstructorId.toString())
-    }
-    // If user is instructor (not admin), always include their instructorId
-    if (userProfile && userProfile.isInstructor && !userProfile.isAdmin) {
-      formData.append("instructorId", userProfile.id.toString())
-    }
-    // Determine location value: use selected option or custom text
-    const locationValue =
-      selectedLocation === "Other" ? customLocation.trim() : selectedLocation
-    formData.append("location", locationValue)
 
     try {
       const result = await createEvent(formData)
 
       if (result.success) {
-        setSelectedPropId(null) // Reset selected prop on successful submission
         setOpen(false)
-        // Reset form by clearing initialValues effect
         router.refresh()
       } else {
         setError(result.error || "Failed to create event")
@@ -135,6 +73,12 @@ export function AddEventButton({
     } finally {
       setIsSubmitting(false)
     }
+  }
+
+  const formInitialValues: EventFormInitialValues = {
+    date: initialValues?.date,
+    startTime: initialValues?.startTime,
+    endTime: initialValues?.endTime,
   }
 
   return (
@@ -152,222 +96,16 @@ export function AddEventButton({
           <DialogTitle>Add New Event</DialogTitle>
           <DialogDescription>Create a new event for participants to book</DialogDescription>
         </DialogHeader>
-        <form
+        <EventForm
           key={JSON.stringify(initialValues)}
+          initialValues={formInitialValues}
+          isSubmitting={isSubmitting}
           onSubmit={handleSubmit}
-          className="space-y-4"
-        >
-          <div className="grid gap-4 md:grid-cols-2">
-            <div className="space-y-2">
-              <Label htmlFor="title">Event Title *</Label>
-              <Input id="title" name="title" required disabled={isSubmitting} />
-            </div>
-            {userProfile && userProfile.isInstructor && !userProfile.isAdmin ? (
-              <div className="space-y-2">
-                <Label htmlFor="instructorId">Instructor *</Label>
-                <Input
-                  id="instructorId"
-                  name="instructorId"
-                  value={userProfile.displayName || userProfile.username || `User ${userProfile.id}`}
-                  disabled
-                  className="bg-muted"
-                />
-                <input type="hidden" name="instructorId" value={userProfile.id} />
-              </div>
-            ) : userProfile && userProfile.isAdmin ? (
-              <div className="space-y-2">
-                <Label htmlFor="instructorId">Instructor (User)</Label>
-                <select
-                  id="instructorId"
-                  name="instructorId"
-                  value={selectedInstructorId || ""}
-                  onChange={(e) => {
-                    const value = e.target.value
-                    setSelectedInstructorId(value === "" ? null : parseInt(value, 10))
-                  }}
-                  disabled={isSubmitting}
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                  <option value="">Select an instructor</option>
-                  {instructors.map((instructor) => (
-                    <option key={instructor.id} value={instructor.id}>
-                      {instructor.displayName || instructor.username}
-                    </option>
-                  ))}
-                </select>
-                <p className="text-xs text-muted-foreground">
-                  Select an instructor from registered users. Leave empty to use instructor name below.
-                </p>
-              </div>
-            ) : (
-              <div className="space-y-2">
-                <Label htmlFor="instructor">Instructor *</Label>
-                <Input id="instructor" name="instructor" required disabled={isSubmitting} />
-              </div>
-            )}
-          </div>
-          {userProfile && userProfile.isAdmin && (
-            <div className="space-y-2">
-              <Label htmlFor="instructor">Instructor Name (if not registered)</Label>
-              <Input
-                id="instructor"
-                name="instructor"
-                disabled={isSubmitting || selectedInstructorId !== null}
-                placeholder={selectedInstructorId ? "Will use selected instructor's name" : "Enter instructor name if not registered"}
-              />
-              <p className="text-xs text-muted-foreground">
-                Only fill this if the instructor hasn't signed up yet. If instructorId is selected above, this will be ignored.
-              </p>
-            </div>
-          )}
-
-          <div className="space-y-2">
-            <Label htmlFor="description">Description *</Label>
-            <Textarea id="description" name="description" required disabled={isSubmitting} rows={3} />
-          </div>
-
-          <div className="grid gap-4 md:grid-cols-3">
-            <div className="space-y-2">
-              <Label htmlFor="date">Date *</Label>
-              <Input
-                id="date"
-                name="date"
-                type="date"
-                required
-                disabled={isSubmitting}
-                defaultValue={initialValues?.date}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="start_time">Start Time *</Label>
-              <Input
-                id="start_time"
-                name="start_time"
-                type="time"
-                required
-                disabled={isSubmitting}
-                defaultValue={initialValues?.startTime}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="end_time">End Time *</Label>
-              <Input
-                id="end_time"
-                name="end_time"
-                type="time"
-                required
-                disabled={isSubmitting}
-                defaultValue={initialValues?.endTime}
-              />
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="location">Location *</Label>
-            <select
-              id="location"
-              value={selectedLocation}
-              onChange={(e) => setSelectedLocation(e.target.value)}
-              required
-              disabled={isSubmitting}
-              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              <option value="">Select a location</option>
-              <option value="Paradise Stage">Paradise Stage</option>
-              <option value="Paradise River">Paradise River</option>
-              <option value="Other">Other</option>
-            </select>
-            {selectedLocation === "Other" && (
-              <Input
-                id="customLocation"
-                value={customLocation}
-                onChange={(e) => setCustomLocation(e.target.value)}
-                placeholder="Enter location"
-                disabled={isSubmitting}
-                className="mt-2"
-                required
-              />
-            )}
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="whatToBring">What to Bring (Optional)</Label>
-            <Textarea
-              id="whatToBring"
-              name="whatToBring"
-              placeholder="Enter items participants should bring, one per line (e.g., Yoga mat&#10;Towel)"
-              disabled={isSubmitting}
-              rows={4}
-            />
-            <p className="text-xs text-muted-foreground">
-              Each line will be displayed as a separate item. Leave blank if no items are needed.
-            </p>
-          </div>
-
-          <div className="space-y-2">
-            <label className="flex items-center space-x-2 cursor-pointer">
-              <input
-                type="checkbox"
-                id="isWorkshop"
-                name="isWorkshop"
-                defaultChecked={true}
-                disabled={isSubmitting}
-                className="h-4 w-4 rounded border-gray-300"
-              />
-              <Label htmlFor="isWorkshop" className="cursor-pointer">Is Workshop</Label>
-            </label>
-            <p className="text-xs text-muted-foreground">
-              Check this box if this event is a workshop. Uncheck for other event types.
-            </p>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="propId">Prop (Optional)</Label>
-            <select
-              id="propId"
-              name="propId"
-              value={selectedPropId || ""}
-              onChange={(e) => {
-                const value = e.target.value
-                setSelectedPropId(value === "" ? null : parseInt(value, 10))
-              }}
-              disabled={isSubmitting}
-              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              <option value="">No prop selected</option>
-              {availableProps.map((prop) => (
-                <option key={prop.id} value={prop.id}>
-                  {prop.name}
-                </option>
-              ))}
-            </select>
-            <p className="text-xs text-muted-foreground">
-              Select a prop used in this event. Leave empty if no prop is needed.
-            </p>
-          </div>
-
-          {error && (
-            <div className="rounded-md bg-destructive/10 border border-destructive/20 p-3 text-sm text-destructive">
-              {error}
-            </div>
-          )}
-
-          <div className="flex justify-end gap-3">
-            <Button type="button" variant="outline" onClick={() => setOpen(false)} disabled={isSubmitting}>
-              Cancel
-            </Button>
-            <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Creating...
-                </>
-              ) : (
-                "Create Event"
-              )}
-            </Button>
-          </div>
-        </form>
+          onCancel={() => setOpen(false)}
+          error={error}
+          submitButtonText="Create Event"
+          submittingText="Creating..."
+        />
       </DialogContent>
     </Dialog>
   )

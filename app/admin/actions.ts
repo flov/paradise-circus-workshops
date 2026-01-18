@@ -285,7 +285,11 @@ export async function updateEvent(formData: FormData) {
 
     revalidatePath("/admin")
     revalidatePath("/")
-    revalidatePath(`/event/${createEventSlug(eventId, title, instructor)}`)
+    
+    // Ensure title and instructorName are not null before creating slug
+    if (title && instructorName) {
+      revalidatePath(`/event/${createEventSlug(eventId, title, instructorName)}`)
+    }
 
     return { success: true }
   } catch (error) {
