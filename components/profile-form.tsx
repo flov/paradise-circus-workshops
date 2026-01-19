@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { useUser } from "@clerk/nextjs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -29,12 +28,11 @@ export function ProfileForm({
   profileImageUrl: initialProfileImageUrl,
 }: ProfileFormProps) {
   const router = useRouter();
-  const { user } = useUser();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Use Clerk user's imageUrl if available, otherwise fall back to prop
-  const profileImageUrl = user?.imageUrl || initialProfileImageUrl || null;
+  // Use profile image from database (passed as prop)
+  const profileImageUrl = initialProfileImageUrl || null;
   const avatarDisplayName =
     initialData?.displayName || initialData?.username || "User";
 

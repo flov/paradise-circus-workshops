@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { auth, currentUser } from "@clerk/nextjs/server";
+import { auth } from "@clerk/nextjs/server";
 import {
   getCurrentUserProfile,
   getUserProps,
@@ -29,14 +29,8 @@ export default async function EditProfilePage() {
   // Get props
   const props = await getUserProps(profile.id);
 
-  // Get profile picture from Clerk
-  let profileImageUrl: string | null = null;
-  try {
-    const clerkUser = await currentUser();
-    profileImageUrl = clerkUser?.imageUrl || null;
-  } catch (error) {
-    console.error("Failed to fetch Clerk user:", error);
-  }
+  // Get profile image from database
+  const profileImageUrl = profile.avatarImageUrl || null;
 
   const initialData = {
     ...profile,

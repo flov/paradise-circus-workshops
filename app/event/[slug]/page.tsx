@@ -29,7 +29,7 @@ import {
   parseEventSlug,
   createEventSlug,
 } from "@/lib/utils";
-import { auth, currentUser, clerkClient } from "@clerk/nextjs/server";
+import { auth, currentUser } from "@clerk/nextjs/server";
 import { AvatarStack } from "@/components/avatar-stack";
 import ReactMarkdown from "react-markdown";
 import { EventCalendarButtons } from "@/components/event-calendar-buttons";
@@ -170,19 +170,35 @@ export default async function BookEventPage({
     if (user) {
       initialUserName = getUserName(user);
       initialUserEmail = getUserEmail(user);
-      currentUserImageUrl = user.imageUrl || null;
+    }
+    
+    // Get current user's profile image from database
+    try {
+      const userProfile = await db
+        .select({ avatarImageUrl: users.avatarImageUrl })
+        .from(users)
+        .where(eq(users.clerkUserId, userId))
+        .limit(1);
+      
+      if (userProfile.length > 0) {
+        currentUserImageUrl = userProfile[0].avatarImageUrl || null;
+      }
+    } catch (error) {
+      console.error("Failed to fetch user profile image:", error);
     }
   }
 
-  // Fetch bookings for this event with Clerk user IDs
+  // Fetch bookings for this event with user profile images from database
   const bookingsData = await db
     .select({
       id: bookings.id,
       participantName: bookings.participantName,
       participantEmail: bookings.participantEmail,
       clerkUserId: bookings.clerkUserId,
+      avatarImageUrl: users.avatarImageUrl,
     })
     .from(bookings)
+    .leftJoin(users, eq(bookings.clerkUserId, users.clerkUserId))
     .where(eq(bookings.eventId, eventId));
 
   // Check if current user has a booking and get the bookingId
@@ -196,32 +212,12 @@ export default async function BookEventPage({
     }
   }
 
-  // Fetch Clerk user data for participants with userIds
-  const clerk = await clerkClient();
-  const participants = await Promise.all(
-    bookingsData.map(async (booking) => {
-      let imageUrl: string | null = null;
-
-      if (booking.clerkUserId) {
-        try {
-          const clerkUser = await clerk.users.getUser(booking.clerkUserId);
-          imageUrl = clerkUser.imageUrl || null;
-        } catch (error) {
-          // If user fetch fails, continue without image
-          console.error(
-            `Failed to fetch Clerk user ${booking.clerkUserId}:`,
-            error,
-          );
-        }
-      }
-
-      return {
-        name: booking.participantName,
-        email: booking.participantEmail,
-        imageUrl,
-      };
-    }),
-  );
+  // Map bookings to participants with database avatar images
+  const participants = bookingsData.map((booking) => ({
+    name: booking.participantName,
+    email: booking.participantEmail,
+    imageUrl: booking.avatarImageUrl || null,
+  }));
 
   // Fetch comments for this event
   const commentsData = await db
