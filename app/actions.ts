@@ -5,7 +5,7 @@ import { db } from "@/db"
 import { events, bookings } from "@/db/schema"
 import { eq, sql, and } from "drizzle-orm"
 import { revalidatePath } from "next/cache"
-import { sendBookingConfirmationEmail, sendAdminNotificationEmail } from "@/lib/email"
+import { sendBookingConfirmationEmail, sendAdminNotificationEmail, sendCommentNotificationEmail } from "@/lib/email"
 import { auth, currentUser } from "@clerk/nextjs/server"
 import { getUserName, getUserEmail, createEventSlug } from "@/lib/utils"
 
@@ -314,12 +314,17 @@ export async function addComment(eventId: number, content: string) {
   }
 
   try {
-    // Check if event exists
+    // Check if event exists and get full details
     const eventResults = await db
       .select({
         id: events.id,
         title: events.title,
         instructor: events.instructor,
+        instructorId: events.instructorId,
+        date: events.date,
+        startTime: events.startTime,
+        endTime: events.endTime,
+        location: events.location,
       })
       .from(events)
       .where(eq(events.id, eventId))
@@ -331,7 +336,7 @@ export async function addComment(eventId: number, content: string) {
     const event = eventResults[0]
 
     // Import comments here to avoid circular import issues
-    const { comments } = await import("@/db/schema")
+    const { comments, bookings, users } = await import("@/db/schema")
 
     // Create comment
     const commentResults = await db
@@ -346,7 +351,100 @@ export async function addComment(eventId: number, content: string) {
       .returning({ id: comments.id })
 
     // Revalidate event page
-    revalidatePath(`/event/${createEventSlug(eventId, event.title, event.instructor)}`)
+    const eventSlug = createEventSlug(eventId, event.title, event.instructor)
+    revalidatePath(`/event/${eventSlug}`)
+
+    // Send notification emails to participants and instructor
+    try {
+      const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://paradise-circus.app"
+      const eventUrl = `${appUrl}/event/${eventSlug}`
+
+      // Get all participant emails from bookings (excluding the comment author)
+      const participantBookings = await db
+        .select({
+          participantEmail: bookings.participantEmail,
+          participantName: bookings.participantName,
+          clerkUserId: bookings.clerkUserId,
+        })
+        .from(bookings)
+        .where(eq(bookings.eventId, eventId))
+
+      // Get instructor email if instructorId exists
+      let instructorEmail: string | null = null
+      let instructorName: string | null = event.instructor
+      let instructorClerkUserId: string | null = null
+      
+      if (event.instructorId) {
+        const instructorResult = await db
+          .select({
+            email: users.email,
+            displayName: users.displayName,
+            username: users.username,
+            clerkUserId: users.clerkUserId,
+          })
+          .from(users)
+          .where(eq(users.id, event.instructorId))
+          .limit(1)
+
+        if (instructorResult.length > 0) {
+          instructorEmail = instructorResult[0].email || null
+          instructorName = instructorResult[0].displayName || instructorResult[0].username || event.instructor
+          instructorClerkUserId = instructorResult[0].clerkUserId || null
+        }
+      }
+
+      // Collect all unique recipient emails (excluding the comment author)
+      const recipientEmails = new Map<string, { name: string; isInstructor: boolean }>()
+
+      // Add participants
+      for (const booking of participantBookings) {
+        // Skip if this booking belongs to the comment author
+        if (booking.clerkUserId === userId) {
+          continue
+        }
+        // Use participant name from booking, or email if name not available
+        const name = booking.participantName || booking.participantEmail.split("@")[0]
+        recipientEmails.set(booking.participantEmail, { name, isInstructor: false })
+      }
+
+      // Add instructor if they exist and are not the comment author
+      if (instructorEmail && instructorName) {
+        // Skip if instructor is the comment author
+        if (instructorClerkUserId !== userId) {
+          recipientEmails.set(instructorEmail, { name: instructorName, isInstructor: true })
+        }
+      }
+
+      // Send emails to all recipients
+      const emailPromises = Array.from(recipientEmails.entries()).map(
+        async ([email, { name, isInstructor }]) => {
+          try {
+            await sendCommentNotificationEmail({
+              recipientName: name,
+              recipientEmail: email,
+              authorName,
+              eventTitle: event.title,
+              eventDate: event.date,
+              eventStartTime: event.startTime,
+              eventEndTime: event.endTime,
+              eventLocation: event.location || "",
+              instructorName,
+              commentContent: content.trim(),
+              eventUrl,
+            })
+          } catch (error) {
+            console.error(`Failed to send comment notification to ${email}:`, error)
+            // Don't throw - continue sending to other recipients
+          }
+        }
+      )
+
+      // Wait for all emails to be sent (but don't fail if some fail)
+      await Promise.allSettled(emailPromises)
+    } catch (emailError) {
+      // Log error but don't fail the comment creation
+      console.error("Error sending comment notification emails:", emailError)
+    }
 
     return { success: true, commentId: commentResults[0].id }
   } catch (error) {

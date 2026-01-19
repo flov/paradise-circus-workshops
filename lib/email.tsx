@@ -6,6 +6,7 @@ import { AdminNotificationEmail } from "@/emails/admin-notification";
 import { EventPendingApprovalEmail } from "@/emails/event-pending-approval";
 import { EventApprovedEmail } from "@/emails/event-approved";
 import { AdminEventPendingEmail } from "@/emails/admin-event-pending";
+import { EventCommentNotificationEmail } from "@/emails/event-comment-notification";
 
 type BookingConfirmationEmailProps = {
   participantName: string;
@@ -330,6 +331,101 @@ export async function sendAdminEventPendingEmail(
     console.log("Admin event pending email sent to:", adminEmail);
   } catch (error) {
     console.error("Failed to send admin event pending email:", error);
+    throw error;
+  }
+
+  return { success: true };
+}
+
+type EventCommentNotificationEmailProps = {
+  recipientName: string;
+  recipientEmail: string;
+  authorName: string;
+  eventTitle: string;
+  eventDate: string;
+  eventStartTime: string;
+  eventEndTime: string;
+  eventLocation: string;
+  instructorName: string | null;
+  commentContent: string;
+  eventUrl: string;
+};
+
+// Helper function to format date
+function formatDateForComment(dateString: string) {
+  const date = new Date(dateString);
+  return date.toLocaleDateString("en-US", {
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+  });
+}
+
+// Helper function to format time
+function formatTimeForComment(time: string) {
+  const [hours, minutes] = time.split(":");
+  const hour = Number.parseInt(hours);
+  const ampm = hour >= 12 ? "PM" : "AM";
+  const displayHour = hour % 12 || 12;
+  return `${displayHour}:${minutes} ${ampm}`;
+}
+
+export async function sendCommentNotificationEmail(
+  props: EventCommentNotificationEmailProps,
+) {
+  const { recipientEmail, recipientName, eventTitle, authorName } = props;
+
+  // Render React Email component to HTML
+  const emailHtml = await render(<EventCommentNotificationEmail {...props} />);
+
+  // Generate plain text version
+  const formattedDate = formatDateForComment(props.eventDate);
+
+  const emailText = `
+Paradise Circus - New Message on Event
+
+Dear ${recipientName},
+
+${authorName} posted a new message on the event "${eventTitle}":
+
+"${props.commentContent}"
+
+Event Details:
+- Title: ${eventTitle}
+- Date: ${formattedDate}
+- Time: ${formatTimeForComment(props.eventStartTime)} - ${formatTimeForComment(props.eventEndTime)}
+- Location: ${props.eventLocation}
+${props.instructorName ? `- Instructor: ${props.instructorName}` : ""}
+
+View the event and reply: ${props.eventUrl}
+
+Join the conversation and stay connected with other participants!
+
+The Paradise Circus Team
+  `.trim();
+
+  // Send email via Resend
+  if (!process.env.RESEND_API_KEY) {
+    console.error("RESEND_API_KEY is not set. Email will not be sent.");
+    return { success: false, error: "Email service not configured" };
+  }
+
+  try {
+    const resend = new Resend(process.env.RESEND_API_KEY);
+    const fromEmail = process.env.RESEND_FROM_EMAIL || "onboarding@resend.dev";
+
+    await resend.emails.send({
+      from: fromEmail,
+      to: recipientEmail,
+      subject: `New Message: ${eventTitle}`,
+      html: emailHtml,
+      text: emailText,
+    });
+
+    console.log("Comment notification email sent to:", recipientEmail);
+  } catch (error) {
+    console.error("Failed to send comment notification email:", error);
     throw error;
   }
 
