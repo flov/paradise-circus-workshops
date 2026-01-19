@@ -447,6 +447,7 @@ export async function approveEvent(eventId: number) {
     }
 
     revalidatePath("/admin")
+    revalidatePath("/admin/pending-approval")
     revalidatePath("/")
 
     return { success: true }

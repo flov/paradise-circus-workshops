@@ -12,10 +12,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { EventsList } from "@/components/admin/events-list";
 import { BookingsList } from "@/components/admin/bookings-list";
 import { AddEventButton } from "@/components/admin/add-event-button";
-import { Calendar, Users, TrendingUp, UserCheck } from "lucide-react";
+import { Calendar, Users, TrendingUp, UserCheck, Clock } from "lucide-react";
 import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import { getCurrentUserProfile, isAdmin } from "@/app/profile/actions";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
 
 // Helper function to calculate current week date range (Monday-Sunday)
 function getCurrentWeekRange(): { startDate: string; endDate: string } {
@@ -99,7 +101,15 @@ export default async function AdminPage() {
                 Manage events and bookings
               </p>
             </div>
-            <AddEventButton />
+            <div className="flex items-center gap-2">
+              <Link href="/admin/pending-approval">
+                <Button variant="outline">
+                  <Clock className="h-4 w-4 mr-2" />
+                  Pending Approval
+                </Button>
+              </Link>
+              <AddEventButton />
+            </div>
           </div>
         </div>
       </div>
