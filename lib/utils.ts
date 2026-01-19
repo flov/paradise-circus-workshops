@@ -89,8 +89,9 @@ export function isEventPast(date: string | Date, endTime: string): boolean {
  * @param title - Workshop title (e.g., "Hoop Beg-Int")
  * @returns URL-friendly slug (e.g., "hoop-beg-int")
  */
-export function createTitleSlug(title: string): string {
-  return title
+export function createTitleSlug(title: string | null | undefined): string {
+  if (!title) return ''
+  return String(title)
     .toLowerCase()
     .trim()
     .replace(/[^\w\s-]/g, '') // Remove special characters except hyphens and spaces
@@ -103,12 +104,16 @@ export function createTitleSlug(title: string): string {
  * Create an event URL slug combining ID, title, and instructor
  * @param id - Event ID
  * @param title - Event title
- * @param instructor - Instructor name
+ * @param instructor - Instructor name (can be null/undefined)
  * @returns Combined slug (e.g., "40-rope-dart-kit")
  */
-export function createEventSlug(id: number, title: string, instructor: string): string {
+export function createEventSlug(id: number, title: string | null | undefined, instructor: string | null | undefined): string {
   const titleSlug = createTitleSlug(title)
   const instructorSlug = createTitleSlug(instructor)
+  // If instructor slug is empty, just use id-title
+  if (!instructorSlug) {
+    return `${id}-${titleSlug}`
+  }
   return `${id}-${titleSlug}-${instructorSlug}`
 }
 
