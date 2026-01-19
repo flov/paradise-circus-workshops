@@ -283,25 +283,31 @@ export async function addComment(eventId: number, content: string) {
     return { success: false, error: "Unable to retrieve user information" }
   }
 
-  // Try to get displayName from database, fallback to Clerk firstName/username
+  // Try to get displayName and avatarImageUrl from database, fallback to Clerk firstName/username
   let authorName = getUserName(user)
+  let authorImageUrl: string | null = null
+  
   try {
     const { users } = await import("@/db/schema")
     const userRecord = await db
-      .select({ displayName: users.displayName })
+      .select({ 
+        displayName: users.displayName,
+        avatarImageUrl: users.avatarImageUrl,
+      })
       .from(users)
       .where(eq(users.clerkUserId, userId))
       .limit(1)
     
-    if (userRecord.length > 0 && userRecord[0].displayName) {
-      authorName = userRecord[0].displayName
+    if (userRecord.length > 0) {
+      if (userRecord[0].displayName) {
+        authorName = userRecord[0].displayName
+      }
+      authorImageUrl = userRecord[0].avatarImageUrl || null
     }
   } catch (error) {
     // If database lookup fails, fall back to Clerk name
-    console.error("Failed to fetch user displayName:", error)
+    console.error("Failed to fetch user profile:", error)
   }
-
-  const authorImageUrl = user.imageUrl || null
 
   if (!content.trim()) {
     return { success: false, error: "Comment cannot be empty" }
