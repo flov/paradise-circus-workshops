@@ -500,7 +500,7 @@ export function WeeklyTimetable({
                                         )}
                                       </div>
                                       <div className="text-xs text-muted-foreground mt-0.5 line-clamp-1">
-                                        {slot.instructorDisplayName || slot.instructor || 'Unknown'}
+                                        {slot.instructorDisplayName || slot.instructor || ''}
                                       </div>
                                     </a>
                                     {(isAdmin ||

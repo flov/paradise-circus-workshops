@@ -134,7 +134,7 @@ export async function EventsList() {
                       {event.instructorProfile.displayName || event.instructorProfile.username}
                     </Link>
                   ) : (
-                    event.instructor || 'Unknown'
+                    event.instructor || ''
                   )}
                 </TableCell>
                 <TableCell>
