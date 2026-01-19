@@ -2,11 +2,13 @@
 
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import { useUser } from "@clerk/nextjs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { createProfile, getAllProps } from "@/app/profile/actions";
 import { Loader2, Plus, X } from "lucide-react";
 import { validateInstagramHandle } from "@/lib/utils";
@@ -19,12 +21,22 @@ interface Prop {
 
 interface ProfileFormProps {
   initialData?: ProfileFormData & { props?: Prop[] };
+  profileImageUrl?: string | null;
 }
 
-export function ProfileForm({ initialData }: ProfileFormProps) {
+export function ProfileForm({
+  initialData,
+  profileImageUrl: initialProfileImageUrl,
+}: ProfileFormProps) {
   const router = useRouter();
+  const { user } = useUser();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Use Clerk user's imageUrl if available, otherwise fall back to prop
+  const profileImageUrl = user?.imageUrl || initialProfileImageUrl || null;
+  const avatarDisplayName =
+    initialData?.displayName || initialData?.username || "User";
 
   const [username, setUsername] = useState(initialData?.username || "");
   const [displayName, setDisplayName] = useState(
@@ -376,6 +388,28 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
               Paste YouTube URLs or video IDs separated by commas
             </p>
           </div>
+
+          {isEditMode && (
+            <div className="space-y-2">
+              <Label>Profile picture</Label>
+              <div className="flex flex-col items-center gap-2">
+                <Avatar className="w-16 h-16 border-2 border-primary">
+                  {profileImageUrl ? (
+                    <AvatarImage src={profileImageUrl} alt={avatarDisplayName} />
+                  ) : (
+                    <AvatarFallback className="bg-primary/10 text-primary text-lg font-bold">
+                      {avatarDisplayName.charAt(0).toUpperCase()}
+                    </AvatarFallback>
+                  )}
+                </Avatar>
+                <p className="text-xs text-muted-foreground text-center max-w-md">
+                  You can change your profile picture by clicking on &quot;Manage
+                  account&quot; after clicking on the profile picture in the top
+                  right
+                </p>
+              </div>
+            </div>
+          )}
 
           <div className="flex gap-4">
             <Button type="submit" disabled={isSubmitting} size="lg">
