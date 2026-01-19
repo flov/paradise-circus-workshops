@@ -6,7 +6,18 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { Loader2 } from "lucide-react"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
+import { Loader2, Trash2 } from "lucide-react"
 import { getAllProps, getCurrentUserProfile, getAllInstructors } from "@/app/profile/actions"
 
 export type EventFormInitialValues = {
@@ -35,6 +46,8 @@ type EventFormProps = {
   error: string | null
   submitButtonText?: string
   submittingText?: string
+  onDelete?: (eventId: number) => Promise<void>
+  eventTitle?: string
 }
 
 export function EventForm({
@@ -45,6 +58,8 @@ export function EventForm({
   error,
   submitButtonText = "Save Event",
   submittingText = "Saving...",
+  onDelete,
+  eventTitle,
 }: EventFormProps) {
   const [availableProps, setAvailableProps] = useState<Array<{ id: number; name: string }>>([])
   const [selectedPropId, setSelectedPropId] = useState<number | null>(null)
@@ -53,6 +68,8 @@ export function EventForm({
   const [selectedInstructorId, setSelectedInstructorId] = useState<number | null>(null)
   const [isRecurring, setIsRecurring] = useState<boolean>(initialValues?.isRecurring ?? false)
   const [recurUntil, setRecurUntil] = useState<string>(initialValues?.recurUntil || "")
+  const [isDeleting, setIsDeleting] = useState(false)
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   
   // Initialize date state
   const getInitialDate = (): string => {
@@ -183,6 +200,20 @@ export function EventForm({
     }
 
     await onSubmit(formData)
+  }
+
+  async function handleDelete() {
+    if (!onDelete || !initialValues?.id) return
+    
+    setIsDeleting(true)
+    try {
+      await onDelete(initialValues.id)
+      setDeleteDialogOpen(false)
+    } catch (err) {
+      console.error("Failed to delete event:", err)
+    } finally {
+      setIsDeleting(false)
+    }
   }
 
   const isEditMode = !!initialValues?.id
@@ -502,20 +533,73 @@ export function EventForm({
         </div>
       )}
 
-      <div className="flex justify-end gap-3">
-        <Button type="button" variant="outline" onClick={onCancel} disabled={isSubmitting}>
-          Cancel
-        </Button>
-        <Button type="submit" disabled={isSubmitting}>
-          {isSubmitting ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              {submittingText}
-            </>
-          ) : (
-            submitButtonText
-          )}
-        </Button>
+      <div className="flex justify-between gap-3">
+        {onDelete && initialValues?.id ? (
+          <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+            <AlertDialogTrigger asChild>
+              <Button 
+                type="button" 
+                variant="destructive" 
+                disabled={isSubmitting || isDeleting}
+              >
+                {isDeleting ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Deleting...
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="mr-2 h-4 w-4" />
+                    Delete Event
+                  </>
+                )}
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Delete Event</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Are you sure you want to delete "{eventTitle || initialValues.title || 'this event'}"? This will also delete all associated bookings. This
+                  action cannot be undone.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={handleDelete}
+                  disabled={isDeleting}
+                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                >
+                  {isDeleting ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Deleting...
+                    </>
+                  ) : (
+                    "Delete"
+                  )}
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        ) : (
+          <div />
+        )}
+        <div className="flex gap-3">
+          <Button type="button" variant="outline" onClick={onCancel} disabled={isSubmitting || isDeleting}>
+            Cancel
+          </Button>
+          <Button type="submit" disabled={isSubmitting || isDeleting}>
+            {isSubmitting ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                {submittingText}
+              </>
+            ) : (
+              submitButtonText
+            )}
+          </Button>
+        </div>
       </div>
     </form>
   )

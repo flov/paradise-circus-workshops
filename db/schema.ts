@@ -121,6 +121,7 @@ export const users = pgTable(
     performanceStyle: varchar("performance_style", { length: 255 }),
     availableForPerformances: boolean("available_for_performances").notNull().default(false),
     location: varchar("location", { length: 255 }),
+    avatarImageUrl: varchar("avatar_image_url", { length: 500 }),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at").defaultNow().notNull(),
   },

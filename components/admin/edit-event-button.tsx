@@ -12,7 +12,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import { Pencil } from "lucide-react"
-import { updateEvent } from "@/app/admin/actions"
+import { updateEvent, deleteEvent } from "@/app/admin/actions"
 import { useRouter } from "next/navigation"
 import type { Event } from "@/db/schema"
 import { EventForm, type EventFormInitialValues } from "./event-form"
@@ -33,6 +33,8 @@ export function EditEventButton({ event }: { event: Pick<Event, "id" | "title" |
       if (result.success) {
         setOpen(false)
         router.refresh()
+        // Dispatch custom event to notify WeeklyTimetable to refresh
+        window.dispatchEvent(new CustomEvent('event-updated'))
       } else {
         setError(result.error || "Failed to update event")
       }
@@ -40,6 +42,19 @@ export function EditEventButton({ event }: { event: Pick<Event, "id" | "title" |
       setError("An unexpected error occurred")
     } finally {
       setIsSubmitting(false)
+    }
+  }
+
+  async function handleDelete(eventId: number) {
+    try {
+      await deleteEvent(eventId)
+      setOpen(false)
+      router.refresh()
+      // Dispatch custom event to notify WeeklyTimetable to refresh
+      window.dispatchEvent(new CustomEvent('event-deleted'))
+    } catch (err) {
+      setError("Failed to delete event")
+      throw err
     }
   }
 
@@ -83,6 +98,8 @@ export function EditEventButton({ event }: { event: Pick<Event, "id" | "title" |
           error={error}
           submitButtonText="Update Event"
           submittingText="Updating..."
+          onDelete={handleDelete}
+          eventTitle={event.title}
         />
       </DialogContent>
     </Dialog>

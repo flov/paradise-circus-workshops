@@ -1,5 +1,5 @@
 {
-  "id": "05610e1f-560c-467d-9d97-cf97152983d3",
+  "id": "90dbbab3-cf2d-4466-95c0-dae02be852ce",
   "prevId": "659b0d93-5eec-4917-baeb-80839711db93",
   "version": "7",
   "dialect": "postgresql",
@@ -768,6 +768,12 @@
         "location": {
           "name": "location",
           "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "avatar_image_url": {
+          "name": "avatar_image_url",
+          "type": "varchar(500)",
           "primaryKey": false,
           "notNull": false
         },

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { createEventSlug } from "@/lib/utils";
@@ -68,10 +68,6 @@ export function WeeklyTimetable({
   const dayCardRefs = useRef<(HTMLDivElement | null)[]>([]);
   const timeSlotRefs = useRef<Map<string, HTMLDivElement>>(new Map());
 
-  useEffect(() => {
-    loadWeekData();
-  }, [currentWeek, userId]);
-
   // Helper function to format date as YYYY-MM-DD in local timezone
   const formatLocalDate = (date: Date): string => {
     const year = date.getFullYear();
@@ -109,31 +105,24 @@ export function WeeklyTimetable({
     return convertTimeSlotToTime(nextSlot);
   };
 
-  // Handle clicking on "+" button in empty slot
-  const handleAddEventClick = (dayIndex: number, timeSlot: string) => {
-    if (!weekDates[dayIndex]) return;
+  const getWeekDates = (weekOffset: number): Date[] => {
+    const now = new Date();
+    const currentDay = now.getDay();
+    const mondayOffset = currentDay === 0 ? -6 : 1 - currentDay;
 
-    const date = formatLocalDate(weekDates[dayIndex]);
-    const startTime = convertTimeSlotToTime(timeSlot);
-    const endTime = getNextTimeSlot(timeSlot);
+    const monday = new Date(now);
+    monday.setDate(now.getDate() + mondayOffset + weekOffset * 7);
 
-    setPrefillValues({ date, startTime, endTime });
-    setAddEventOpen(true);
+    const dates = [];
+    for (let i = 0; i < 7; i++) {
+      const date = new Date(monday);
+      date.setDate(monday.getDate() + i);
+      dates.push(date);
+    }
+    return dates;
   };
 
-  // Handle clicking on "Add Event" button for a day (mobile view)
-  const handleAddEventForDay = (dayIndex: number) => {
-    if (!weekDates[dayIndex]) return;
-
-    const date = formatLocalDate(weekDates[dayIndex]);
-    const startTime = "13:00"; // 1pm
-    const endTime = "14:00"; // 2pm
-
-    setPrefillValues({ date, startTime, endTime });
-    setAddEventOpen(true);
-  };
-
-  const loadWeekData = async () => {
+  const loadWeekData = useCallback(async () => {
     setIsLoading(true);
     const dates = getWeekDates(currentWeek);
     setWeekDates(dates);
@@ -190,23 +179,52 @@ export function WeeklyTimetable({
     } finally {
       setIsLoading(false);
     }
+  }, [currentWeek, userId]);
+
+  useEffect(() => {
+    loadWeekData();
+  }, [loadWeekData]);
+
+  // Listen for event updates to refresh the timetable
+  useEffect(() => {
+    const handleEventUpdate = () => {
+      loadWeekData();
+    };
+
+    // Listen for custom events when events are created, updated, or deleted
+    window.addEventListener('event-updated', handleEventUpdate);
+    window.addEventListener('event-created', handleEventUpdate);
+    window.addEventListener('event-deleted', handleEventUpdate);
+
+    return () => {
+      window.removeEventListener('event-updated', handleEventUpdate);
+      window.removeEventListener('event-created', handleEventUpdate);
+      window.removeEventListener('event-deleted', handleEventUpdate);
+    };
+  }, [loadWeekData]);
+
+  // Handle clicking on "+" button in empty slot
+  const handleAddEventClick = (dayIndex: number, timeSlot: string) => {
+    if (!weekDates[dayIndex]) return;
+
+    const date = formatLocalDate(weekDates[dayIndex]);
+    const startTime = convertTimeSlotToTime(timeSlot);
+    const endTime = getNextTimeSlot(timeSlot);
+
+    setPrefillValues({ date, startTime, endTime });
+    setAddEventOpen(true);
   };
 
-  const getWeekDates = (weekOffset: number): Date[] => {
-    const now = new Date();
-    const currentDay = now.getDay();
-    const mondayOffset = currentDay === 0 ? -6 : 1 - currentDay;
+  // Handle clicking on "Add Event" button for a day (mobile view)
+  const handleAddEventForDay = (dayIndex: number) => {
+    if (!weekDates[dayIndex]) return;
 
-    const monday = new Date(now);
-    monday.setDate(now.getDate() + mondayOffset + weekOffset * 7);
+    const date = formatLocalDate(weekDates[dayIndex]);
+    const startTime = "13:00"; // 1pm
+    const endTime = "14:00"; // 2pm
 
-    const dates = [];
-    for (let i = 0; i < 7; i++) {
-      const date = new Date(monday);
-      date.setDate(monday.getDate() + i);
-      dates.push(date);
-    }
-    return dates;
+    setPrefillValues({ date, startTime, endTime });
+    setAddEventOpen(true);
   };
 
   const formatDateRange = () => {

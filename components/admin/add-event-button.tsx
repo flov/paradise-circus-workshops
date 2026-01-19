@@ -65,6 +65,8 @@ export function AddEventButton({
       if (result.success) {
         setOpen(false)
         router.refresh()
+        // Dispatch custom event to notify WeeklyTimetable to refresh
+        window.dispatchEvent(new CustomEvent('event-created'))
       } else {
         setError(result.error || "Failed to create event")
       }
