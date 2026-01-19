@@ -24,6 +24,7 @@ export function Header({
 
   const navLinks = [
     { href: "/", label: "Weekly Schedule" },
+    { href: "/artists", label: "Artists" },
     { href: "/about", label: "About" },
     { href: "/faq", label: "FAQ" },
   ];
