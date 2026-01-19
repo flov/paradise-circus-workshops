@@ -75,8 +75,10 @@ export async function POST(request: NextRequest) {
     console.log("👤 [WEBHOOK] Processing user.created event")
     const clerkUserId = evt.data.id
     const email = evt.data.email_addresses?.[0]?.email_address || null
+    const avatarImageUrl = evt.data.image_url || null
     console.log("👤 [WEBHOOK] Clerk User ID:", clerkUserId)
     console.log("📧 [WEBHOOK] Email:", email || "No email provided")
+    console.log("🖼️  [WEBHOOK] Avatar Image URL:", avatarImageUrl || "No avatar provided")
 
     if (!clerkUserId) {
       console.error("❌ [WEBHOOK] No clerkUserId found in webhook payload")
@@ -96,14 +98,14 @@ export async function POST(request: NextRequest) {
         .limit(1)
 
       if (existingUser.length > 0) {
-        // Update existing user with email
+        // Update existing user with email and avatar
         await db
           .update(users)
-          .set({ email, updatedAt: new Date() })
+          .set({ email, avatarImageUrl, updatedAt: new Date() })
           .where(eq(users.clerkUserId, clerkUserId))
-        console.log(`✅ [WEBHOOK] Updated email for existing user: ${clerkUserId}`)
+        console.log(`✅ [WEBHOOK] Updated email and avatar for existing user: ${clerkUserId}`)
       } else {
-        console.log(`ℹ️  [WEBHOOK] User record not found, email will be saved during onboarding`)
+        console.log(`ℹ️  [WEBHOOK] User record not found, email and avatar will be saved during onboarding`)
       }
     } catch (error) {
       console.error("❌ [WEBHOOK] Error syncing email for created user:", error)
@@ -120,8 +122,10 @@ export async function POST(request: NextRequest) {
     console.log("🔄 [WEBHOOK] Processing user.updated event")
     const clerkUserId = evt.data.id
     const email = evt.data.email_addresses?.[0]?.email_address || null
+    const avatarImageUrl = evt.data.image_url || null
     console.log("👤 [WEBHOOK] Clerk User ID:", clerkUserId)
     console.log("📧 [WEBHOOK] Email:", email || "No email provided")
+    console.log("🖼️  [WEBHOOK] Avatar Image URL:", avatarImageUrl || "No avatar provided")
 
     if (!clerkUserId) {
       console.error("❌ [WEBHOOK] No clerkUserId found in webhook payload")
@@ -133,15 +137,15 @@ export async function POST(request: NextRequest) {
     }
 
     try {
-      // Update email for existing user record
+      // Update email and avatar for existing user record
       const result = await db
         .update(users)
-        .set({ email, updatedAt: new Date() })
+        .set({ email, avatarImageUrl, updatedAt: new Date() })
         .where(eq(users.clerkUserId, clerkUserId))
         .returning({ id: users.id })
 
       if (result.length > 0) {
-        console.log(`✅ [WEBHOOK] Updated email for user: ${clerkUserId}`)
+        console.log(`✅ [WEBHOOK] Updated email and avatar for user: ${clerkUserId}`)
       } else {
         console.log(`ℹ️  [WEBHOOK] User record not found for updated user: ${clerkUserId}`)
       }

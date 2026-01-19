@@ -33,9 +33,10 @@ export async function createUserRecord(
       return { success: false, error: "User record already exists" };
     }
 
-    // Get email from Clerk
+    // Get email and avatar from Clerk
     const clerkUser = await currentUser();
     const email = clerkUser?.emailAddresses?.[0]?.emailAddress || null;
+    const avatarImageUrl = clerkUser?.imageUrl || null;
 
     // Create user record - database unique constraint will handle race conditions
     const trimmedUsername = username.trim().toLowerCase();
@@ -47,6 +48,7 @@ export async function createUserRecord(
           email,
           username: trimmedUsername,
           displayName: null,
+          avatarImageUrl,
         })
         .returning({ id: users.id, username: users.username });
       
@@ -150,9 +152,10 @@ export async function createProfile(formData: FormData) {
       ? instagramHandle.replace(/^@/, '').trim() || null 
       : null;
 
-    // Get email from Clerk
+    // Get email and avatar from Clerk
     const clerkUser = await currentUser();
     const email = clerkUser?.emailAddresses?.[0]?.emailAddress || null;
+    const avatarImageUrl = clerkUser?.imageUrl || null;
 
     let user: { id: number; username: string };
 
@@ -174,6 +177,7 @@ export async function createProfile(formData: FormData) {
             availableForPerformances,
             location: location || null,
             youtubeVideos,
+            avatarImageUrl,
           })
           .returning({ id: users.id, username: users.username });
         
@@ -214,6 +218,7 @@ export async function createProfile(formData: FormData) {
             availableForPerformances,
             location: location || null,
             youtubeVideos,
+            avatarImageUrl,
             updatedAt: new Date(),
           })
           .where(eq(users.id, existingUser.id));
@@ -466,6 +471,7 @@ export async function getCurrentUserProfile(): Promise<UserProfile | null> {
         performanceStyle: users.performanceStyle,
         availableForPerformances: users.availableForPerformances,
         location: users.location,
+        avatarImageUrl: users.avatarImageUrl,
         createdAt: users.createdAt,
         updatedAt: users.updatedAt,
       })
