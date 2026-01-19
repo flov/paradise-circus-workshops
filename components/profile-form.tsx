@@ -119,6 +119,13 @@ export function ProfileForm({
     setIsSubmitting(true);
     setError(null);
 
+    // Validate display name
+    if (!displayName || !displayName.trim()) {
+      setError("Display name is required");
+      setIsSubmitting(false);
+      return;
+    }
+
     // Validate Instagram handle before submission
     if (instagramHandle.trim()) {
       const instagramValidation = validateInstagramHandle(instagramHandle);
@@ -199,12 +206,13 @@ export function ProfileForm({
 
           <div className="space-y-2">
             <Label htmlFor="displayName">
-              How would you like to be called?
+              How would you like to be called? *
             </Label>
             <Input
               id="displayName"
               value={displayName}
               onChange={(e) => setDisplayName(e.target.value)}
+              required
               placeholder="Your display name (e.g., John, Alex, etc.)"
               aria-describedby="displayName-help"
             />

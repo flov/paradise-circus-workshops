@@ -126,6 +126,11 @@ export async function createProfile(formData: FormData) {
       return { success: false, error: validation.error };
     }
 
+    // Validate display name
+    if (!displayName || !displayName.trim()) {
+      return { success: false, error: "Display name is required" };
+    }
+
     // Validate Instagram handle
     if (instagramHandle) {
       const instagramValidation = validateInstagramHandle(instagramHandle);
