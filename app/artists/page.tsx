@@ -25,6 +25,7 @@ async function getAllArtists() {
           .select({
             userId: userProps.userId,
             propName: props.name,
+            skillLevel: userProps.skillLevel,
           })
           .from(userProps)
           .innerJoin(props, eq(userProps.propId, props.id))
@@ -49,16 +50,19 @@ async function getAllArtists() {
           .groupBy(events.instructorId)
       : [];
 
-  // Group props by userId
+  // Group props by userId with skill levels
   const propsByUserId = userPropsData.reduce(
     (acc, item) => {
       if (!acc[item.userId]) {
         acc[item.userId] = [];
       }
-      acc[item.userId].push(item.propName);
+      acc[item.userId].push({
+        name: item.propName,
+        skillLevel: item.skillLevel,
+      });
       return acc;
     },
-    {} as Record<number, string[]>,
+    {} as Record<number, Array<{ name: string; skillLevel: number }>>,
   );
 
   // Create workshop counts map

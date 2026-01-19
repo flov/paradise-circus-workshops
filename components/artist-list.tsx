@@ -22,7 +22,7 @@ interface Artist {
   avatar?: string;
   isInstructor: boolean;
   workshopCount?: number;
-  props: string[];
+  props: Array<{ name: string; skillLevel: number }>;
   username: string;
 }
 
@@ -51,15 +51,12 @@ function ArtistCard({ artist }: { artist: Artist }) {
         <div className="flex flex-wrap items-center gap-1.5">
           <span className="font-medium text-sm truncate">{artist.name}</span>
           {artist.isInstructor && (
-            <Badge
-              variant="destructive"
-              className="h-5 text-[10px] px-1.5 gap-0.5"
-            >
+            <Badge variant="default" className="h-5 text-[10px] px-1.5 gap-0.5">
               <User className="size-2.5" />
               Instructor
             </Badge>
           )}
-          {artist.workshopCount > 0 && (
+          {artist?.workshopCount > 0 && (
             <Badge
               variant="secondary"
               className="h-5 text-[10px] px-1.5 gap-0.5"
@@ -76,11 +73,14 @@ function ArtistCard({ artist }: { artist: Artist }) {
           <div className="flex flex-wrap gap-1">
             {artist.props.map((prop) => (
               <Badge
-                key={prop}
+                key={prop.name}
                 variant="outline"
-                className="h-5 text-[10px] px-1.5 font-normal text-muted-foreground"
+                className="h-5 px-1.5 font-normal text-muted-foreground"
               >
-                {prop}
+                {prop.name}
+                <span className="ml-1 text-[9px] opacity-75">
+                  {prop.skillLevel}/10
+                </span>
               </Badge>
             ))}
           </div>
@@ -99,7 +99,10 @@ export function ArtistList({ artists }: ArtistListProps) {
 
   // Get all unique props from all artists
   const allProps = useMemo(
-    () => Array.from(new Set(artists.flatMap((artist) => artist.props))).sort(),
+    () =>
+      Array.from(
+        new Set(artists.flatMap((artist) => artist.props.map((p) => p.name))),
+      ).sort(),
     [artists],
   );
 
@@ -115,7 +118,8 @@ export function ArtistList({ artists }: ArtistListProps) {
 
       // Prop filter
       const matchesProp =
-        selectedProp === "all" || artist.props.includes(selectedProp);
+        selectedProp === "all" ||
+        artist.props.some((p) => p.name === selectedProp);
 
       return matchesSearch && matchesInstructor && matchesProp;
     });
