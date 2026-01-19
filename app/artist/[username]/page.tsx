@@ -1,5 +1,4 @@
 import { notFound } from "next/navigation";
-import { clerkClient } from "@clerk/nextjs/server";
 import { getUserByUsername, getUserProps } from "@/app/profile/actions";
 import { getYouTubeEmbedUrl } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
@@ -21,15 +20,8 @@ export default async function ArtistProfilePage({
   // Get props
   const props = await getUserProps(user.id);
 
-  // Get Clerk user for profile picture
-  let profileImageUrl: string | null = null;
-  try {
-    const clerk = await clerkClient();
-    const clerkUser = await clerk.users.getUser(user.clerkUserId);
-    profileImageUrl = clerkUser.imageUrl || null;
-  } catch (error) {
-    console.error("Failed to fetch Clerk user:", error);
-  }
+  // Get profile image from database
+  const profileImageUrl = user.avatarImageUrl || null;
 
   return (
     <div className="container mx-auto max-w-4xl py-12 px-4">
