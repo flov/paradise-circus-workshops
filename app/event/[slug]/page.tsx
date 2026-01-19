@@ -1,6 +1,6 @@
 import { db } from "@/db";
 import { events, bookings, comments, props, users, type Event } from "@/db/schema";
-import { eq, asc } from "drizzle-orm";
+import { eq, asc, and } from "drizzle-orm";
 import { BookEventButton } from "@/components/book-event-button";
 import { CancelBookingButton } from "@/components/cancel-booking-button";
 import {
