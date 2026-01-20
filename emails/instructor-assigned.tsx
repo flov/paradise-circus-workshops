@@ -96,7 +96,9 @@ export const InstructorAssignedEmail = ({
               </Heading>
               <Text style={text}>
                 As the assigned instructor, you now have the rights to edit this
-                event's description, time, and date.
+                event's description, time, and date. Please check the
+                description and make sure the information is accurate and
+                complete.
               </Text>
               <Text style={text}>
                 <strong>Important:</strong> When changing the time or date, be
