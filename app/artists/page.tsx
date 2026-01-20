@@ -15,6 +15,9 @@ async function getAllArtists() {
       avatarImageUrl: users.avatarImageUrl,
       youtubeVideos: users.youtubeVideos,
       vimeoVideos: users.vimeoVideos,
+      patreonPage: users.patreonPage,
+      instagramHandle: users.instagramHandle,
+      availableForPerformances: users.availableForPerformances,
     })
     .from(users)
     .orderBy(asc(users.displayName), asc(users.username));
@@ -93,6 +96,9 @@ async function getAllArtists() {
       props: propsByUserId[artist.id] || [],
       username: artist.username,
       videoCount,
+      patreonPage: artist.patreonPage || undefined,
+      instagramHandle: artist.instagramHandle || undefined,
+      availableForPerformances: artist.availableForPerformances || false,
     };
   });
 

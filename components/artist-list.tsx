@@ -12,7 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { User, Eye, Search, X, Video } from "lucide-react";
+import { User, Eye, Search, X, Video, Instagram, Heart, Sparkles } from "lucide-react";
 import Link from "next/link";
 import { getInitials } from "@/lib/utils";
 
@@ -25,6 +25,9 @@ interface Artist {
   props: Array<{ name: string; skillLevel: number }>;
   username: string;
   videoCount?: number;
+  patreonPage?: string;
+  instagramHandle?: string;
+  availableForPerformances?: boolean;
 }
 
 interface ArtistListProps {
@@ -60,7 +63,7 @@ function ArtistCard({ artist }: { artist: Artist }) {
           {/* @ts-expect-error - undefined > 0 evaluates to false, preventing 0 from being displayed */}
           {artist?.workshopCount > 0 && (
             <Badge
-              variant="secondary"
+              variant="fourth"
               className="h-5 text-[10px] px-1.5 gap-0.5"
             >
               <Eye className="size-2.5" />
@@ -71,12 +74,29 @@ function ArtistCard({ artist }: { artist: Artist }) {
           {/* @ts-expect-error - undefined > 0 evaluates to false, preventing 0 from being displayed */}
           {artist?.videoCount > 0 && (
             <Badge
-              variant="secondary"
+              variant="fourth"
               className="h-5 text-[10px] px-1.5 gap-0.5"
             >
               <Video className="size-2.5" />
               {artist.videoCount!} Video
               {artist.videoCount! > 1 ? "s" : ""}
+            </Badge>
+          )}
+          {artist.patreonPage && (
+            <Badge variant="third" className="h-5 text-[10px] px-1.5 gap-0.5">
+              <Heart className="size-2.5" />
+              Patreon
+            </Badge>
+          )}
+          {artist.instagramHandle && (
+            <Badge variant="fourth" className="h-5 text-[10px] px-1.5 gap-0.5">
+              <Instagram className="size-2.5" />
+            </Badge>
+          )}
+          {artist.availableForPerformances && (
+            <Badge variant="fifth" className="h-5 text-[10px] px-1.5 gap-0.5">
+              <Sparkles className="size-2.5" />
+              Available
             </Badge>
           )}
         </div>

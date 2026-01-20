@@ -3,7 +3,14 @@ import { getUserByUsername, getUserProps } from "@/app/profile/actions";
 import { getYouTubeEmbedUrl, getVimeoEmbedUrl } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { MapPin, Instagram, Award, Video, ExternalLink } from "lucide-react";
+import {
+  MapPin,
+  Instagram,
+  Award,
+  Video,
+  ExternalLink,
+  Sparkles,
+} from "lucide-react";
 
 export default async function ArtistProfilePage({
   params,
@@ -46,7 +53,9 @@ export default async function ArtistProfilePage({
 
           <div className="flex-1 space-y-4">
             <div className="flex flex-wrap items-center gap-2">
-              <h1 className="text-4xl font-bold">{user.displayName || user.username}</h1>
+              <h1 className="text-4xl font-bold">
+                {user.displayName || user.username}
+              </h1>
               {user.isInstructor && (
                 <Badge variant="default" className="text-sm">
                   <Award className="h-3 w-3 mr-1" />
@@ -58,6 +67,7 @@ export default async function ArtistProfilePage({
                   variant="secondary"
                   className="text-sm bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/20 hover:bg-amber-500/20"
                 >
+                  <Sparkles className="size-2.5" />
                   Available for Performances
                 </Badge>
               )}
@@ -151,7 +161,7 @@ export default async function ArtistProfilePage({
         )}
 
         {/* Videos */}
-        {((user.youtubeVideos && user.youtubeVideos.length > 0) || 
+        {((user.youtubeVideos && user.youtubeVideos.length > 0) ||
           (user.vimeoVideos && user.vimeoVideos.length > 0)) && (
           <Card>
             <CardHeader>
