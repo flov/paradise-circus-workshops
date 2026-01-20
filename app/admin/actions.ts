@@ -7,7 +7,7 @@ import { revalidatePath } from "next/cache"
 import { createEventSlug } from "@/lib/utils"
 import { auth } from "@clerk/nextjs/server"
 import { isAdmin, isInstructor, getAllAdmins } from "@/app/profile/actions"
-import { sendEventPendingApprovalEmail, sendAdminEventPendingEmail, sendEventApprovedEmail, sendEventCancelledEmail } from "@/lib/email"
+import { sendEventPendingApprovalEmail, sendAdminEventPendingEmail, sendEventApprovedEmail, sendEventCancelledEmail, sendInstructorAssignedEmail } from "@/lib/email"
 import { randomUUID } from "crypto"
 
 export async function createEvent(formData: FormData) {
@@ -177,6 +177,53 @@ export async function createEvent(formData: FormData) {
 
       const newEvents = await db.insert(events).values(eventValues).returning({ id: events.id })
 
+      // Send instructor assignment email if admin assigned an instructorId (for recurring events, send for first event)
+      if (userIsAdmin && instructorId && newEvents.length > 0) {
+        try {
+          // Fetch instructor details for email
+          const instructorResult = await db
+            .select({ 
+              email: users.email, 
+              displayName: users.displayName, 
+              username: users.username 
+            })
+            .from(users)
+            .where(eq(users.id, instructorId))
+            .limit(1)
+
+          if (instructorResult.length > 0) {
+            const instructorEmail = instructorResult[0].email
+            const instructorDisplayName = instructorResult[0].displayName || instructorResult[0].username
+
+            if (!instructorEmail) {
+              console.error(`Instructor ${instructorId} (${instructorDisplayName}) does not have an email address. Cannot send assignment email.`)
+            } else {
+              try {
+                const eventSlug = createEventSlug(newEvents[0].id, title, instructorName)
+                await sendInstructorAssignedEmail({
+                  instructorName: instructorDisplayName,
+                  instructorEmail,
+                  eventTitle: title,
+                  eventDate: date,
+                  eventStartTime: start_time,
+                  eventEndTime: end_time,
+                  eventLocation: location,
+                  eventSlug,
+                })
+                console.log(`Instructor assignment email sent to: ${instructorEmail}`)
+              } catch (emailError) {
+                console.error(`Failed to send instructor assignment email to ${instructorEmail}:`, emailError)
+              }
+            }
+          } else {
+            console.error(`Instructor with id ${instructorId} not found. Cannot send assignment email.`)
+          }
+        } catch (error) {
+          console.error("Error sending instructor assignment email:", error)
+          // Don't fail the event creation if email fails
+        }
+      }
+
       // Send emails only for the first event if instructor created (not published)
       if (!isPublished && instructorId && newEvents.length > 0) {
         try {
@@ -268,6 +315,53 @@ export async function createEvent(formData: FormData) {
       propId: propId || null,
       isRecurring: false,
     }).returning({ id: events.id })
+
+    // Send instructor assignment email if admin assigned an instructorId
+    if (userIsAdmin && instructorId) {
+      try {
+        // Fetch instructor details for email
+        const instructorResult = await db
+          .select({ 
+            email: users.email, 
+            displayName: users.displayName, 
+            username: users.username 
+          })
+          .from(users)
+          .where(eq(users.id, instructorId))
+          .limit(1)
+
+        if (instructorResult.length > 0) {
+          const instructorEmail = instructorResult[0].email
+          const instructorDisplayName = instructorResult[0].displayName || instructorResult[0].username
+
+          if (!instructorEmail) {
+            console.error(`Instructor ${instructorId} (${instructorDisplayName}) does not have an email address. Cannot send assignment email.`)
+          } else {
+            try {
+              const eventSlug = createEventSlug(newEvent.id, title, instructorName)
+              await sendInstructorAssignedEmail({
+                instructorName: instructorDisplayName,
+                instructorEmail,
+                eventTitle: title,
+                eventDate: date,
+                eventStartTime: start_time,
+                eventEndTime: end_time,
+                eventLocation: location,
+                eventSlug,
+              })
+              console.log(`Instructor assignment email sent to: ${instructorEmail}`)
+            } catch (emailError) {
+              console.error(`Failed to send instructor assignment email to ${instructorEmail}:`, emailError)
+            }
+          }
+        } else {
+          console.error(`Instructor with id ${instructorId} not found. Cannot send assignment email.`)
+        }
+      } catch (error) {
+        console.error("Error sending instructor assignment email:", error)
+        // Don't fail the event creation if email fails
+      }
+    }
 
     // If instructor created event (not published), send emails
     if (!isPublished && instructorId) {
@@ -796,6 +890,55 @@ export async function updateEvent(formData: FormData) {
         .update(events)
         .set(updateData)
         .where(eq(events.id, eventId))
+    }
+
+    // Send instructor assignment email if admin assigned/changed instructorId
+    const oldInstructorId = currentEvent.instructorId
+    const instructorIdChanged = oldInstructorId !== instructorId && instructorId !== null
+    if (userIsAdmin && instructorIdChanged) {
+      try {
+        // Fetch instructor details for email
+        const instructorResult = await db
+          .select({ 
+            email: users.email, 
+            displayName: users.displayName, 
+            username: users.username 
+          })
+          .from(users)
+          .where(eq(users.id, instructorId))
+          .limit(1)
+
+        if (instructorResult.length > 0) {
+          const instructorEmail = instructorResult[0].email
+          const instructorDisplayName = instructorResult[0].displayName || instructorResult[0].username
+
+          if (!instructorEmail) {
+            console.error(`Instructor ${instructorId} (${instructorDisplayName}) does not have an email address. Cannot send assignment email.`)
+          } else {
+            try {
+              const eventSlug = createEventSlug(eventId, title, instructorName)
+              await sendInstructorAssignedEmail({
+                instructorName: instructorDisplayName,
+                instructorEmail,
+                eventTitle: title,
+                eventDate: date,
+                eventStartTime: start_time,
+                eventEndTime: end_time,
+                eventLocation: location,
+                eventSlug,
+              })
+              console.log(`Instructor assignment email sent to: ${instructorEmail}`)
+            } catch (emailError) {
+              console.error(`Failed to send instructor assignment email to ${instructorEmail}:`, emailError)
+            }
+          }
+        } else {
+          console.error(`Instructor with id ${instructorId} not found. Cannot send assignment email.`)
+        }
+      } catch (error) {
+        console.error("Error sending instructor assignment email:", error)
+        // Don't fail the update if email fails
+      }
     }
 
     // If admin is publishing an event that was unpublished, send approval email

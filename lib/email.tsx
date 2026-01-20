@@ -8,6 +8,7 @@ import { EventApprovedEmail } from "@/emails/event-approved";
 import { AdminEventPendingEmail } from "@/emails/admin-event-pending";
 import { EventCommentNotificationEmail } from "@/emails/event-comment-notification";
 import { EventCancelledEmail } from "@/emails/event-cancelled";
+import { InstructorAssignedEmail } from "@/emails/instructor-assigned";
 
 type BookingConfirmationEmailProps = {
   participantName: string;
@@ -524,6 +525,114 @@ The Paradise Circus Team
     console.log("Event cancellation email sent to:", participantEmail);
   } catch (error) {
     console.error("Failed to send event cancellation email:", error);
+    throw error;
+  }
+
+  return { success: true };
+}
+
+type InstructorAssignedEmailProps = {
+  instructorName: string;
+  instructorEmail: string;
+  eventTitle: string;
+  eventDate: string;
+  eventStartTime: string;
+  eventEndTime: string;
+  eventLocation: string;
+  eventSlug: string;
+};
+
+// Helper function to format date for instructor assignment email
+function formatDateForInstructorAssignment(dateString: string) {
+  const date = new Date(dateString);
+  return date.toLocaleDateString("en-US", {
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+  });
+}
+
+// Helper function to format time for instructor assignment email
+function formatTimeForInstructorAssignment(time: string) {
+  const [hours, minutes] = time.split(":");
+  const hour = Number.parseInt(hours);
+  const ampm = hour >= 12 ? "PM" : "AM";
+  const displayHour = hour % 12 || 12;
+  return `${displayHour}:${minutes} ${ampm}`;
+}
+
+export async function sendInstructorAssignedEmail(
+  props: InstructorAssignedEmailProps,
+) {
+  const { instructorEmail, instructorName, eventTitle, eventDate, eventStartTime, eventEndTime, eventLocation, eventSlug } = props;
+
+  // Render React Email component to HTML
+  const emailHtml = await render(
+    <InstructorAssignedEmail
+      instructorName={instructorName}
+      eventTitle={eventTitle}
+      eventDate={eventDate}
+      eventStartTime={eventStartTime}
+      eventEndTime={eventEndTime}
+      eventLocation={eventLocation}
+      eventSlug={eventSlug}
+    />
+  );
+
+  // Generate plain text version
+  const formattedDate = formatDateForInstructorAssignment(eventDate);
+
+  const appUrl =
+    process.env.NEXT_PUBLIC_APP_URL || "https://paradise-circus.app";
+  const editUrl = `${appUrl}/event/${eventSlug}/edit`;
+
+  const emailText = `
+Paradise Circus - Event Assignment
+
+Dear ${instructorName},
+
+You have been assigned as the instructor for the event/workshop "${eventTitle}".
+
+Event Details:
+- Title: ${eventTitle}
+- Date: ${formattedDate}
+- Time: ${formatTimeForInstructorAssignment(eventStartTime)} - ${formatTimeForInstructorAssignment(eventEndTime)}
+- Location: ${eventLocation}
+
+Your Rights & Responsibilities:
+As the assigned instructor, you now have the rights to edit this event's description, time, and date.
+
+Important: When changing the time or date, please be mindful that you don't take the spot of someone else. Always consult with the person who has the spot to see whether they are willing to share the space before making any changes.
+
+Edit Event: ${editUrl}
+
+Thank you for being part of the Paradise Circus community!
+
+The Paradise Circus Team
+  `.trim();
+
+  // Send email via Resend
+  if (!process.env.RESEND_API_KEY) {
+    console.error("RESEND_API_KEY is not set. Email will not be sent.");
+    return { success: false, error: "Email service not configured" };
+  }
+
+  try {
+    const resend = new Resend(process.env.RESEND_API_KEY);
+    const fromEmail = process.env.RESEND_FROM_EMAIL || "onboarding@resend.dev";
+
+    await resend.emails.send({
+      from: fromEmail,
+      to: instructorEmail,
+      subject: `You've Been Assigned: ${eventTitle}`,
+      html: emailHtml,
+      text: emailText,
+    });
+
+    console.log("Instructor assignment email sent to:", instructorEmail);
+  } catch (error) {
+    console.error("Failed to send instructor assignment email:", error);
     throw error;
   }
 
