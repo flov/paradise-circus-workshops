@@ -1,8 +1,9 @@
 import { notFound } from "next/navigation";
-import { getUserByUsername, getUserProps } from "@/app/profile/actions";
+import { getUserByUsername, getUserProps, getUserWorkshops } from "@/app/profile/actions";
 import { getYouTubeEmbedUrl, getVimeoEmbedUrl } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { EventCard } from "@/components/event-card";
 import {
   MapPin,
   Instagram,
@@ -10,6 +11,7 @@ import {
   Video,
   ExternalLink,
   Sparkles,
+  Calendar,
 } from "lucide-react";
 
 export default async function ArtistProfilePage({
@@ -26,6 +28,9 @@ export default async function ArtistProfilePage({
 
   // Get props
   const props = await getUserProps(user.id);
+
+  // Get workshops
+  const workshops = await getUserWorkshops(user.id);
 
   // Get profile image from database
   const profileImageUrl = user.avatarImageUrl || null;
@@ -158,6 +163,69 @@ export default async function ArtistProfilePage({
               </div>
             </CardContent>
           </Card>
+        )}
+
+        {/* Workshops */}
+        {(workshops.upcoming.length > 0 || workshops.past.length > 0) && (
+          <>
+            {/* Upcoming Workshops */}
+            {workshops.upcoming.length > 0 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-xl flex items-center gap-2">
+                    <Calendar className="h-5 w-5" />
+                    Upcoming Workshops
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className={`grid gap-4 ${
+                    workshops.upcoming.length === 1 
+                      ? 'grid-cols-1' 
+                      : workshops.upcoming.length === 2
+                      ? 'grid-cols-1 md:grid-cols-2'
+                      : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3'
+                  }`}>
+                    {workshops.upcoming.map((workshop) => (
+                      <EventCard
+                        key={workshop.id}
+                        event={workshop}
+                        instructorDisplayName={user.displayName || user.username}
+                      />
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Past Workshops */}
+            {workshops.past.length > 0 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-xl flex items-center gap-2">
+                    <Calendar className="h-5 w-5" />
+                    Past Workshops
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className={`grid gap-4 ${
+                    workshops.past.length === 1 
+                      ? 'grid-cols-1' 
+                      : workshops.past.length === 2
+                      ? 'grid-cols-1 md:grid-cols-2'
+                      : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3'
+                  }`}>
+                    {workshops.past.map((workshop) => (
+                      <EventCard
+                        key={workshop.id}
+                        event={workshop}
+                        instructorDisplayName={user.displayName || user.username}
+                      />
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+          </>
         )}
 
         {/* Videos */}

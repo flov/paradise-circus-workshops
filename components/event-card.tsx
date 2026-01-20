@@ -66,10 +66,6 @@ export function EventCard({ event, instructorDisplayName }: { event: Pick<Event,
             <MapPin className="h-4 w-4 shrink-0" />
             <span>{event.location}</span>
           </div>
-          <div className="flex items-center gap-2 text-muted-foreground">
-            <Users className="h-4 w-4 shrink-0" />
-            <span>Instructor: {instructorDisplayName || event.instructor || 'Unknown'}</span>
-          </div>
         </div>
 
         {isPast ? (

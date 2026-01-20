@@ -2,11 +2,12 @@
 
 import { db } from "@/db";
 import { users, userProps, props, events } from "@/db/schema";
-import { eq, asc, sql } from "drizzle-orm";
+import { eq, asc, desc, sql, and } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { auth, currentUser } from "@clerk/nextjs/server";
-import { validateUsername, extractYouTubeId, extractVimeoId, validateInstagramHandle } from "@/lib/utils";
+import { validateUsername, extractYouTubeId, extractVimeoId, validateInstagramHandle, isEventPast } from "@/lib/utils";
 import type { UserProfile, UserProp, PropOption } from "@/lib/types";
+import type { Event } from "@/db/schema";
 
 /**
  * Create a basic user record (called from onboarding)
@@ -668,5 +669,62 @@ export async function canManageEvent(eventId: number): Promise<boolean> {
   } catch (error: unknown) {
     console.error("Check event management permission error:", error);
     return false;
+  }
+}
+
+/**
+ * Get workshops for a user (both upcoming and past)
+ * @param userId - User ID from database
+ * @returns Object with upcoming and past workshops arrays
+ */
+export async function getUserWorkshops(userId: number): Promise<{
+  upcoming: Array<Pick<Event, "id" | "title" | "description" | "instructor" | "date" | "startTime" | "endTime" | "currentBookings" | "location">>;
+  past: Array<Pick<Event, "id" | "title" | "description" | "instructor" | "date" | "startTime" | "endTime" | "currentBookings" | "location">>;
+}> {
+  try {
+    const workshops = await db
+      .select({
+        id: events.id,
+        title: events.title,
+        description: events.description,
+        instructor: events.instructor,
+        date: events.date,
+        startTime: events.startTime,
+        endTime: events.endTime,
+        currentBookings: events.currentBookings,
+        location: events.location,
+      })
+      .from(events)
+      .where(
+        and(
+          eq(events.instructorId, userId),
+          eq(events.isWorkshop, true)
+        )
+      )
+      .orderBy(asc(events.date), asc(events.startTime));
+
+    const now = new Date();
+    const upcoming: typeof workshops = [];
+    const past: typeof workshops = [];
+
+    for (const workshop of workshops) {
+      if (isEventPast(workshop.date, workshop.endTime)) {
+        past.push(workshop);
+      } else {
+        upcoming.push(workshop);
+      }
+    }
+
+    // Sort past workshops in descending order (most recent first)
+    past.sort((a, b) => {
+      const dateA = new Date(`${a.date}T${a.endTime}`);
+      const dateB = new Date(`${b.date}T${b.endTime}`);
+      return dateB.getTime() - dateA.getTime();
+    });
+
+    return { upcoming, past };
+  } catch (error: unknown) {
+    console.error("Get user workshops error:", error);
+    return { upcoming: [], past: [] };
   }
 }
