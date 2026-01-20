@@ -11,6 +11,9 @@ Sentry.init({
   // Sample 100% in development, 10% in production to manage costs
   tracesSampleRate: process.env.NODE_ENV === "production" ? 0.1 : 1.0,
 
+  // Only enable Sentry in production
+  enabled: process.env.NODE_ENV === "production",
+
   // Set environment
   environment: process.env.NODE_ENV || process.env.VERCEL_ENV || "development",
 
