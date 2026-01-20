@@ -133,7 +133,7 @@ export function WeeklyTimetable({
       const endDate = formatLocalDate(dates[6]);
 
       // Build API URL with userId if available
-      const apiUrl = userId 
+      const apiUrl = userId
         ? `/api/timetable?start=${startDate}&end=${endDate}&userId=${userId}`
         : `/api/timetable?start=${startDate}&end=${endDate}`;
 
@@ -169,7 +169,8 @@ export function WeeklyTimetable({
           whatToBring: event.whatToBring,
           isWorkshop: event.isWorkshop,
           propId: event.propId || null,
-          isPublished: event.isPublished !== undefined ? event.isPublished : true,
+          isPublished:
+            event.isPublished !== undefined ? event.isPublished : true,
         });
       });
 
@@ -192,14 +193,14 @@ export function WeeklyTimetable({
     };
 
     // Listen for custom events when events are created, updated, or deleted
-    window.addEventListener('event-updated', handleEventUpdate);
-    window.addEventListener('event-created', handleEventUpdate);
-    window.addEventListener('event-deleted', handleEventUpdate);
+    window.addEventListener("event-updated", handleEventUpdate);
+    window.addEventListener("event-created", handleEventUpdate);
+    window.addEventListener("event-deleted", handleEventUpdate);
 
     return () => {
-      window.removeEventListener('event-updated', handleEventUpdate);
-      window.removeEventListener('event-created', handleEventUpdate);
-      window.removeEventListener('event-deleted', handleEventUpdate);
+      window.removeEventListener("event-updated", handleEventUpdate);
+      window.removeEventListener("event-created", handleEventUpdate);
+      window.removeEventListener("event-deleted", handleEventUpdate);
     };
   }, [loadWeekData]);
 
@@ -488,7 +489,7 @@ export function WeeklyTimetable({
                                     className={`relative block rounded transition-colors h-full ${getColorClasses()}`}
                                   >
                                     <a
-                                      href={`/event/${createEventSlug(slot.id, slot.title, slot.instructorDisplayName || slot.instructor || '')}`}
+                                      href={`/event/${createEventSlug(slot.id, slot.title, slot.instructorDisplayName || slot.instructor || "")}`}
                                       className="block p-2 pr-8"
                                     >
                                       <div className="text-sm font-medium text-foreground line-clamp-2">
@@ -500,7 +501,9 @@ export function WeeklyTimetable({
                                         )}
                                       </div>
                                       <div className="text-xs text-muted-foreground mt-0.5 line-clamp-1">
-                                        {slot.instructorDisplayName || slot.instructor || ''}
+                                        {slot.instructorDisplayName ||
+                                          slot.instructor ||
+                                          ""}
                                       </div>
                                     </a>
                                     {(isAdmin ||
@@ -516,8 +519,12 @@ export function WeeklyTimetable({
                                             id: slot.id,
                                             title: slot.title,
                                             description: slot.description,
-                                            instructor: slot.instructor || '',
-                                            instructorId: slot.instructorId !== null && slot.instructorId !== undefined ? slot.instructorId : null,
+                                            instructor: slot.instructor || "",
+                                            instructorId:
+                                              slot.instructorId !== null &&
+                                              slot.instructorId !== undefined
+                                                ? slot.instructorId
+                                                : null,
                                             date: slot.date,
                                             startTime: slot.startTime,
                                             endTime: slot.endTime,
@@ -533,6 +540,21 @@ export function WeeklyTimetable({
                                   </div>
                                 );
                               })}
+                              {/* Show "+" button if less than 4 events and user is instructor or admin */}
+                              {slots.length < 4 &&
+                                (isInstructor || isAdmin) && (
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="w-full h-8 opacity-50 hover:opacity-100 transition-opacity flex items-center justify-center hover:bg-muted/40 border border-dashed border-border"
+                                    onClick={() =>
+                                      handleAddEventClick(dayIndex, time)
+                                    }
+                                    aria-label={`Add event at ${day} ${time}`}
+                                  >
+                                    <Plus className="h-4 w-4 text-muted-foreground" />
+                                  </Button>
+                                )}
                             </div>
                           ) : (
                             <div className="p-2 h-full min-h-[60px] bg-muted/20 rounded relative group">
@@ -677,7 +699,7 @@ export function WeeklyTimetable({
                                 className={`relative block rounded-lg border-2 shadow-sm hover:shadow-md active:shadow-sm transition-all duration-150 ${getMobileColorClasses()}`}
                               >
                                 <a
-                                  href={`/event/${createEventSlug(slot.id, slot.title, slot.instructorDisplayName || slot.instructor || '')}`}
+                                  href={`/event/${createEventSlug(slot.id, slot.title, slot.instructorDisplayName || slot.instructor || "")}`}
                                   className="block p-4 pr-12 cursor-pointer"
                                 >
                                   <div className="flex justify-between items-start gap-2 mb-1">
@@ -691,13 +713,13 @@ export function WeeklyTimetable({
                                     </div>
                                     <div className="text-sm text-muted-foreground whitespace-nowrap flex-shrink-0 flex items-center gap-1">
                                       {time}
-                                      <span className={getArrowColor()}>
-                                        →
-                                      </span>
+                                      <span className={getArrowColor()}>→</span>
                                     </div>
                                   </div>
                                   <div className="text-sm text-muted-foreground">
-                                    {slot.instructorDisplayName || slot.instructor || 'Unknown'}
+                                    {slot.instructorDisplayName ||
+                                      slot.instructor ||
+                                      "Unknown"}
                                   </div>
                                 </a>
                                 {(isAdmin ||
@@ -709,21 +731,25 @@ export function WeeklyTimetable({
                                     onClick={(e) => e.stopPropagation()}
                                   >
                                     <EditEventButton
-                                        event={{
-                                          id: slot.id,
-                                          title: slot.title,
-                                          description: slot.description,
-                                          instructor: slot.instructor || '',
-                                          instructorId: slot.instructorId !== null && slot.instructorId !== undefined ? slot.instructorId : null,
-                                          date: slot.date,
-                                          startTime: slot.startTime,
-                                          endTime: slot.endTime,
-                                          location: slot.location,
-                                          whatToBring: slot.whatToBring,
-                                          isWorkshop: slot.isWorkshop,
-                                          propId: slot.propId,
-                                          isPublished: slot.isPublished,
-                                        }}
+                                      event={{
+                                        id: slot.id,
+                                        title: slot.title,
+                                        description: slot.description,
+                                        instructor: slot.instructor || "",
+                                        instructorId:
+                                          slot.instructorId !== null &&
+                                          slot.instructorId !== undefined
+                                            ? slot.instructorId
+                                            : null,
+                                        date: slot.date,
+                                        startTime: slot.startTime,
+                                        endTime: slot.endTime,
+                                        location: slot.location,
+                                        whatToBring: slot.whatToBring,
+                                        isWorkshop: slot.isWorkshop,
+                                        propId: slot.propId,
+                                        isPublished: slot.isPublished,
+                                      }}
                                     />
                                   </div>
                                 )}
