@@ -40,6 +40,7 @@ export default async function EditProfilePage() {
     performanceStyle: profile.performanceStyle ?? undefined,
     location: profile.location ?? undefined,
     youtubeVideos: profile.youtubeVideos?.join(", ") ?? undefined,
+    vimeoVideos: profile.vimeoVideos?.join(", ") ?? undefined,
     props: props.map((p) => ({
       propName: p.propName,
       skillLevel: p.skillLevel,

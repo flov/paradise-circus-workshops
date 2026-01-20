@@ -50,6 +50,7 @@ export async function EventsList() {
         bio: users.bio,
         instagramHandle: users.instagramHandle,
         youtubeVideos: users.youtubeVideos,
+        vimeoVideos: users.vimeoVideos,
         experienceStartDate: users.experienceStartDate,
         performanceStyle: users.performanceStyle,
         availableForPerformances: users.availableForPerformances,

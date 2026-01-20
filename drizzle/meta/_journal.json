@@ -127,6 +127,13 @@
       "when": 1768754189311,
       "tag": "0017_brainy_nova",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1768881576834,
+      "tag": "0018_typical_wraith",
+      "breakpoints": true
     }
   ]
 }

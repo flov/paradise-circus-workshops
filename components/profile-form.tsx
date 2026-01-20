@@ -59,6 +59,11 @@ export function ProfileForm({
       ? initialData.youtubeVideos.join(", ")
       : initialData?.youtubeVideos || "",
   );
+  const [vimeoVideos, setVimeoVideos] = useState(
+    Array.isArray(initialData?.vimeoVideos)
+      ? initialData.vimeoVideos.join(", ")
+      : initialData?.vimeoVideos || "",
+  );
   const [props, setProps] = useState<Prop[]>(initialData?.props || []);
   const [availableProps, setAvailableProps] = useState<PropOption[]>([]);
   const [instagramError, setInstagramError] = useState<string | null>(null);
@@ -147,6 +152,7 @@ export function ProfileForm({
     );
     formData.append("location", location.trim());
     formData.append("youtubeVideos", youtubeVideos.trim());
+    formData.append("vimeoVideos", vimeoVideos.trim());
     formData.append("props", JSON.stringify(filteredProps));
 
     try {
@@ -392,6 +398,21 @@ export function ProfileForm({
             />
             <p id="youtube-help" className="text-xs text-muted-foreground">
               Paste YouTube URLs or video IDs separated by commas
+            </p>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="vimeoVideos">Vimeo Videos</Label>
+            <Textarea
+              id="vimeoVideos"
+              value={vimeoVideos}
+              onChange={(e) => setVimeoVideos(e.target.value)}
+              placeholder="Enter Vimeo URLs or video IDs, separated by commas"
+              rows={3}
+              aria-describedby="vimeo-help"
+            />
+            <p id="vimeo-help" className="text-xs text-muted-foreground">
+              Paste Vimeo URLs or video IDs separated by commas
             </p>
           </div>
 

@@ -5,7 +5,7 @@ import { users, userProps, props, events } from "@/db/schema";
 import { eq, asc, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { auth, currentUser } from "@clerk/nextjs/server";
-import { validateUsername, extractYouTubeId, validateInstagramHandle } from "@/lib/utils";
+import { validateUsername, extractYouTubeId, extractVimeoId, validateInstagramHandle } from "@/lib/utils";
 import type { UserProfile, UserProp, PropOption } from "@/lib/types";
 
 /**
@@ -119,6 +119,7 @@ export async function createProfile(formData: FormData) {
       formData.get("availableForPerformances") === "true";
     const location = formData.get("location") as string;
     const youtubeVideosInput = formData.get("youtubeVideos") as string;
+    const vimeoVideosInput = formData.get("vimeoVideos") as string;
 
     // Validate username
     const validation = validateUsername(username);
@@ -150,6 +151,19 @@ export async function createProfile(formData: FormData) {
         .filter((id): id is string => id !== null);
 
       youtubeVideos = videoIds.length > 0 ? videoIds : null;
+    }
+
+    // Process Vimeo videos
+    let vimeoVideos: string[] | null = null;
+    if (vimeoVideosInput) {
+      const videoIds = vimeoVideosInput
+        .split(",")
+        .map((v) => v.trim())
+        .filter((v) => v.length > 0)
+        .map((v) => extractVimeoId(v))
+        .filter((id): id is string => id !== null);
+
+      vimeoVideos = videoIds.length > 0 ? videoIds : null;
     }
 
     // Normalize Instagram handle (remove @ if present)
@@ -223,6 +237,7 @@ export async function createProfile(formData: FormData) {
             availableForPerformances,
             location: location || null,
             youtubeVideos,
+            vimeoVideos,
             avatarImageUrl,
             updatedAt: new Date(),
           })
@@ -472,6 +487,7 @@ export async function getCurrentUserProfile(): Promise<UserProfile | null> {
         bio: users.bio,
         instagramHandle: users.instagramHandle,
         youtubeVideos: users.youtubeVideos,
+        vimeoVideos: users.vimeoVideos,
         experienceStartDate: users.experienceStartDate,
         performanceStyle: users.performanceStyle,
         availableForPerformances: users.availableForPerformances,

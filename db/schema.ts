@@ -117,6 +117,7 @@ export const users = pgTable(
     bio: text("bio"),
     instagramHandle: varchar("instagram_handle", { length: 100 }),
     youtubeVideos: text("youtube_videos").array(),
+    vimeoVideos: text("vimeo_videos").array(),
     experienceStartDate: date("experience_start_date"),
     performanceStyle: varchar("performance_style", { length: 255 }),
     availableForPerformances: boolean("available_for_performances").notNull().default(false),

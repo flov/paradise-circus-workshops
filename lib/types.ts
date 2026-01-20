@@ -29,6 +29,7 @@ export interface ProfileFormData {
   availableForPerformances: boolean;
   location?: string;
   youtubeVideos?: string;
+  vimeoVideos?: string;
   props?: Array<{
     propName: string;
     skillLevel: number;

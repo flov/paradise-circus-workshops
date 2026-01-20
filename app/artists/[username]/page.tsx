@@ -1,9 +1,9 @@
 import { notFound } from "next/navigation";
 import { getUserByUsername, getUserProps } from "@/app/profile/actions";
-import { getYouTubeEmbedUrl } from "@/lib/utils";
+import { getYouTubeEmbedUrl, getVimeoEmbedUrl } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { MapPin, Instagram, Youtube, Award } from "lucide-react";
+import { MapPin, Instagram, Award, Video } from "lucide-react";
 
 export default async function ArtistProfilePage({
   params,
@@ -136,23 +136,35 @@ export default async function ArtistProfilePage({
           </Card>
         )}
 
-        {/* YouTube Videos */}
-        {user.youtubeVideos && user.youtubeVideos.length > 0 && (
+        {/* Videos */}
+        {((user.youtubeVideos && user.youtubeVideos.length > 0) || 
+          (user.vimeoVideos && user.vimeoVideos.length > 0)) && (
           <Card>
             <CardHeader>
               <CardTitle className="text-xl flex items-center gap-2">
-                <Youtube className="h-5 w-5" />
+                <Video className="h-5 w-5" />
                 Videos
               </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {user.youtubeVideos.map((videoId, index) => (
-                  <div key={index} className="aspect-video">
+                {user.youtubeVideos?.map((videoId, index) => (
+                  <div key={`youtube-${index}`} className="aspect-video">
                     <iframe
                       src={getYouTubeEmbedUrl(videoId)}
-                      title={`Video ${index + 1}`}
+                      title={`YouTube Video ${index + 1}`}
                       allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      allowFullScreen
+                      className="w-full h-full rounded-lg"
+                    />
+                  </div>
+                ))}
+                {user.vimeoVideos?.map((videoId, index) => (
+                  <div key={`vimeo-${index}`} className="aspect-video">
+                    <iframe
+                      src={getVimeoEmbedUrl(videoId)}
+                      title={`Vimeo Video ${index + 1}`}
+                      allow="autoplay; fullscreen; picture-in-picture"
                       allowFullScreen
                       className="w-full h-full rounded-lg"
                     />

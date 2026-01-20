@@ -236,6 +236,49 @@ export function getYouTubeEmbedUrl(videoId: string): string {
 }
 
 /**
+ * Extract Vimeo video ID from various URL formats
+ * @param urlOrId - Vimeo URL or video ID
+ * @returns Video ID or null if invalid
+ */
+export function extractVimeoId(urlOrId: string): string | null {
+  if (!urlOrId || urlOrId.trim().length === 0) {
+    return null
+  }
+  
+  const trimmed = urlOrId.trim()
+  
+  // If it's already just an ID (numeric, typically 7-9 digits)
+  if (/^\d+$/.test(trimmed)) {
+    return trimmed
+  }
+  
+  // Try to extract from various Vimeo URL formats
+  const patterns = [
+    /(?:vimeo\.com\/)(\d+)/,
+    /(?:vimeo\.com\/video\/)(\d+)/,
+    /(?:player\.vimeo\.com\/video\/)(\d+)/,
+  ]
+  
+  for (const pattern of patterns) {
+    const match = trimmed.match(pattern)
+    if (match && match[1]) {
+      return match[1]
+    }
+  }
+  
+  return null
+}
+
+/**
+ * Get Vimeo embed URL from video ID
+ * @param videoId - Vimeo video ID
+ * @returns Embed URL
+ */
+export function getVimeoEmbedUrl(videoId: string): string {
+  return `https://player.vimeo.com/video/${videoId}`
+}
+
+/**
  * Calculate years of experience from a start date
  * @param startDate - Start date (string in YYYY-MM-DD format or Date object)
  * @returns Number of years of experience, or null if invalid
