@@ -7,6 +7,7 @@ import { EventPendingApprovalEmail } from "@/emails/event-pending-approval";
 import { EventApprovedEmail } from "@/emails/event-approved";
 import { AdminEventPendingEmail } from "@/emails/admin-event-pending";
 import { EventCommentNotificationEmail } from "@/emails/event-comment-notification";
+import { EventCancelledEmail } from "@/emails/event-cancelled";
 
 type BookingConfirmationEmailProps = {
   participantName: string;
@@ -426,6 +427,103 @@ The Paradise Circus Team
     console.log("Comment notification email sent to:", recipientEmail);
   } catch (error) {
     console.error("Failed to send comment notification email:", error);
+    throw error;
+  }
+
+  return { success: true };
+}
+
+type EventCancelledEmailProps = {
+  participantName: string;
+  participantEmail: string;
+  eventTitle: string;
+  eventDate: string;
+  eventStartTime: string;
+  eventEndTime: string;
+  eventLocation: string;
+  instructorName: string;
+  cancellationMessage?: string | null;
+};
+
+// Helper function to format date for cancellation email
+function formatDateForCancellation(dateString: string) {
+  const date = new Date(dateString);
+  return date.toLocaleDateString("en-US", {
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+  });
+}
+
+// Helper function to format time for cancellation email
+function formatTimeForCancellation(time: string) {
+  const [hours, minutes] = time.split(":");
+  const hour = Number.parseInt(hours);
+  const ampm = hour >= 12 ? "PM" : "AM";
+  const displayHour = hour % 12 || 12;
+  return `${displayHour}:${minutes} ${ampm}`;
+}
+
+export async function sendEventCancelledEmail(
+  props: EventCancelledEmailProps,
+) {
+  const { participantEmail, participantName, eventTitle, eventDate, eventStartTime, eventEndTime, eventLocation, instructorName, cancellationMessage } = props;
+
+  // Render React Email component to HTML
+  const emailHtml = await render(<EventCancelledEmail {...props} />);
+
+  // Generate plain text version
+  const formattedDate = formatDateForCancellation(eventDate);
+
+  const emailText = `
+Paradise Circus - Event Cancellation Notice
+
+Dear ${participantName},
+
+We regret to inform you that the following event has been cancelled:
+
+Event Details:
+- Title: ${eventTitle}
+- Date: ${formattedDate}
+- Time: ${formatTimeForCancellation(eventStartTime)} - ${formatTimeForCancellation(eventEndTime)}
+- Location: ${eventLocation}
+- Instructor: ${instructorName}
+${cancellationMessage ? `
+Message from the Instructor:
+${cancellationMessage}
+` : ""}
+What happens next:
+- Your booking has been automatically cancelled
+- If you have any questions or concerns, please don't hesitate to reach out to us
+- We apologize for any inconvenience this may cause
+
+We hope to see you at future Paradise Circus events!
+
+The Paradise Circus Team
+  `.trim();
+
+  // Send email via Resend
+  if (!process.env.RESEND_API_KEY) {
+    console.error("RESEND_API_KEY is not set. Email will not be sent.");
+    return { success: false, error: "Email service not configured" };
+  }
+
+  try {
+    const resend = new Resend(process.env.RESEND_API_KEY);
+    const fromEmail = process.env.RESEND_FROM_EMAIL || "onboarding@resend.dev";
+
+    await resend.emails.send({
+      from: fromEmail,
+      to: participantEmail,
+      subject: `Event Cancelled: ${eventTitle}`,
+      html: emailHtml,
+      text: emailText,
+    });
+
+    console.log("Event cancellation email sent to:", participantEmail);
+  } catch (error) {
+    console.error("Failed to send event cancellation email:", error);
     throw error;
   }
 

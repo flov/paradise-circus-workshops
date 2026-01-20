@@ -45,9 +45,9 @@ export function EditEventButton({ event }: { event: Pick<Event, "id" | "title" |
     }
   }
 
-  async function handleDelete(eventId: number) {
+  async function handleDelete(eventId: number, cancellationMessage?: string | null) {
     try {
-      await deleteEvent(eventId)
+      await deleteEvent(eventId, cancellationMessage)
       setOpen(false)
       router.refresh()
       // Dispatch custom event to notify WeeklyTimetable to refresh

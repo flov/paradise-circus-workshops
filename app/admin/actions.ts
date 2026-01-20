@@ -7,7 +7,7 @@ import { revalidatePath } from "next/cache"
 import { createEventSlug } from "@/lib/utils"
 import { auth } from "@clerk/nextjs/server"
 import { isAdmin, isInstructor, getAllAdmins } from "@/app/profile/actions"
-import { sendEventPendingApprovalEmail, sendAdminEventPendingEmail, sendEventApprovedEmail } from "@/lib/email"
+import { sendEventPendingApprovalEmail, sendAdminEventPendingEmail, sendEventApprovedEmail, sendEventCancelledEmail } from "@/lib/email"
 import { randomUUID } from "crypto"
 
 export async function createEvent(formData: FormData) {
@@ -858,7 +858,7 @@ export async function updateEvent(formData: FormData) {
   }
 }
 
-export async function deleteEvent(eventId: number) {
+export async function deleteEvent(eventId: number, cancellationMessage?: string | null) {
   // Check authentication
   const { userId } = await auth()
   
@@ -910,6 +910,71 @@ export async function deleteEvent(eventId: number) {
   }
 
   try {
+    // Fetch event details with instructor info before deletion
+    const eventResults = await db
+      .select({
+        id: events.id,
+        title: events.title,
+        date: events.date,
+        startTime: events.startTime,
+        endTime: events.endTime,
+        location: events.location,
+        instructor: events.instructor,
+        instructorId: events.instructorId,
+        instructorProfile: {
+          displayName: users.displayName,
+          username: users.username,
+        },
+      })
+      .from(events)
+      .leftJoin(users, eq(events.instructorId, users.id))
+      .where(eq(events.id, eventId))
+      .limit(1)
+
+    if (eventResults.length === 0) {
+      throw new Error("Event not found.")
+    }
+
+    const event = eventResults[0]
+    
+    // Get instructor name (prefer displayName, fallback to username, then instructor string)
+    const instructorName = event.instructorProfile
+      ? (event.instructorProfile.displayName || event.instructorProfile.username)
+      : event.instructor || "Unknown Instructor"
+
+    // Fetch all bookings for this event
+    const eventBookings = await db
+      .select({
+        participantName: bookings.participantName,
+        participantEmail: bookings.participantEmail,
+      })
+      .from(bookings)
+      .where(eq(bookings.eventId, eventId))
+
+    // Send cancellation emails to all participants
+    if (eventBookings.length > 0) {
+      const emailPromises = eventBookings.map((booking) =>
+        sendEventCancelledEmail({
+          participantName: booking.participantName,
+          participantEmail: booking.participantEmail,
+          eventTitle: event.title,
+          eventDate: event.date,
+          eventStartTime: event.startTime,
+          eventEndTime: event.endTime,
+          eventLocation: event.location || "",
+          instructorName: instructorName,
+          cancellationMessage: cancellationMessage || null,
+        }).catch((error) => {
+          // Log error but don't fail the deletion if email fails
+          console.error(`Failed to send cancellation email to ${booking.participantEmail}:`, error)
+        })
+      )
+
+      // Wait for all emails to be sent (or fail gracefully)
+      await Promise.allSettled(emailPromises)
+    }
+
+    // Delete the event (this will cascade delete bookings due to foreign key constraint)
     await db.delete(events).where(eq(events.id, eventId))
 
     revalidatePath("/admin")

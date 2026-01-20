@@ -46,7 +46,7 @@ type EventFormProps = {
   error: string | null
   submitButtonText?: string
   submittingText?: string
-  onDelete?: (eventId: number) => Promise<void>
+  onDelete?: (eventId: number, cancellationMessage?: string | null) => Promise<void>
   eventTitle?: string
 }
 
@@ -70,6 +70,7 @@ export function EventForm({
   const [recurUntil, setRecurUntil] = useState<string>(initialValues?.recurUntil || "")
   const [isDeleting, setIsDeleting] = useState(false)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [cancellationMessage, setCancellationMessage] = useState("")
   
   // Initialize date state
   const getInitialDate = (): string => {
@@ -207,12 +208,21 @@ export function EventForm({
     
     setIsDeleting(true)
     try {
-      await onDelete(initialValues.id)
+      await onDelete(initialValues.id, cancellationMessage.trim() || null)
       setDeleteDialogOpen(false)
+      setCancellationMessage("")
     } catch (err) {
       console.error("Failed to delete event:", err)
     } finally {
       setIsDeleting(false)
+    }
+  }
+
+  function handleDeleteDialogOpenChange(newOpen: boolean) {
+    setDeleteDialogOpen(newOpen)
+    if (!newOpen) {
+      // Reset cancellation message when dialog closes
+      setCancellationMessage("")
     }
   }
 
@@ -535,7 +545,7 @@ export function EventForm({
 
       <div className="flex justify-between gap-3">
         {onDelete && initialValues?.id ? (
-          <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+          <AlertDialog open={deleteDialogOpen} onOpenChange={handleDeleteDialogOpenChange}>
             <AlertDialogTrigger asChild>
               <Button 
                 type="button" 
@@ -555,14 +565,31 @@ export function EventForm({
                 )}
               </Button>
             </AlertDialogTrigger>
-            <AlertDialogContent>
+            <AlertDialogContent className="max-w-md">
               <AlertDialogHeader>
                 <AlertDialogTitle>Delete Event</AlertDialogTitle>
                 <AlertDialogDescription>
-                  Are you sure you want to delete "{eventTitle || initialValues.title || 'this event'}"? This will also delete all associated bookings. This
+                  Are you sure you want to delete "{eventTitle || initialValues.title || 'this event'}"? This will also delete all associated bookings and send cancellation emails to all participants. This
                   action cannot be undone.
                 </AlertDialogDescription>
               </AlertDialogHeader>
+              <div className="space-y-2 py-4">
+                <Label htmlFor="cancellation-message-form">
+                  Cancellation Message (Optional)
+                </Label>
+                <Textarea
+                  id="cancellation-message-form"
+                  placeholder="Add a message to inform participants about why this event was cancelled..."
+                  value={cancellationMessage}
+                  onChange={(e) => setCancellationMessage(e.target.value)}
+                  disabled={isDeleting}
+                  rows={4}
+                  className="resize-none"
+                />
+                <p className="text-sm text-muted-foreground">
+                  This message will be included in the cancellation email sent to all participants.
+                </p>
+              </div>
               <AlertDialogFooter>
                 <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
                 <AlertDialogAction
@@ -576,7 +603,7 @@ export function EventForm({
                       Deleting...
                     </>
                   ) : (
-                    "Delete"
+                    "Delete Event"
                   )}
                 </AlertDialogAction>
               </AlertDialogFooter>
