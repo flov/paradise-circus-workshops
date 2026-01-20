@@ -17,11 +17,11 @@ const badgeVariants = cva(
           'border-transparent bg-destructive text-white [a&]:hover:bg-destructive/90 focus-visible:ring-destructive/20 dark:focus-visible:ring-destructive/40 dark:bg-destructive/60',
         outline:
           'text-foreground [a&]:hover:bg-accent [a&]:hover:text-accent-foreground',
-        third:
+        pink:
           'border-pink-500/20 bg-pink-500/10 text-pink-700 dark:text-pink-400 [a&]:hover:bg-pink-500/20',
-        fourth:
+        purple:
           'border-purple-500/20 bg-gradient-to-r from-purple-500/10 to-pink-500/10 text-purple-700 dark:text-purple-400 [a&]:hover:from-purple-500/20 [a&]:hover:to-pink-500/20',
-        fifth:
+        amber:
           'border-amber-500/20 bg-amber-500/10 text-amber-700 dark:text-amber-400 [a&]:hover:bg-amber-500/20',
       },
     },

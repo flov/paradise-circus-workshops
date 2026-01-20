@@ -63,7 +63,7 @@ function ArtistCard({ artist }: { artist: Artist }) {
           {/* @ts-expect-error - undefined > 0 evaluates to false, preventing 0 from being displayed */}
           {artist?.workshopCount > 0 && (
             <Badge
-              variant="fourth"
+              variant="purple"
               className="h-5 text-[10px] px-1.5 gap-0.5"
             >
               <Eye className="size-2.5" />
@@ -74,7 +74,7 @@ function ArtistCard({ artist }: { artist: Artist }) {
           {/* @ts-expect-error - undefined > 0 evaluates to false, preventing 0 from being displayed */}
           {artist?.videoCount > 0 && (
             <Badge
-              variant="fourth"
+              variant="purple"
               className="h-5 text-[10px] px-1.5 gap-0.5"
             >
               <Video className="size-2.5" />
@@ -83,18 +83,18 @@ function ArtistCard({ artist }: { artist: Artist }) {
             </Badge>
           )}
           {artist.patreonPage && (
-            <Badge variant="third" className="h-5 text-[10px] px-1.5 gap-0.5">
+            <Badge variant="pink" className="h-5 text-[10px] px-1.5 gap-0.5">
               <Heart className="size-2.5" />
               Patreon
             </Badge>
           )}
           {artist.instagramHandle && (
-            <Badge variant="fourth" className="h-5 text-[10px] px-1.5 gap-0.5">
+            <Badge variant="purple" className="h-5 text-[10px] px-1.5 gap-0.5">
               <Instagram className="size-2.5" />
             </Badge>
           )}
           {artist.availableForPerformances && (
-            <Badge variant="fifth" className="h-5 text-[10px] px-1.5 gap-0.5">
+            <Badge variant="amber" className="h-5 text-[10px] px-1.5 gap-0.5">
               <Sparkles className="size-2.5" />
               Available
             </Badge>
