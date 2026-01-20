@@ -1,29 +1,29 @@
 import { db } from "@/db"
-import { bookings, events } from "@/db/schema"
+import { participations, events } from "@/db/schema"
 import { eq, desc } from "drizzle-orm"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { DeleteBookingButton } from "./delete-booking-button"
 
 export async function BookingsList() {
-  const bookingsList = await db
+  const participationsList = await db
     .select({
-      id: bookings.id,
-      eventId: bookings.eventId,
-      participantName: bookings.participantName,
-      participantEmail: bookings.participantEmail,
-      phone: bookings.phone,
-      bookingDate: bookings.bookingDate,
+      id: participations.id,
+      eventId: participations.eventId,
+      participantName: participations.participantName,
+      participantEmail: participations.participantEmail,
+      phone: participations.phone,
+      participationDate: participations.participationDate,
       eventTitle: events.title,
       eventDate: events.date,
       eventStartTime: events.startTime,
     })
-    .from(bookings)
-    .innerJoin(events, eq(bookings.eventId, events.id))
-    .orderBy(desc(bookings.bookingDate))
+    .from(participations)
+    .innerJoin(events, eq(participations.eventId, events.id))
+    .orderBy(desc(participations.participationDate))
 
-  if (bookingsList.length === 0) {
-    return <div className="text-center py-8 text-muted-foreground">No bookings found.</div>
+  if (participationsList.length === 0) {
+    return <div className="text-center py-8 text-muted-foreground">No participations found.</div>
   }
 
   const formatDate = (dateStr: string) => {
@@ -47,37 +47,37 @@ export async function BookingsList() {
             <TableHead>Participant</TableHead>
             <TableHead>Event</TableHead>
             <TableHead>Date & Time</TableHead>
-            <TableHead>Booked On</TableHead>
+            <TableHead>Participated On</TableHead>
             <TableHead>Contact</TableHead>
             <TableHead className="text-right">Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
-          {bookingsList.map((booking) => {
+          {participationsList.map((participation) => {
             // Combine date and start time to create a proper datetime for comparison
-            const eventDateTime = new Date(`${booking.eventDate}T${booking.eventStartTime}`)
+            const eventDateTime = new Date(`${participation.eventDate}T${participation.eventStartTime}`)
             const isPast = eventDateTime < new Date()
 
             return (
-              <TableRow key={booking.id}>
-                <TableCell className="font-medium">{booking.participantName}</TableCell>
+              <TableRow key={participation.id}>
+                <TableCell className="font-medium">{participation.participantName}</TableCell>
                 <TableCell>
                   <div className="flex items-center gap-2">
-                    <span className="text-sm">{booking.eventTitle}</span>
+                    <span className="text-sm">{participation.eventTitle}</span>
                     {isPast && <Badge variant="secondary">Past</Badge>}
                   </div>
                 </TableCell>
                 <TableCell className="text-sm">
-                  <div>{formatDate(booking.eventDate)}</div>
-                  <div className="text-muted-foreground">{formatTime(booking.eventStartTime)}</div>
+                  <div>{formatDate(participation.eventDate)}</div>
+                  <div className="text-muted-foreground">{formatTime(participation.eventStartTime)}</div>
                 </TableCell>
-                <TableCell className="text-sm text-muted-foreground">{formatDate(booking.bookingDate.toISOString())}</TableCell>
+                <TableCell className="text-sm text-muted-foreground">{formatDate(participation.participationDate.toISOString())}</TableCell>
                 <TableCell className="text-sm">
-                  <div>{booking.participantEmail}</div>
-                  {booking.phone && <div className="text-muted-foreground">{booking.phone}</div>}
+                  <div>{participation.participantEmail}</div>
+                  {participation.phone && <div className="text-muted-foreground">{participation.phone}</div>}
                 </TableCell>
                 <TableCell className="text-right">
-                  <DeleteBookingButton bookingId={booking.id} eventId={booking.eventId} />
+                  <DeleteBookingButton bookingId={participation.id} eventId={participation.eventId} />
                 </TableCell>
               </TableRow>
             )

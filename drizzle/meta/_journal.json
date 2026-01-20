@@ -141,6 +141,13 @@
       "when": 1768896678214,
       "tag": "0019_aspiring_iron_patriot",
       "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1768904415295,
+      "tag": "0020_rename_bookings_to_participations",
+      "breakpoints": true
     }
   ]
 }

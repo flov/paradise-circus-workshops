@@ -76,7 +76,7 @@ export function EventCard({ event, instructorDisplayName }: { event: Pick<Event,
           </div>
         ) : (
           <Link href={`/event/${createEventSlug(event.id, event.title, instructorDisplayName || event.instructor || '')}`} className="mt-auto">
-            <Button className="w-full">Book Now</Button>
+            <Button className="w-full">Participate</Button>
           </Link>
         )}
       </CardContent>

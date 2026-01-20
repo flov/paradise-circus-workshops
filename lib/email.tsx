@@ -19,7 +19,7 @@ type BookingConfirmationEmailProps = {
   eventEndTime: string;
   eventLocation: string;
   instructorName: string;
-  bookingId: number;
+  participationId: number;
   confirmationToken: string;
   whatToBring?: string | null;
 };
@@ -34,7 +34,7 @@ const generatePlainText = (props: BookingConfirmationEmailProps) => {
     eventEndTime,
     eventLocation,
     instructorName,
-    bookingId,
+    participationId,
     confirmationToken,
     whatToBring,
   } = props;
@@ -95,13 +95,13 @@ Important Information:
 - All equipment will be provided
 - Contact us if you need to make any changes
 
-View your booking details: ${appUrl}/booking-confirmation/${confirmationToken}
+View your participation details: ${appUrl}/booking-confirmation/${confirmationToken}
 
-Cancel this booking: ${appUrl}/api/cancel-booking?id=${bookingId}
+Cancel this participation: ${appUrl}/api/cancel-booking?id=${participationId}
 
 We're excited to see you at the event!
 
-Booking Reference: #${bookingId}
+Participation Reference: #${participationId}
 
 The Paradise Circus Team
   `.trim();
@@ -161,8 +161,11 @@ type AdminNotificationEmailProps = {
   eventTitle: string;
   eventDate: string;
   eventStartTime: string;
-  bookingId: number;
+  participationId: number;
 };
+
+// Re-export types from email components for consistency
+export type { AdminNotificationEmailProps as AdminNotificationEmailPropsType };
 
 export async function sendAdminNotificationEmail(
   props: AdminNotificationEmailProps,

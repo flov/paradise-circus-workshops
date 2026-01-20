@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
-import { bookings, events, users } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { generateICSFile } from "@/lib/calendar";
 
@@ -13,25 +12,25 @@ export async function GET(
 
     if (!token || token.length === 0) {
       return NextResponse.json(
-        { error: "Invalid booking token" },
+        { error: "Invalid participation token" },
         { status: 400 }
       );
     }
 
-    // Fetch booking and event data
-    const bookingResults = await db
+    // Fetch participation and event data
+    const participationResults = await db
       .select()
-      .from(bookings)
-      .where(eq(bookings.confirmationToken, token));
+      .from(participations)
+      .where(eq(participations.confirmationToken, token));
 
-    if (bookingResults.length === 0) {
+    if (participationResults.length === 0) {
       return NextResponse.json(
-        { error: "Booking not found" },
+        { error: "Participation not found" },
         { status: 404 }
       );
     }
 
-    const booking = bookingResults[0];
+    const participation = participationResults[0];
 
     const eventResults = await db
       .select({
@@ -52,7 +51,7 @@ export async function GET(
       })
       .from(events)
       .leftJoin(users, eq(events.instructorId, users.id))
-      .where(eq(events.id, booking.eventId));
+      .where(eq(events.id, participation.eventId));
 
     if (eventResults.length === 0) {
       return NextResponse.json(
@@ -76,8 +75,8 @@ export async function GET(
       instructor: instructorName,
       description: event.description,
       whatToBring: event.whatToBring,
-      bookingId: booking.id,
-      confirmationToken: booking.confirmationToken,
+      participationId: participation.id,
+      confirmationToken: participation.confirmationToken,
     });
 
     // Sanitize title for filename
@@ -87,7 +86,7 @@ export async function GET(
       .toLowerCase()
       .substring(0, 50);
 
-    const filename = `event-${booking.id}-${sanitizedTitle}.ics`;
+    const filename = `event-${participation.id}-${sanitizedTitle}.ics`;
 
     // Return .ics file with proper headers
     return new NextResponse(icsContent, {

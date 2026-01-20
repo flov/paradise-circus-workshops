@@ -1,5 +1,5 @@
 import { db } from "@/db";
-import { events, bookings } from "@/db/schema";
+import { events, participations } from "@/db/schema";
 import { count, gte, lte, sql, and } from "drizzle-orm";
 import {
   Card,
@@ -58,7 +58,7 @@ export default async function AdminPage() {
   const { startDate: weekStart, endDate: weekEnd } = getCurrentWeekRange();
 
   const totalEvents = await db.select({ count: count() }).from(events);
-  const totalBookings = await db.select({ count: count() }).from(bookings);
+  const totalParticipations = await db.select({ count: count() }).from(participations);
   const upcomingEvents = await db
     .select({ count: count() })
     .from(events)
@@ -77,7 +77,7 @@ export default async function AdminPage() {
 
   const dashboardStats = {
     total_events: totalEvents[0]?.count || 0,
-    total_bookings: totalBookings[0]?.count || 0,
+    total_bookings: totalParticipations[0]?.count || 0,
     upcoming_events: upcomingEvents[0]?.count || 0,
     instructors_this_week: Number(instructorsThisWeek[0]?.count) || 0,
     total_instructors: Number(totalInstructors[0]?.count) || 0,
@@ -119,7 +119,7 @@ export default async function AdminPage() {
         <Tabs defaultValue="events" className="space-y-4">
           <TabsList>
             <TabsTrigger value="events">Events</TabsTrigger>
-            <TabsTrigger value="bookings">Bookings</TabsTrigger>
+            <TabsTrigger value="bookings">Participations</TabsTrigger>
             <TabsTrigger value="statistics">Statistics</TabsTrigger>
           </TabsList>
 
@@ -140,9 +140,9 @@ export default async function AdminPage() {
           <TabsContent value="bookings" className="space-y-4">
             <Card>
               <CardHeader>
-                <CardTitle>Manage Bookings</CardTitle>
+                <CardTitle>Manage Participations</CardTitle>
                 <CardDescription>
-                  View and manage participant bookings
+                  View and manage participant participations
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -192,7 +192,7 @@ export default async function AdminPage() {
                   <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                       <CardTitle className="text-sm font-medium">
-                        Total Bookings
+                        Total Participations
                       </CardTitle>
                       <Users className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>

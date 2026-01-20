@@ -43,11 +43,11 @@ export function CancelBookingButton({
         router.push("/")
         router.refresh()
       } else {
-        setError(result.error || "Failed to cancel booking")
+        setError(result.error || "Failed to cancel participation")
       }
     } catch (err) {
       setError("An unexpected error occurred. Please try again.")
-      console.error("Failed to cancel booking:", err)
+      console.error("Failed to cancel participation:", err)
     } finally {
       setIsCancelling(false)
     }
@@ -57,14 +57,14 @@ export function CancelBookingButton({
     <AlertDialog open={open} onOpenChange={setOpen}>
       <AlertDialogTrigger asChild>
         <Button variant={variant} className={className}>
-          Cancel Booking
+          Cancel Participation
         </Button>
       </AlertDialogTrigger>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>Cancel Booking</AlertDialogTitle>
+          <AlertDialogTitle>Cancel Participation</AlertDialogTitle>
           <AlertDialogDescription>
-            Are you sure you want to cancel this booking? This action cannot be undone and your spot will be released.
+            Are you sure you want to cancel this participation? This action cannot be undone and your spot will be released.
           </AlertDialogDescription>
         </AlertDialogHeader>
         {error && (
@@ -73,7 +73,7 @@ export function CancelBookingButton({
           </div>
         )}
         <AlertDialogFooter>
-          <AlertDialogCancel disabled={isCancelling}>Keep Booking</AlertDialogCancel>
+          <AlertDialogCancel disabled={isCancelling}>Keep Participation</AlertDialogCancel>
           <AlertDialogAction
             onClick={handleCancel}
             disabled={isCancelling}
@@ -85,7 +85,7 @@ export function CancelBookingButton({
                 Cancelling...
               </>
             ) : (
-              "Cancel Booking"
+              "Cancel Participation"
             )}
           </AlertDialogAction>
         </AlertDialogFooter>

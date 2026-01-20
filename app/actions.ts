@@ -2,7 +2,7 @@
 
 import { randomUUID } from "crypto"
 import { db } from "@/db"
-import { events, bookings } from "@/db/schema"
+import { events, participations } from "@/db/schema"
 import { eq, sql, and } from "drizzle-orm"
 import { revalidatePath } from "next/cache"
 import { sendBookingConfirmationEmail, sendAdminNotificationEmail, sendCommentNotificationEmail } from "@/lib/email"
@@ -14,7 +14,7 @@ export async function createBooking(formData: FormData) {
   const { userId } = await auth()
   
   if (!userId) {
-    return { success: false, error: "You must be signed in to book an event" }
+    return { success: false, error: "You must be signed in to participate in an event" }
   }
 
   const user = await currentUser()
@@ -84,9 +84,9 @@ export async function createBooking(formData: FormData) {
     // Generate confirmation token
     const confirmationToken = randomUUID()
 
-    // Create booking
-    const bookingResults = await db
-      .insert(bookings)
+    // Create participation
+    const participationResults = await db
+      .insert(participations)
       .values({
         eventId: parseInt(eventId),
         clerkUserId: userId,
@@ -96,10 +96,10 @@ export async function createBooking(formData: FormData) {
         notes: notes || null,
         confirmationToken,
       })
-      .returning({ id: bookings.id, confirmationToken: bookings.confirmationToken })
+      .returning({ id: participations.id, confirmationToken: participations.confirmationToken })
 
-    const bookingId = bookingResults[0].id
-    const token = bookingResults[0].confirmationToken
+    const participationId = participationResults[0].id
+    const token = participationResults[0].confirmationToken
 
     // Update event booking count
     await db
@@ -117,7 +117,7 @@ export async function createBooking(formData: FormData) {
         eventEndTime: event.endTime,
         eventLocation: event.location || "",
         instructorName: event.instructor,
-        bookingId,
+        participationId,
         confirmationToken: token,
         whatToBring: event.whatToBring,
       })
@@ -134,7 +134,7 @@ export async function createBooking(formData: FormData) {
         eventTitle: event.title,
         eventDate: event.date,
         eventStartTime: event.startTime,
-        bookingId,
+        participationId,
       })
     } catch (emailError) {
       console.error("Failed to send admin notification:", emailError)
@@ -145,40 +145,40 @@ export async function createBooking(formData: FormData) {
     revalidatePath("/")
     revalidatePath(`/event/${createEventSlug(parseInt(eventId), event.title, event.instructor)}`)
 
-    return { success: true, bookingId, confirmationToken: token }
+    return { success: true, participationId, confirmationToken: token }
   } catch (error) {
-    console.error("Booking error:", error)
-    return { success: false, error: "Failed to create booking" }
+    console.error("Participation error:", error)
+    return { success: false, error: "Failed to create participation" }
   }
 }
 
-export async function cancelBooking(bookingId: number) {
+export async function cancelBooking(participationId: number) {
   const { userId } = await auth()
   
   if (!userId) {
-    return { success: false, error: "You must be signed in to cancel a booking" }
+    return { success: false, error: "You must be signed in to cancel a participation" }
   }
 
   try {
-    // Find the booking and verify ownership
-    const bookingResults = await db
+    // Find the participation and verify ownership
+    const participationResults = await db
       .select({
-        id: bookings.id,
-        eventId: bookings.eventId,
-        clerkUserId: bookings.clerkUserId,
+        id: participations.id,
+        eventId: participations.eventId,
+        clerkUserId: participations.clerkUserId,
       })
-      .from(bookings)
-      .where(eq(bookings.id, bookingId))
+      .from(participations)
+      .where(eq(participations.id, participationId))
 
-    if (bookingResults.length === 0) {
-      return { success: false, error: "Booking not found" }
+    if (participationResults.length === 0) {
+      return { success: false, error: "Participation not found" }
     }
 
-    const booking = bookingResults[0]
+    const participation = participationResults[0]
 
     // Verify ownership via clerkUserId
-    if (!booking.clerkUserId || booking.clerkUserId !== userId) {
-      return { success: false, error: "Unauthorized. You can only cancel your own bookings." }
+    if (!participation.clerkUserId || participation.clerkUserId !== userId) {
+      return { success: false, error: "Unauthorized. You can only cancel your own participations." }
     }
 
     // Fetch event details for revalidation
@@ -188,27 +188,27 @@ export async function cancelBooking(bookingId: number) {
         instructor: events.instructor,
       })
       .from(events)
-      .where(eq(events.id, booking.eventId))
+      .where(eq(events.id, participation.eventId))
 
-    // Delete the booking
-    await db.delete(bookings).where(eq(bookings.id, bookingId))
+    // Delete the participation
+    await db.delete(participations).where(eq(participations.id, participationId))
 
-    // Update event booking count
+    // Update event participation count
     await db
       .update(events)
       .set({ currentBookings: sql`${events.currentBookings} - 1` })
-      .where(eq(events.id, booking.eventId))
+      .where(eq(events.id, participation.eventId))
 
     // Revalidate relevant pages
     revalidatePath("/")
     if (eventResults.length > 0) {
-      revalidatePath(`/event/${createEventSlug(booking.eventId, eventResults[0].title, eventResults[0].instructor)}`)
+      revalidatePath(`/event/${createEventSlug(participation.eventId, eventResults[0].title, eventResults[0].instructor)}`)
     }
 
     return { success: true }
   } catch (error) {
-    console.error("Cancel booking error:", error)
-    return { success: false, error: "Failed to cancel booking" }
+    console.error("Cancel participation error:", error)
+    return { success: false, error: "Failed to cancel participation" }
   }
 }
 
@@ -216,29 +216,29 @@ export async function cancelBookingByEvent(eventId: number) {
   const { userId } = await auth()
   
   if (!userId) {
-    return { success: false, error: "You must be signed in to cancel a booking" }
+    return { success: false, error: "You must be signed in to cancel a participation" }
   }
 
   try {
-    // Find the user's booking for this event
-    const bookingResults = await db
+    // Find the user's participation for this event
+    const participationResults = await db
       .select({
-        id: bookings.id,
-        eventId: bookings.eventId,
+        id: participations.id,
+        eventId: participations.eventId,
       })
-      .from(bookings)
+      .from(participations)
       .where(
         and(
-          eq(bookings.eventId, eventId),
-          eq(bookings.clerkUserId, userId)
+          eq(participations.eventId, eventId),
+          eq(participations.clerkUserId, userId)
         )
       )
 
-    if (bookingResults.length === 0) {
-      return { success: false, error: "Booking not found" }
+    if (participationResults.length === 0) {
+      return { success: false, error: "Participation not found" }
     }
 
-    const booking = bookingResults[0]
+    const participation = participationResults[0]
 
     // Fetch event details for revalidation
     const eventResults = await db
@@ -249,10 +249,10 @@ export async function cancelBookingByEvent(eventId: number) {
       .from(events)
       .where(eq(events.id, eventId))
 
-    // Delete the booking
-    await db.delete(bookings).where(eq(bookings.id, booking.id))
+    // Delete the participation
+    await db.delete(participations).where(eq(participations.id, participation.id))
 
-    // Update event booking count
+    // Update event participation count
     await db
       .update(events)
       .set({ currentBookings: sql`${events.currentBookings} - 1` })
@@ -266,8 +266,8 @@ export async function cancelBookingByEvent(eventId: number) {
 
     return { success: true }
   } catch (error) {
-    console.error("Cancel booking error:", error)
-    return { success: false, error: "Failed to cancel booking" }
+    console.error("Cancel participation error:", error)
+    return { success: false, error: "Failed to cancel participation" }
   }
 }
 
@@ -336,7 +336,7 @@ export async function addComment(eventId: number, content: string) {
     const event = eventResults[0]
 
     // Import comments here to avoid circular import issues
-    const { comments, bookings, users } = await import("@/db/schema")
+    const { comments, participations, users } = await import("@/db/schema")
 
     // Create comment
     const commentResults = await db
@@ -359,15 +359,15 @@ export async function addComment(eventId: number, content: string) {
       const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://paradise-circus.app"
       const eventUrl = `${appUrl}/event/${eventSlug}`
 
-      // Get all participant emails from bookings (excluding the comment author)
-      const participantBookings = await db
+      // Get all participant emails from participations (excluding the comment author)
+      const participantParticipations = await db
         .select({
-          participantEmail: bookings.participantEmail,
-          participantName: bookings.participantName,
-          clerkUserId: bookings.clerkUserId,
+          participantEmail: participations.participantEmail,
+          participantName: participations.participantName,
+          clerkUserId: participations.clerkUserId,
         })
-        .from(bookings)
-        .where(eq(bookings.eventId, eventId))
+        .from(participations)
+        .where(eq(participations.eventId, eventId))
 
       // Get instructor email if instructorId exists
       let instructorEmail: string | null = null
@@ -397,14 +397,14 @@ export async function addComment(eventId: number, content: string) {
       const recipientEmails = new Map<string, { name: string; isInstructor: boolean }>()
 
       // Add participants
-      for (const booking of participantBookings) {
-        // Skip if this booking belongs to the comment author
-        if (booking.clerkUserId === userId) {
+      for (const participation of participantParticipations) {
+        // Skip if this participation belongs to the comment author
+        if (participation.clerkUserId === userId) {
           continue
         }
-        // Use participant name from booking, or email if name not available
-        const name = booking.participantName || booking.participantEmail.split("@")[0]
-        recipientEmails.set(booking.participantEmail, { name, isInstructor: false })
+        // Use participant name from participation, or email if name not available
+        const name = participation.participantName || participation.participantEmail.split("@")[0]
+        recipientEmails.set(participation.participantEmail, { name, isInstructor: false })
       }
 
       // Add instructor if they exist and are not the comment author

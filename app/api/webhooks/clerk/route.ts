@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { Webhook } from "svix"
 import { headers } from "next/headers"
 import { db } from "@/db"
-import { users, bookings, comments, events } from "@/db/schema"
+import { users, participations, comments, events } from "@/db/schema"
 import { eq, sql } from "drizzle-orm"
 
 export async function POST(request: NextRequest) {
@@ -177,37 +177,37 @@ export async function POST(request: NextRequest) {
     try {
       console.log("🔍 [WEBHOOK] Starting cleanup for user:", clerkUserId)
       
-      // Find all bookings for this user before deleting
-      const userBookings = await db
-        .select({ eventId: bookings.eventId })
-        .from(bookings)
-        .where(eq(bookings.clerkUserId, clerkUserId))
+      // Find all participations for this user before deleting
+      const userParticipations = await db
+        .select({ eventId: participations.eventId })
+        .from(participations)
+        .where(eq(participations.clerkUserId, clerkUserId))
 
-      console.log(`📅 [WEBHOOK] Found ${userBookings.length} booking(s) for user`)
+      console.log(`📅 [WEBHOOK] Found ${userParticipations.length} participation(s) for user`)
 
-      // Group bookings by eventId and count them
-      const bookingsByEvent = userBookings.reduce((acc, booking) => {
-        acc[booking.eventId] = (acc[booking.eventId] || 0) + 1
+      // Group participations by eventId and count them
+      const participationsByEvent = userParticipations.reduce((acc, participation) => {
+        acc[participation.eventId] = (acc[participation.eventId] || 0) + 1
         return acc
       }, {} as Record<number, number>)
 
-      console.log("📊 [WEBHOOK] Bookings by event:", bookingsByEvent)
+      console.log("📊 [WEBHOOK] Participations by event:", participationsByEvent)
 
-      // Delete all bookings for this user
-      if (userBookings.length > 0) {
-        await db.delete(bookings).where(eq(bookings.clerkUserId, clerkUserId))
-        console.log(`✅ [WEBHOOK] Deleted ${userBookings.length} booking(s)`)
+      // Delete all participations for this user
+      if (userParticipations.length > 0) {
+        await db.delete(participations).where(eq(participations.clerkUserId, clerkUserId))
+        console.log(`✅ [WEBHOOK] Deleted ${userParticipations.length} participation(s)`)
 
-        // Update booking counts for affected events
-        for (const [eventId, count] of Object.entries(bookingsByEvent)) {
+        // Update participation counts for affected events
+        for (const [eventId, count] of Object.entries(participationsByEvent)) {
           await db
             .update(events)
             .set({ currentBookings: sql`${events.currentBookings} - ${count}` })
             .where(eq(events.id, parseInt(eventId)))
-          console.log(`📉 [WEBHOOK] Updated event ${eventId} booking count: -${count}`)
+          console.log(`📉 [WEBHOOK] Updated event ${eventId} participation count: -${count}`)
         }
       } else {
-        console.log("ℹ️  [WEBHOOK] No bookings to delete")
+        console.log("ℹ️  [WEBHOOK] No participations to delete")
       }
 
       // Find and delete all comments for this user

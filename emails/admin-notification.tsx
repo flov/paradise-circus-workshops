@@ -16,7 +16,7 @@ export type AdminNotificationEmailProps = {
   eventTitle: string;
   eventDate: string;
   eventStartTime: string;
-  bookingId: number;
+  participationId: number;
 };
 
 // Helper function to format date
@@ -46,7 +46,7 @@ export const AdminNotificationEmail = ({
   eventTitle,
   eventDate,
   eventStartTime,
-  bookingId,
+  participationId,
 }: AdminNotificationEmailProps) => {
   const formattedDate = formatDate(eventDate);
 
@@ -56,12 +56,12 @@ export const AdminNotificationEmail = ({
       <Body style={main}>
         <Container style={container}>
           <Section style={header}>
-            <Heading style={headerTitle}>🔔 New Event Booking Received</Heading>
+            <Heading style={headerTitle}>🔔 New Event Participation Received</Heading>
           </Section>
 
           <Section style={content}>
             <Text style={text}>
-              A new booking has been made for <strong>{eventTitle}</strong>.
+              A new participation has been made for <strong>{eventTitle}</strong>.
             </Text>
 
             <Section style={bookingInfo}>
@@ -86,13 +86,13 @@ export const AdminNotificationEmail = ({
                 </Text>
               </Section>
               <Section style={infoRow}>
-                <Text style={label}>Booking ID:</Text>
-                <Text style={value}>#{bookingId}</Text>
+                <Text style={label}>Participation ID:</Text>
+                <Text style={value}>#{participationId}</Text>
               </Section>
             </Section>
 
             <Text style={footerNote}>
-              View and manage this booking in your admin dashboard.
+              View and manage this participation in your admin dashboard.
             </Text>
           </Section>
         </Container>

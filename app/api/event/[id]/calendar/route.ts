@@ -71,7 +71,7 @@ export async function GET(
       instructor: instructorName,
       description: event.description,
       whatToBring: event.whatToBring,
-      bookingId: event.id, // Use event ID as fallback
+      participationId: event.id, // Use event ID as fallback
       confirmationToken: `event-${eventSlug}`, // Store slug in token field for URL generation
     });
 

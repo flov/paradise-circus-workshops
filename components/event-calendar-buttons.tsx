@@ -36,7 +36,7 @@ export function EventCalendarButtons({
         variant="outline"
         className="flex-1"
       >
-        <a href={`/api/event/${eventData.bookingId}/calendar`}>
+        <a href={`/api/event/${eventData.participationId}/calendar`}>
           <Download className="h-4 w-4 mr-2" />
           Download ICS
         </a>

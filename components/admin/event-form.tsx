@@ -634,7 +634,7 @@ export function EventForm({
                 <AlertDialogDescription>
                   Are you sure you want to delete "
                   {eventTitle || initialValues.title || "this event"}"? This
-                  will also delete all associated bookings and send cancellation
+                  will also delete all associated participations and send cancellation
                   emails to all participants. This action cannot be undone.
                 </AlertDialogDescription>
               </AlertDialogHeader>

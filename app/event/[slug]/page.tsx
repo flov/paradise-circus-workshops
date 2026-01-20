@@ -1,5 +1,5 @@
 import { db } from "@/db";
-import { events, bookings, comments, props, users, type Event } from "@/db/schema";
+import { events, participations, comments, props, users, type Event } from "@/db/schema";
 import { eq, asc, and } from "drizzle-orm";
 import { BookEventButton } from "@/components/book-event-button";
 import { CancelBookingButton } from "@/components/cancel-booking-button";
@@ -189,35 +189,35 @@ export default async function BookEventPage({
     }
   }
 
-  // Fetch bookings for this event with user profile images from database
-  const bookingsData = await db
+  // Fetch participations for this event with user profile images from database
+  const participationsData = await db
     .select({
-      id: bookings.id,
-      participantName: bookings.participantName,
-      participantEmail: bookings.participantEmail,
-      clerkUserId: bookings.clerkUserId,
+      id: participations.id,
+      participantName: participations.participantName,
+      participantEmail: participations.participantEmail,
+      clerkUserId: participations.clerkUserId,
       avatarImageUrl: users.avatarImageUrl,
     })
-    .from(bookings)
-    .leftJoin(users, eq(bookings.clerkUserId, users.clerkUserId))
-    .where(eq(bookings.eventId, eventId));
+    .from(participations)
+    .leftJoin(users, eq(participations.clerkUserId, users.clerkUserId))
+    .where(eq(participations.eventId, eventId));
 
-  // Check if current user has a booking and get the bookingId
-  let userBookingId: number | null = null;
+  // Check if current user has a participation and get the participationId
+  let userParticipationId: number | null = null;
   if (userId) {
-    const userBooking = bookingsData.find(
-      (booking) => booking.clerkUserId === userId,
+    const userParticipation = participationsData.find(
+      (participation) => participation.clerkUserId === userId,
     );
-    if (userBooking) {
-      userBookingId = userBooking.id;
+    if (userParticipation) {
+      userParticipationId = userParticipation.id;
     }
   }
 
-  // Map bookings to participants with database avatar images
-  const participants = bookingsData.map((booking) => ({
-    name: booking.participantName,
-    email: booking.participantEmail,
-    imageUrl: booking.avatarImageUrl || null,
+  // Map participations to participants with database avatar images
+  const participants = participationsData.map((participation) => ({
+    name: participation.participantName,
+    email: participation.participantEmail,
+    imageUrl: participation.avatarImageUrl || null,
   }));
 
   // Fetch comments for this event
@@ -374,13 +374,13 @@ export default async function BookEventPage({
                     className="w-full"
                   />
                 </div>
-                {userBookingId ? (
+                {userParticipationId ? (
                   <div className="rounded-md bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800 p-4">
                     <p className="text-sm font-medium text-green-800 dark:text-green-200 mb-2">
-                      ✓ You have made a booking for this event
+                      ✓ You are participating in this event
                     </p>
                     <CancelBookingButton
-                      bookingId={userBookingId}
+                      bookingId={userParticipationId}
                       variant="outline"
                     />
                   </div>

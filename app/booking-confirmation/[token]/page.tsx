@@ -1,5 +1,5 @@
 import { db } from '@/db';
-import { bookings, events } from '@/db/schema';
+import { participations, events } from '@/db/schema';
 import { eq } from 'drizzle-orm';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -19,7 +19,7 @@ import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { createEventSlug } from '@/lib/utils';
 import { ArrowLeft } from 'lucide-react';
-import type { Booking, Event } from '@/db/schema';
+import type { Participation, Event } from '@/db/schema';
 
 export default async function BookingConfirmationPage({
   params,
@@ -28,16 +28,16 @@ export default async function BookingConfirmationPage({
 }) {
   const { token } = await params;
 
-  const bookingResults = await db
+  const participationResults = await db
     .select()
-    .from(bookings)
-    .where(eq(bookings.confirmationToken, token));
+    .from(participations)
+    .where(eq(participations.confirmationToken, token));
 
-  if (bookingResults.length === 0) {
+  if (participationResults.length === 0) {
     notFound();
   }
 
-  const booking = bookingResults[0];
+  const participation = participationResults[0];
 
   const eventResults = await db
     .select({
@@ -52,7 +52,7 @@ export default async function BookingConfirmationPage({
       whatToBring: events.whatToBring,
     })
     .from(events)
-    .where(eq(events.id, booking.eventId));
+      .where(eq(events.id, participation.eventId));
 
   const event = eventResults[0];
 
@@ -101,7 +101,7 @@ export default async function BookingConfirmationPage({
             <CheckCircle className='h-8 w-8 text-primary' />
           </div>
           <h1 className='text-3xl font-bold text-foreground mb-2 text-balance'>
-            Booking Confirmed!
+            Participation Confirmed!
           </h1>
           <p className='text-muted-foreground text-lg'>
             Your spot has been reserved. We'll send a confirmation email
@@ -112,7 +112,7 @@ export default async function BookingConfirmationPage({
         <Card className='mb-6'>
           <CardHeader>
             <div className='flex items-center justify-between'>
-              <CardTitle className='text-xl'>Booking Details</CardTitle>
+              <CardTitle className='text-xl'>Participation Details</CardTitle>
             </div>
           </CardHeader>
           <CardContent className='space-y-4'>
@@ -147,30 +147,30 @@ export default async function BookingConfirmationPage({
                 <div className='flex items-center gap-3'>
                   <User className='h-4 w-4 text-muted-foreground' />
                   <span className='text-foreground'>
-                    {booking.participantName}
+                    {participation.participantName}
                   </span>
                 </div>
                 <div className='flex items-center gap-3'>
                   <Mail className='h-4 w-4 text-muted-foreground' />
                   <span className='text-foreground'>
-                    {booking.participantEmail}
+                    {participation.participantEmail}
                   </span>
                 </div>
-                {booking.phone && (
+                {participation.phone && (
                   <div className='flex items-center gap-3'>
                     <Phone className='h-4 w-4 text-muted-foreground' />
-                    <span className='text-foreground'>{booking.phone}</span>
+                    <span className='text-foreground'>{participation.phone}</span>
                   </div>
                 )}
               </div>
             </div>
 
-            {booking.notes && (
+            {participation.notes && (
               <div className='pt-4 border-t border-border'>
                 <h4 className='font-semibold text-foreground mb-2'>
                   Your Notes
                 </h4>
-                <p className='text-sm text-muted-foreground'>{booking.notes}</p>
+                <p className='text-sm text-muted-foreground'>{participation.notes}</p>
               </div>
             )}
 
@@ -193,7 +193,7 @@ export default async function BookingConfirmationPage({
 
             <div className='pt-4 border-t border-border space-y-3'>
               <AddToCalendarButton
-                confirmationToken={booking.confirmationToken}
+                confirmationToken={participation.confirmationToken}
                 eventData={{
                   title: event.title,
                   date: event.date,
@@ -203,8 +203,8 @@ export default async function BookingConfirmationPage({
                   instructor: event.instructor,
                   description: event.description,
                   whatToBring: event.whatToBring,
-                  bookingId: booking.id,
-                  confirmationToken: booking.confirmationToken,
+                  participationId: participation.id,
+                  confirmationToken: participation.confirmationToken,
                 }}
                 className='w-full'
               />
@@ -212,7 +212,7 @@ export default async function BookingConfirmationPage({
                 <Button className='w-full'>Browse More Events</Button>
               </Link>
               <CancelBookingButton
-                bookingId={booking.id}
+                bookingId={participation.id}
                 variant='outline'
                 className='w-full mt-2'
               />

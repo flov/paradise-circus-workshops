@@ -30,7 +30,7 @@ export function DeleteBookingButton({ bookingId, eventId }: { bookingId: number;
       setOpen(false)
       router.refresh()
     } catch (err) {
-      console.error("Failed to delete booking:", err)
+      console.error("Failed to delete participation:", err)
     } finally {
       setIsDeleting(false)
     }
@@ -45,9 +45,9 @@ export function DeleteBookingButton({ bookingId, eventId }: { bookingId: number;
       </AlertDialogTrigger>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>Cancel Booking</AlertDialogTitle>
+          <AlertDialogTitle>Cancel Participation</AlertDialogTitle>
           <AlertDialogDescription>
-            Are you sure you want to cancel this booking? This action cannot be undone.
+            Are you sure you want to cancel this participation? This action cannot be undone.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
@@ -63,7 +63,7 @@ export function DeleteBookingButton({ bookingId, eventId }: { bookingId: number;
                 Deleting...
               </>
             ) : (
-              "Delete Booking"
+              "Delete Participation"
             )}
           </AlertDialogAction>
         </AlertDialogFooter>

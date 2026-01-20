@@ -59,7 +59,7 @@ export function DeleteEventButton({ eventId, eventTitle }: { eventId: number; ev
         <AlertDialogHeader>
           <AlertDialogTitle>Delete Event</AlertDialogTitle>
           <AlertDialogDescription>
-            Are you sure you want to delete "{eventTitle}"? This will also delete all associated bookings and send cancellation emails to all participants. This
+            Are you sure you want to delete "{eventTitle}"? This will also delete all associated participations and send cancellation emails to all participants. This
             action cannot be undone.
           </AlertDialogDescription>
         </AlertDialogHeader>

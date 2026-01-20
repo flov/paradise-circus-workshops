@@ -1,7 +1,7 @@
 "use server"
 
 import { db } from "@/db"
-import { events, bookings, props, users } from "@/db/schema"
+import { events, participations, props, users } from "@/db/schema"
 import { eq, sql, inArray, asc } from "drizzle-orm"
 import { revalidatePath } from "next/cache"
 import { createEventSlug } from "@/lib/utils"
@@ -1085,21 +1085,21 @@ export async function deleteEvent(eventId: number, cancellationMessage?: string 
       ? (event.instructorProfile.displayName || event.instructorProfile.username)
       : event.instructor || "Unknown Instructor"
 
-    // Fetch all bookings for this event
-    const eventBookings = await db
+    // Fetch all participations for this event
+    const eventParticipations = await db
       .select({
-        participantName: bookings.participantName,
-        participantEmail: bookings.participantEmail,
+        participantName: participations.participantName,
+        participantEmail: participations.participantEmail,
       })
-      .from(bookings)
-      .where(eq(bookings.eventId, eventId))
+      .from(participations)
+      .where(eq(participations.eventId, eventId))
 
     // Send cancellation emails to all participants
-    if (eventBookings.length > 0) {
-      const emailPromises = eventBookings.map((booking) =>
+    if (eventParticipations.length > 0) {
+      const emailPromises = eventParticipations.map((participation) =>
         sendEventCancelledEmail({
-          participantName: booking.participantName,
-          participantEmail: booking.participantEmail,
+          participantName: participation.participantName,
+          participantEmail: participation.participantEmail,
           eventTitle: event.title,
           eventDate: event.date,
           eventStartTime: event.startTime,
@@ -1109,7 +1109,7 @@ export async function deleteEvent(eventId: number, cancellationMessage?: string 
           cancellationMessage: cancellationMessage || null,
         }).catch((error) => {
           // Log error but don't fail the deletion if email fails
-          console.error(`Failed to send cancellation email to ${booking.participantEmail}:`, error)
+          console.error(`Failed to send cancellation email to ${participation.participantEmail}:`, error)
         })
       )
 
@@ -1117,7 +1117,7 @@ export async function deleteEvent(eventId: number, cancellationMessage?: string 
       await Promise.allSettled(emailPromises)
     }
 
-    // Delete the event (this will cascade delete bookings due to foreign key constraint)
+    // Delete the event (this will cascade delete participations due to foreign key constraint)
     await db.delete(events).where(eq(events.id, eventId))
 
     revalidatePath("/admin")
@@ -1129,12 +1129,12 @@ export async function deleteEvent(eventId: number, cancellationMessage?: string 
 }
 
 
-export async function deleteBooking(bookingId: number, eventId: number) {
+export async function deleteBooking(participationId: number, eventId: number) {
   // Check authentication
   const { userId } = await auth()
   
   if (!userId) {
-    throw new Error("Unauthorized. You must be signed in to delete bookings.")
+    throw new Error("Unauthorized. You must be signed in to delete participations.")
   }
 
   try {
@@ -1144,9 +1144,9 @@ export async function deleteBooking(bookingId: number, eventId: number) {
       .from(events)
       .where(eq(events.id, eventId))
 
-    await db.delete(bookings).where(eq(bookings.id, bookingId))
+    await db.delete(participations).where(eq(participations.id, participationId))
 
-    // Update event booking count
+    // Update event participation count
     await db
       .update(events)
       .set({ currentBookings: sql`${events.currentBookings} - 1` })

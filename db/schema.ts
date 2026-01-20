@@ -30,8 +30,8 @@ export const events = pgTable(
   })
 );
 
-export const bookings = pgTable(
-  "bookings",
+export const participations = pgTable(
+  "participations",
   {
     id: serial("id").primaryKey(),
     eventId: integer("event_id").notNull().references(() => events.id, { onDelete: "cascade" }),
@@ -40,15 +40,15 @@ export const bookings = pgTable(
     participantEmail: varchar("participant_email", { length: 255 }).notNull(),
     phone: varchar("phone", { length: 50 }),
     notes: text("notes"),
-    bookingDate: timestamp("booking_date").defaultNow().notNull(),
+    participationDate: timestamp("participation_date").defaultNow().notNull(),
     status: varchar("status", { length: 50 }).default("confirmed").notNull(),
     confirmationToken: varchar("confirmation_token", { length: 36 }).notNull().unique(),
     createdAt: timestamp("created_at").defaultNow().notNull(),
   },
   (table) => ({
-    eventIdIdx: index("idx_bookings_event_id").on(table.eventId),
-    emailIdx: index("idx_bookings_email").on(table.participantEmail),
-    confirmationTokenIdx: index("idx_bookings_confirmation_token").on(table.confirmationToken),
+    eventIdIdx: index("idx_participations_event_id").on(table.eventId),
+    emailIdx: index("idx_participations_email").on(table.participantEmail),
+    confirmationTokenIdx: index("idx_participations_confirmation_token").on(table.confirmationToken),
   })
 );
 
@@ -71,7 +71,7 @@ export const comments = pgTable(
 );
 
 export const eventsRelations = relations(events, ({ many, one }) => ({
-  bookings: many(bookings),
+  participations: many(participations),
   comments: many(comments),
   prop: one(props, {
     fields: [events.propId],
@@ -83,9 +83,9 @@ export const eventsRelations = relations(events, ({ many, one }) => ({
   }),
 }));
 
-export const bookingsRelations = relations(bookings, ({ one }) => ({
+export const participationsRelations = relations(participations, ({ one }) => ({
   event: one(events, {
-    fields: [bookings.eventId],
+    fields: [participations.eventId],
     references: [events.id],
   }),
 }));
@@ -188,8 +188,8 @@ export const userPropsRelations = relations(userProps, ({ one }) => ({
 export type Event = InferSelectModel<typeof events>;
 export type NewEvent = InferInsertModel<typeof events>;
 
-export type Booking = InferSelectModel<typeof bookings>;
-export type NewBooking = InferInsertModel<typeof bookings>;
+export type Participation = InferSelectModel<typeof participations>;
+export type NewParticipation = InferInsertModel<typeof participations>;
 
 export type Comment = InferSelectModel<typeof comments>;
 export type NewComment = InferInsertModel<typeof comments>;

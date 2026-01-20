@@ -20,7 +20,7 @@ export type BookingConfirmationEmailProps = {
   eventEndTime: string;
   eventLocation: string;
   instructorName: string;
-  bookingId: number;
+  participationId: number;
   confirmationToken: string;
   whatToBring?: string | null;
 };
@@ -53,7 +53,7 @@ export const BookingConfirmationEmail = ({
   eventEndTime,
   eventLocation,
   instructorName,
-  bookingId,
+  participationId,
   confirmationToken,
   whatToBring,
 }: BookingConfirmationEmailProps) => {
@@ -145,7 +145,7 @@ export const BookingConfirmationEmail = ({
 
             <Section style={cancelLinkContainer}>
               <Link
-                href={`${appUrl}/api/cancel-booking?id=${bookingId}`}
+                href={`${appUrl}/api/cancel-booking?id=${participationId}`}
                 style={cancelLink}
               >
                 Cancel this booking
@@ -164,7 +164,7 @@ export const BookingConfirmationEmail = ({
               <strong>The Paradise Circus Team</strong>
             </Text>
 
-            <Text style={bookingNumber}>Booking Reference: #{bookingId}</Text>
+            <Text style={bookingNumber}>Participation Reference: #{participationId}</Text>
           </Section>
 
           <Section style={footer}>

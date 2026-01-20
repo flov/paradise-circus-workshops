@@ -63,7 +63,7 @@ export function BookingForm({
       if (result.success && result.confirmationToken) {
         router.push(`/booking-confirmation/${result.confirmationToken}`);
       } else {
-        setError(result.error || "Failed to create booking. Please try again.");
+        setError(result.error || "Failed to create participation. Please try again.");
       }
     } catch (err) {
       setError("An unexpected error occurred. Please try again.");
@@ -95,10 +95,10 @@ export function BookingForm({
       <div className="space-y-4">
         <div className="rounded-md bg-muted/50 border border-border p-4 text-center">
           <p className="text-sm text-muted-foreground mb-4">
-            Please sign in to book this event
+            Please sign in to participate in this event
           </p>
           <SignInButton mode="modal">
-            <Button className="w-full">Sign In to Book</Button>
+            <Button className="w-full">Sign In to Participate</Button>
           </SignInButton>
         </div>
       </div>
@@ -145,7 +145,7 @@ export function BookingForm({
         <div className="space-y-2">
           <div className="rounded-md bg-muted/50 border border-border p-3">
             <div className="text-sm">
-              <div className="font-medium text-foreground mb-1">Booking as:</div>
+              <div className="font-medium text-foreground mb-1">Participating as:</div>
               <div className="text-muted-foreground">{name || "User"}</div>
               <div className="text-muted-foreground">{email}</div>
             </div>
@@ -177,7 +177,7 @@ export function BookingForm({
             Processing...
           </>
         ) : (
-          "Book Now"
+          "Participate"
         )}
       </Button>
 

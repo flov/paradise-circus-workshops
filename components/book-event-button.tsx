@@ -48,7 +48,7 @@ export function BookEventButton({
       if (result.success && result.confirmationToken) {
         router.push(`/booking-confirmation/${result.confirmationToken}`);
       } else {
-        setError(result.error || "Failed to create booking. Please try again.");
+        setError(result.error || "Failed to create participation. Please try again.");
       }
     } catch (err) {
       setError("An unexpected error occurred. Please try again.");
@@ -60,7 +60,7 @@ export function BookEventButton({
   if (isPast) {
     return (
       <p className="text-sm text-muted-foreground text-center">
-        This event has already ended and bookings are no longer available.
+        This event has already ended and participations are no longer available.
       </p>
     );
   }
@@ -79,7 +79,7 @@ export function BookEventButton({
       <>
         <SignInButton mode="modal">
           <Button className="w-full" size="lg">
-            Sign In to Book
+            Sign In to Participate
           </Button>
         </SignInButton>
         {error && (
@@ -105,7 +105,7 @@ export function BookEventButton({
             Processing...
           </>
         ) : (
-          "Book Now"
+          "Participate"
         )}
       </Button>
       {error && (

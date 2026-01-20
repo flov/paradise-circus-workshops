@@ -12,7 +12,7 @@ export type EventCalendarData = {
   instructor: string;
   description?: string | null;
   whatToBring?: string | null;
-  bookingId: number;
+  participationId: number;
   confirmationToken: string;
 };
 
@@ -49,9 +49,9 @@ function formatICSDateTime(dateStr: string, timeStr: string): string {
 /**
  * Generates a unique UID for the calendar event
  */
-function generateUID(bookingId: number, date: string): string {
+function generateUID(participationId: number, date: string): string {
   const domain = process.env.NEXT_PUBLIC_SITE_URL || "paradise-circus.app";
-  return `event-${bookingId}-${date.replace(/-/g, "")}@${domain}`;
+  return `event-${participationId}-${date.replace(/-/g, "")}@${domain}`;
 }
 
 /**
@@ -67,7 +67,7 @@ export function generateICSFile(data: EventCalendarData): string {
     instructor,
     description,
     whatToBring,
-    bookingId,
+    participationId,
     confirmationToken,
   } = data;
 
@@ -76,7 +76,7 @@ export function generateICSFile(data: EventCalendarData): string {
   const dtEnd = formatICSDateTime(date, endTime);
   const dtStamp =
     new Date().toISOString().replace(/[-:]/g, "").split(".")[0] + "Z";
-  const uid = generateUID(bookingId, date);
+  const uid = generateUID(participationId, date);
 
   // Build description
   let eventDescription = "";
@@ -178,7 +178,7 @@ export function generateGoogleCalendarURL(data: EventCalendarData): string {
     instructor,
     description,
     whatToBring,
-    bookingId,
+    participationId,
     confirmationToken,
   } = data;
 
@@ -209,7 +209,7 @@ export function generateGoogleCalendarURL(data: EventCalendarData): string {
     const eventSlug = confirmationToken.replace("event-", "");
     eventDescription += `\n\nView event: ${siteUrl}/event/${eventSlug}`;
   } else {
-    eventDescription += `\n\nView booking: ${siteUrl}/booking-confirmation/${confirmationToken}`;
+    eventDescription += `\n\nView participation: ${siteUrl}/booking-confirmation/${confirmationToken}`;
   }
 
   // Build Google Calendar URL with URL-encoded parameters
