@@ -17,6 +17,15 @@ Sentry.init({
   // Set environment
   environment: process.env.NODE_ENV || process.env.VERCEL_ENV || "development",
 
+  // Filter out non-production errors as a safety net
+  beforeSend(event, hint) {
+    const env = process.env.NODE_ENV || process.env.VERCEL_ENV || "development";
+    if (env !== "production") {
+      return null; // Don't send events in non-production environments
+    }
+    return event;
+  },
+
   // Enable logs to be sent to Sentry
   enableLogs: true,
 

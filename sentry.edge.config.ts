@@ -12,8 +12,20 @@ Sentry.init({
   // Sample 100% in development, 10% in production to manage costs
   tracesSampleRate: process.env.NODE_ENV === "production" ? 0.1 : 1.0,
 
+  // Only enable Sentry in production
+  enabled: process.env.NODE_ENV === "production",
+
   // Set environment
   environment: process.env.NODE_ENV || process.env.VERCEL_ENV || "development",
+
+  // Filter out non-production errors as a safety net
+  beforeSend(event, hint) {
+    const env = process.env.NODE_ENV || process.env.VERCEL_ENV || "development";
+    if (env !== "production") {
+      return null; // Don't send events in non-production environments
+    }
+    return event;
+  },
 
   // Enable logs to be sent to Sentry
   enableLogs: true,
