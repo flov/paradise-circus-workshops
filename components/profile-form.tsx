@@ -275,9 +275,6 @@ export function ProfileForm({
                 placeholder="https://patreon.com/yourname"
                 aria-describedby="patreon-help"
               />
-              <p id="patreon-help" className="text-xs text-muted-foreground">
-                Your Patreon page URL
-              </p>
             </div>
           </div>
 
