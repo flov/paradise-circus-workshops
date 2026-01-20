@@ -1,11 +1,11 @@
-"use client"
+"use client";
 
-import type React from "react"
-import { useState, useEffect } from "react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
+import type React from "react";
+import { useState, useEffect } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -16,39 +16,46 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
-} from "@/components/ui/alert-dialog"
-import { Loader2, Trash2 } from "lucide-react"
-import { getAllProps, getCurrentUserProfile, getAllInstructors } from "@/app/profile/actions"
+} from "@/components/ui/alert-dialog";
+import { Loader2, Trash2 } from "lucide-react";
+import {
+  getAllProps,
+  getCurrentUserProfile,
+  getAllInstructors,
+} from "@/app/profile/actions";
 
 export type EventFormInitialValues = {
-  id?: number
-  title?: string
-  description?: string
-  instructor?: string
-  instructorId?: number | null
-  date?: string
-  startTime?: string
-  endTime?: string
-  location?: string | null
-  whatToBring?: string | null
-  isWorkshop?: boolean
-  isPublished?: boolean
-  propId?: number | null
-  isRecurring?: boolean
-  recurUntil?: string
-}
+  id?: number;
+  title?: string;
+  description?: string;
+  instructor?: string;
+  instructorId?: number | null;
+  date?: string;
+  startTime?: string;
+  endTime?: string;
+  location?: string | null;
+  whatToBring?: string | null;
+  isWorkshop?: boolean;
+  isPublished?: boolean;
+  propId?: number | null;
+  isRecurring?: boolean;
+  recurUntil?: string;
+};
 
 type EventFormProps = {
-  initialValues?: EventFormInitialValues
-  isSubmitting: boolean
-  onSubmit: (formData: FormData) => Promise<void>
-  onCancel: () => void
-  error: string | null
-  submitButtonText?: string
-  submittingText?: string
-  onDelete?: (eventId: number, cancellationMessage?: string | null) => Promise<void>
-  eventTitle?: string
-}
+  initialValues?: EventFormInitialValues;
+  isSubmitting: boolean;
+  onSubmit: (formData: FormData) => Promise<void>;
+  onCancel: () => void;
+  error: string | null;
+  submitButtonText?: string;
+  submittingText?: string;
+  onDelete?: (
+    eventId: number,
+    cancellationMessage?: string | null,
+  ) => Promise<void>;
+  eventTitle?: string;
+};
 
 export function EventForm({
   initialValues,
@@ -61,57 +68,78 @@ export function EventForm({
   onDelete,
   eventTitle,
 }: EventFormProps) {
-  const [availableProps, setAvailableProps] = useState<Array<{ id: number; name: string }>>([])
-  const [selectedPropId, setSelectedPropId] = useState<number | null>(null)
-  const [userProfile, setUserProfile] = useState<{ id: number; displayName: string | null; username: string; isAdmin: boolean; isInstructor: boolean } | null>(null)
-  const [instructors, setInstructors] = useState<Array<{ id: number; displayName: string | null; username: string }>>([])
-  const [selectedInstructorId, setSelectedInstructorId] = useState<number | null>(null)
-  const [isRecurring, setIsRecurring] = useState<boolean>(initialValues?.isRecurring ?? false)
-  const [recurUntil, setRecurUntil] = useState<string>(initialValues?.recurUntil || "")
-  const [isDeleting, setIsDeleting] = useState(false)
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
-  const [cancellationMessage, setCancellationMessage] = useState("")
-  
+  const [availableProps, setAvailableProps] = useState<
+    Array<{ id: number; name: string }>
+  >([]);
+  const [selectedPropId, setSelectedPropId] = useState<number | null>(null);
+  const [userProfile, setUserProfile] = useState<{
+    id: number;
+    displayName: string | null;
+    username: string;
+    isAdmin: boolean;
+    isInstructor: boolean;
+  } | null>(null);
+  const [instructors, setInstructors] = useState<
+    Array<{ id: number; displayName: string | null; username: string }>
+  >([]);
+  const [selectedInstructorId, setSelectedInstructorId] = useState<
+    number | null
+  >(null);
+  const [isRecurring, setIsRecurring] = useState<boolean>(
+    initialValues?.isRecurring ?? false,
+  );
+  const [recurUntil, setRecurUntil] = useState<string>(
+    initialValues?.recurUntil || "",
+  );
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [cancellationMessage, setCancellationMessage] = useState("");
+
   // Initialize date state
   const getInitialDate = (): string => {
     if (initialValues?.date) {
-      return typeof initialValues.date === "string" && initialValues.date.includes("T")
+      return typeof initialValues.date === "string" &&
+        initialValues.date.includes("T")
         ? new Date(initialValues.date).toISOString().split("T")[0]
-        : initialValues.date
+        : initialValues.date;
     }
-    return ""
-  }
-  const [date, setDate] = useState<string>(getInitialDate())
-  
+    return "";
+  };
+  const [date, setDate] = useState<string>(getInitialDate());
+
   // Initialize location state based on initialValues
   const getInitialSelectedLocation = (): string => {
-    const location = initialValues?.location || ""
+    const location = initialValues?.location || "";
     if (location === "Paradise Stage" || location === "Paradise River") {
-      return location
+      return location;
     }
-    return location ? "Other" : ""
-  }
-  const [selectedLocation, setSelectedLocation] = useState<string>(getInitialSelectedLocation())
+    return location ? "Other" : "";
+  };
+  const [selectedLocation, setSelectedLocation] = useState<string>(
+    getInitialSelectedLocation(),
+  );
   const [customLocation, setCustomLocation] = useState(
-    initialValues?.location && initialValues.location !== "Paradise Stage" && initialValues.location !== "Paradise River"
+    initialValues?.location &&
+      initialValues.location !== "Paradise Stage" &&
+      initialValues.location !== "Paradise River"
       ? initialValues.location
       : "",
-  )
+  );
 
   // Fetch available props, user profile, and instructors
   useEffect(() => {
     async function fetchData() {
       try {
-        const propsList = await getAllProps()
-        setAvailableProps(propsList)
-        
+        const propsList = await getAllProps();
+        setAvailableProps(propsList);
+
         // Set the current propId from initialValues
-        setSelectedPropId(initialValues?.propId || null)
-        
+        setSelectedPropId(initialValues?.propId || null);
+
         // Set the current instructorId from initialValues
-        setSelectedInstructorId(initialValues?.instructorId || null)
-        
-        const profile = await getCurrentUserProfile()
+        setSelectedInstructorId(initialValues?.instructorId || null);
+
+        const profile = await getCurrentUserProfile();
         if (profile) {
           setUserProfile({
             id: profile.id,
@@ -119,150 +147,154 @@ export function EventForm({
             username: profile.username,
             isAdmin: profile.isAdmin,
             isInstructor: profile.isInstructor,
-          })
-          
+          });
+
           // If user is instructor (not admin) and no instructorId in initialValues, set their id
-          if (profile.isInstructor && !profile.isAdmin && !initialValues?.instructorId) {
-            setSelectedInstructorId(profile.id)
+          if (
+            profile.isInstructor &&
+            !profile.isAdmin &&
+            !initialValues?.instructorId
+          ) {
+            setSelectedInstructorId(profile.id);
           }
         }
-        
+
         // Fetch instructors for admin dropdown
-        const instructorsList = await getAllInstructors()
-        setInstructors(instructorsList)
+        const instructorsList = await getAllInstructors();
+        setInstructors(instructorsList);
       } catch (error) {
-        console.error("Failed to fetch data:", error)
+        console.error("Failed to fetch data:", error);
       }
     }
-    fetchData()
-  }, [initialValues?.propId, initialValues?.instructorId])
+    fetchData();
+  }, [initialValues?.propId, initialValues?.instructorId]);
 
   // Update location state when initialValues.location changes
   useEffect(() => {
-    const location = initialValues?.location || ""
+    const location = initialValues?.location || "";
     if (location === "Paradise Stage" || location === "Paradise River") {
-      setSelectedLocation(location)
-      setCustomLocation("")
+      setSelectedLocation(location);
+      setCustomLocation("");
     } else if (location) {
-      setSelectedLocation("Other")
-      setCustomLocation(location)
+      setSelectedLocation("Other");
+      setCustomLocation(location);
     } else {
-      setSelectedLocation("")
-      setCustomLocation("")
+      setSelectedLocation("");
+      setCustomLocation("");
     }
-  }, [initialValues?.location])
+  }, [initialValues?.location]);
 
   // Reset form state when switching to create mode
   useEffect(() => {
     if (!initialValues?.id) {
       // Create mode - reset state (location is handled by the above effect)
-      setSelectedPropId(null)
-      setSelectedInstructorId(null)
+      setSelectedPropId(null);
+      setSelectedInstructorId(null);
     }
-  }, [initialValues?.id])
+  }, [initialValues?.id]);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault()
+    e.preventDefault();
 
-    const formData = new FormData(e.currentTarget)
-    
+    const formData = new FormData(e.currentTarget);
+
     // Add id if editing
     if (initialValues?.id) {
-      formData.append("id", initialValues.id.toString())
+      formData.append("id", initialValues.id.toString());
     }
-    
+
     // Add propId if selected
     if (selectedPropId !== null) {
-      formData.append("propId", selectedPropId.toString())
+      formData.append("propId", selectedPropId.toString());
     }
-    
+
     // Add instructorId if selected
     if (selectedInstructorId !== null) {
-      formData.append("instructorId", selectedInstructorId.toString())
+      formData.append("instructorId", selectedInstructorId.toString());
     }
-    
+
     // If user is instructor (not admin), always include their instructorId
     if (userProfile && userProfile.isInstructor && !userProfile.isAdmin) {
-      formData.append("instructorId", userProfile.id.toString())
+      formData.append("instructorId", userProfile.id.toString());
     }
-    
+
     // Determine location value: use selected option or custom text
     const locationValue =
-      selectedLocation === "Other" ? customLocation.trim() : selectedLocation
-    formData.append("location", locationValue)
+      selectedLocation === "Other" ? customLocation.trim() : selectedLocation;
+    formData.append("location", locationValue);
 
     // Add recurring fields if recurring is enabled
     // Note: Server-side validation will ensure only admins can create recurring events
     if (isRecurring) {
-      formData.append("isRecurring", "true")
+      formData.append("isRecurring", "true");
       if (recurUntil) {
-        formData.append("recurUntil", recurUntil)
+        formData.append("recurUntil", recurUntil);
       }
     }
 
-    await onSubmit(formData)
+    await onSubmit(formData);
   }
 
   async function handleDelete() {
-    if (!onDelete || !initialValues?.id) return
-    
-    setIsDeleting(true)
+    if (!onDelete || !initialValues?.id) return;
+
+    setIsDeleting(true);
     try {
-      await onDelete(initialValues.id, cancellationMessage.trim() || null)
-      setDeleteDialogOpen(false)
-      setCancellationMessage("")
+      await onDelete(initialValues.id, cancellationMessage.trim() || null);
+      setDeleteDialogOpen(false);
+      setCancellationMessage("");
     } catch (err) {
-      console.error("Failed to delete event:", err)
+      console.error("Failed to delete event:", err);
     } finally {
-      setIsDeleting(false)
+      setIsDeleting(false);
     }
   }
 
   function handleDeleteDialogOpenChange(newOpen: boolean) {
-    setDeleteDialogOpen(newOpen)
+    setDeleteDialogOpen(newOpen);
     if (!newOpen) {
       // Reset cancellation message when dialog closes
-      setCancellationMessage("")
+      setCancellationMessage("");
     }
   }
 
-  const isEditMode = !!initialValues?.id
-  const formattedDate = date
+  const isEditMode = !!initialValues?.id;
+  const formattedDate = date;
 
   // Calculate number of events that will be created
   const calculateEventCount = (): number => {
-    if (!isRecurring || !recurUntil || !formattedDate) return 0
-    
-    const startDate = new Date(formattedDate)
-    const endDate = new Date(recurUntil)
-    
-    if (endDate < startDate) return 0
-    
-    let count = 0
-    let currentDate = new Date(startDate)
-    
-    while (currentDate <= endDate) {
-      count++
-      currentDate = new Date(currentDate)
-      currentDate.setDate(currentDate.getDate() + 7)
-    }
-    
-    return count
-  }
+    if (!isRecurring || !recurUntil || !formattedDate) return 0;
 
-  const eventCount = calculateEventCount()
+    const startDate = new Date(formattedDate);
+    const endDate = new Date(recurUntil);
+
+    if (endDate < startDate) return 0;
+
+    let count = 0;
+    let currentDate = new Date(startDate);
+
+    while (currentDate <= endDate) {
+      count++;
+      currentDate = new Date(currentDate);
+      currentDate.setDate(currentDate.getDate() + 7);
+    }
+
+    return count;
+  };
+
+  const eventCount = calculateEventCount();
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="grid gap-4 md:grid-cols-2">
         <div className="space-y-2">
           <Label htmlFor="title">Event Title *</Label>
-          <Input 
-            id="title" 
-            name="title" 
+          <Input
+            id="title"
+            name="title"
             defaultValue={initialValues?.title || ""}
-            required 
-            disabled={isSubmitting} 
+            required
+            disabled={isSubmitting}
           />
         </div>
         {userProfile && userProfile.isInstructor && !userProfile.isAdmin ? (
@@ -271,7 +303,11 @@ export function EventForm({
             <Input
               id="instructorId"
               name="instructorId"
-              value={userProfile.displayName || userProfile.username || `User ${userProfile.id}`}
+              value={
+                userProfile.displayName ||
+                userProfile.username ||
+                `User ${userProfile.id}`
+              }
               disabled
               className="bg-muted"
             />
@@ -285,8 +321,10 @@ export function EventForm({
               name="instructorId"
               value={selectedInstructorId || ""}
               onChange={(e) => {
-                const value = e.target.value
-                setSelectedInstructorId(value === "" ? null : parseInt(value, 10))
+                const value = e.target.value;
+                setSelectedInstructorId(
+                  value === "" ? null : parseInt(value, 10),
+                );
               }}
               disabled={isSubmitting}
               className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
@@ -299,47 +337,55 @@ export function EventForm({
               ))}
             </select>
             <p className="text-xs text-muted-foreground">
-              Select an instructor from registered users. Leave empty to use instructor name below.
+              Select an instructor from registered users. Leave empty to use
+              instructor name below.
             </p>
           </div>
         ) : (
           <div className="space-y-2">
             <Label htmlFor="instructor">Instructor *</Label>
-            <Input 
-              id="instructor" 
-              name="instructor" 
+            <Input
+              id="instructor"
+              name="instructor"
               defaultValue={initialValues?.instructor || ""}
-              required 
-              disabled={isSubmitting} 
+              required
+              disabled={isSubmitting}
             />
           </div>
         )}
       </div>
       {userProfile && userProfile.isAdmin && (
         <div className="space-y-2">
-          <Label htmlFor="instructor">Instructor Name (if not registered)</Label>
+          <Label htmlFor="instructor">
+            Instructor Name (if not registered)
+          </Label>
           <Input
             id="instructor"
             name="instructor"
             defaultValue={initialValues?.instructor || ""}
             disabled={isSubmitting || selectedInstructorId !== null}
-            placeholder={selectedInstructorId ? "Will use selected instructor's name" : "Enter instructor name if not registered"}
+            placeholder={
+              selectedInstructorId
+                ? "Will use selected instructor's name"
+                : "Enter instructor name if not registered"
+            }
           />
           <p className="text-xs text-muted-foreground">
-            Only fill this if the instructor hasn't signed up yet. If instructorId is selected above, this will be ignored.
+            Only fill this if the instructor hasn't signed up yet. If
+            instructorId is selected above, this will be ignored.
           </p>
         </div>
       )}
 
       <div className="space-y-2">
         <Label htmlFor="description">Description *</Label>
-        <Textarea 
-          id="description" 
-          name="description" 
+        <Textarea
+          id="description"
+          name="description"
           defaultValue={initialValues?.description || ""}
-          required 
-          disabled={isSubmitting} 
-          rows={3} 
+          required
+          disabled={isSubmitting}
+          rows={3}
         />
       </div>
 
@@ -419,7 +465,8 @@ export function EventForm({
           rows={4}
         />
         <p className="text-xs text-muted-foreground">
-          Each line will be displayed as a separate item. Leave blank if no items are needed.
+          Each line will be displayed as a separate item. Leave blank if no
+          items are needed.
         </p>
       </div>
 
@@ -433,10 +480,13 @@ export function EventForm({
             disabled={isSubmitting}
             className="h-4 w-4 rounded border-gray-300"
           />
-          <Label htmlFor="isWorkshop" className="cursor-pointer">Is Workshop</Label>
+          <Label htmlFor="isWorkshop" className="cursor-pointer">
+            Is Workshop
+          </Label>
         </label>
         <p className="text-xs text-muted-foreground">
-          Check this box if this event is a workshop. Uncheck for other event types.
+          Check this box if this event is a workshop. Uncheck for other event
+          types.
         </p>
       </div>
 
@@ -451,10 +501,13 @@ export function EventForm({
               disabled={isSubmitting}
               className="h-4 w-4 rounded border-gray-300"
             />
-            <Label htmlFor="isPublished" className="cursor-pointer">Published</Label>
+            <Label htmlFor="isPublished" className="cursor-pointer">
+              Published
+            </Label>
           </label>
           <p className="text-xs text-muted-foreground">
-            Check this box to publish the event and make it visible to participants. Uncheck to unpublish.
+            Check this box to publish the event and make it visible to
+            participants. Uncheck to unpublish.
           </p>
         </div>
       )}
@@ -466,8 +519,8 @@ export function EventForm({
           name="propId"
           value={selectedPropId || ""}
           onChange={(e) => {
-            const value = e.target.value
-            setSelectedPropId(value === "" ? null : parseInt(value, 10))
+            const value = e.target.value;
+            setSelectedPropId(value === "" ? null : parseInt(value, 10));
           }}
           disabled={isSubmitting}
           className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
@@ -494,18 +547,21 @@ export function EventForm({
                 name="isRecurring"
                 checked={isRecurring}
                 onChange={(e) => {
-                  setIsRecurring(e.target.checked)
+                  setIsRecurring(e.target.checked);
                   if (!e.target.checked) {
-                    setRecurUntil("")
+                    setRecurUntil("");
                   }
                 }}
                 disabled={isSubmitting}
                 className="h-4 w-4 rounded border-gray-300"
               />
-              <Label htmlFor="isRecurring" className="cursor-pointer">Recurring Workshop</Label>
+              <Label htmlFor="isRecurring" className="cursor-pointer">
+                Recurring Workshop
+              </Label>
             </label>
             <p className="text-xs text-muted-foreground">
-              Check this box to create this workshop weekly until the end date. Only admins can create recurring workshops.
+              Check this box to create this workshop weekly until the end date.
+              Only admins can create recurring workshops.
             </p>
           </div>
 
@@ -522,14 +578,18 @@ export function EventForm({
                 disabled={isSubmitting}
                 min={formattedDate || undefined}
               />
-              {recurUntil && formattedDate && new Date(recurUntil) < new Date(formattedDate) && (
-                <p className="text-xs text-destructive">
-                  End date must be after the start date.
-                </p>
-              )}
+              {recurUntil &&
+                formattedDate &&
+                new Date(recurUntil) < new Date(formattedDate) && (
+                  <p className="text-xs text-destructive">
+                    End date must be after the start date.
+                  </p>
+                )}
               {eventCount > 0 && (
                 <p className="text-xs text-muted-foreground">
-                  This will create {eventCount} event{eventCount !== 1 ? "s" : ""} weekly from {formattedDate} until {recurUntil}.
+                  This will create {eventCount} event
+                  {eventCount !== 1 ? "s" : ""} weekly from {formattedDate}{" "}
+                  until {recurUntil}.
                 </p>
               )}
             </div>
@@ -545,11 +605,14 @@ export function EventForm({
 
       <div className="flex justify-between gap-3">
         {onDelete && initialValues?.id ? (
-          <AlertDialog open={deleteDialogOpen} onOpenChange={handleDeleteDialogOpenChange}>
+          <AlertDialog
+            open={deleteDialogOpen}
+            onOpenChange={handleDeleteDialogOpenChange}
+          >
             <AlertDialogTrigger asChild>
-              <Button 
-                type="button" 
-                variant="destructive" 
+              <Button
+                type="button"
+                variant="destructive"
                 disabled={isSubmitting || isDeleting}
               >
                 {isDeleting ? (
@@ -560,7 +623,7 @@ export function EventForm({
                 ) : (
                   <>
                     <Trash2 className="mr-2 h-4 w-4" />
-                    Delete Event
+                    Cancel Event
                   </>
                 )}
               </Button>
@@ -569,8 +632,10 @@ export function EventForm({
               <AlertDialogHeader>
                 <AlertDialogTitle>Delete Event</AlertDialogTitle>
                 <AlertDialogDescription>
-                  Are you sure you want to delete "{eventTitle || initialValues.title || 'this event'}"? This will also delete all associated bookings and send cancellation emails to all participants. This
-                  action cannot be undone.
+                  Are you sure you want to delete "
+                  {eventTitle || initialValues.title || "this event"}"? This
+                  will also delete all associated bookings and send cancellation
+                  emails to all participants. This action cannot be undone.
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <div className="space-y-2 py-4">
@@ -587,11 +652,14 @@ export function EventForm({
                   className="resize-none"
                 />
                 <p className="text-sm text-muted-foreground">
-                  This message will be included in the cancellation email sent to all participants.
+                  This message will be included in the cancellation email sent
+                  to all participants.
                 </p>
               </div>
               <AlertDialogFooter>
-                <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+                <AlertDialogCancel disabled={isDeleting}>
+                  Cancel
+                </AlertDialogCancel>
                 <AlertDialogAction
                   onClick={handleDelete}
                   disabled={isDeleting}
@@ -613,7 +681,12 @@ export function EventForm({
           <div />
         )}
         <div className="flex gap-3">
-          <Button type="button" variant="outline" onClick={onCancel} disabled={isSubmitting || isDeleting}>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={onCancel}
+            disabled={isSubmitting || isDeleting}
+          >
             Cancel
           </Button>
           <Button type="submit" disabled={isSubmitting || isDeleting}>
@@ -629,5 +702,5 @@ export function EventForm({
         </div>
       </div>
     </form>
-  )
+  );
 }
