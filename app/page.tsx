@@ -86,7 +86,7 @@ export default async function Home() {
               </h3>
               <div className="space-y-2 text-sm text-muted-foreground">
                 <p>Monday – Sunday</p>
-                <p>10:00 AM – 12:00 AM</p>
+                <p>10:00 – 24:00 </p>
               </div>
             </div>
           </div>
