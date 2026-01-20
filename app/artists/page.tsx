@@ -13,6 +13,8 @@ async function getAllArtists() {
       displayName: users.displayName,
       isInstructor: users.isInstructor,
       avatarImageUrl: users.avatarImageUrl,
+      youtubeVideos: users.youtubeVideos,
+      vimeoVideos: users.vimeoVideos,
     })
     .from(users)
     .orderBy(asc(users.displayName), asc(users.username));
@@ -77,15 +79,22 @@ async function getAllArtists() {
   );
 
   // Combine all data
-  const artists = artistsData.map((artist) => ({
-    id: artist.id.toString(),
-    name: artist.displayName || artist.username,
-    avatar: artist.avatarImageUrl || undefined,
-    isInstructor: artist.isInstructor,
-    workshopCount: workshopCountsByUserId[artist.id] || 0,
-    props: propsByUserId[artist.id] || [],
-    username: artist.username,
-  }));
+  const artists = artistsData.map((artist) => {
+    const youtubeCount = artist.youtubeVideos?.length || 0;
+    const vimeoCount = artist.vimeoVideos?.length || 0;
+    const videoCount = youtubeCount + vimeoCount;
+
+    return {
+      id: artist.id.toString(),
+      name: artist.displayName || artist.username,
+      avatar: artist.avatarImageUrl || undefined,
+      isInstructor: artist.isInstructor,
+      workshopCount: workshopCountsByUserId[artist.id] || 0,
+      props: propsByUserId[artist.id] || [],
+      username: artist.username,
+      videoCount,
+    };
+  });
 
   return artists;
 }

@@ -12,7 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { User, Eye, Search, X } from "lucide-react";
+import { User, Eye, Search, X, Video } from "lucide-react";
 import Link from "next/link";
 import { getInitials } from "@/lib/utils";
 
@@ -24,6 +24,7 @@ interface Artist {
   workshopCount?: number;
   props: Array<{ name: string; skillLevel: number }>;
   username: string;
+  videoCount?: number;
 }
 
 interface ArtistListProps {
@@ -56,14 +57,26 @@ function ArtistCard({ artist }: { artist: Artist }) {
               Instructor
             </Badge>
           )}
+          {/* @ts-expect-error - undefined > 0 evaluates to false, preventing 0 from being displayed */}
           {artist?.workshopCount > 0 && (
             <Badge
               variant="secondary"
               className="h-5 text-[10px] px-1.5 gap-0.5"
             >
               <Eye className="size-2.5" />
-              {artist.workshopCount} Workshop
-              {artist.workshopCount > 1 ? "s" : ""}
+              {artist.workshopCount!} Workshop
+              {artist.workshopCount! > 1 ? "s" : ""}
+            </Badge>
+          )}
+          {/* @ts-expect-error - undefined > 0 evaluates to false, preventing 0 from being displayed */}
+          {artist?.videoCount > 0 && (
+            <Badge
+              variant="secondary"
+              className="h-5 text-[10px] px-1.5 gap-0.5"
+            >
+              <Video className="size-2.5" />
+              {artist.videoCount!} Video
+              {artist.videoCount! > 1 ? "s" : ""}
             </Badge>
           )}
         </div>
