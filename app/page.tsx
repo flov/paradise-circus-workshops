@@ -65,6 +65,12 @@ export default async function Home() {
                   Weekly Events
                 </Link>
                 <Link
+                  href="/artists"
+                  className="text-sm text-muted-foreground hover:text-primary transition-colors"
+                >
+                  Artists
+                </Link>
+                <Link
                   href="/about"
                   className="text-sm text-muted-foreground hover:text-primary transition-colors"
                 >
