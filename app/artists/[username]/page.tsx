@@ -3,7 +3,7 @@ import { getUserByUsername, getUserProps } from "@/app/profile/actions";
 import { getYouTubeEmbedUrl, getVimeoEmbedUrl } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { MapPin, Instagram, Award, Video } from "lucide-react";
+import { MapPin, Instagram, Award, Video, ExternalLink } from "lucide-react";
 
 export default async function ArtistProfilePage({
   params,
@@ -80,6 +80,20 @@ export default async function ArtistProfilePage({
                 >
                   <Instagram className="h-4 w-4" />
                   <span>{user.instagramHandle}</span>
+                </a>
+              </div>
+            )}
+
+            {user.patreonPage && (
+              <div>
+                <a
+                  href={user.patreonPage}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-2 text-primary hover:underline"
+                >
+                  <ExternalLink className="h-4 w-4" />
+                  <span>Patreon</span>
                 </a>
               </div>
             )}

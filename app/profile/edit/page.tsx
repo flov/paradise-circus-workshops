@@ -37,6 +37,7 @@ export default async function EditProfilePage() {
     displayName: profile.displayName ?? undefined,
     bio: profile.bio ?? undefined,
     instagramHandle: profile.instagramHandle ?? undefined,
+    patreonPage: profile.patreonPage ?? undefined,
     performanceStyle: profile.performanceStyle ?? undefined,
     location: profile.location ?? undefined,
     youtubeVideos: profile.youtubeVideos?.join(", ") ?? undefined,

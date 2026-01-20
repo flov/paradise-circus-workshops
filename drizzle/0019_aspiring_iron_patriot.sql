@@ -1,0 +1,1 @@
+ALTER TABLE "users" ADD COLUMN "patreon_page" varchar(255);

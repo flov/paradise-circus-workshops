@@ -44,6 +44,9 @@ export function ProfileForm({
   const [instagramHandle, setInstagramHandle] = useState(
     initialData?.instagramHandle || "",
   );
+  const [patreonPage, setPatreonPage] = useState(
+    initialData?.patreonPage || "",
+  );
   const [isInstructor, setIsInstructor] = useState(
     initialData?.isInstructor || false,
   );
@@ -144,6 +147,7 @@ export function ProfileForm({
     formData.append("displayName", displayName.trim());
     formData.append("bio", bio.trim());
     formData.append("instagramHandle", instagramHandle.trim());
+    formData.append("patreonPage", patreonPage.trim());
     formData.append("isInstructor", isInstructor.toString());
     formData.append("performanceStyle", performanceStyle.trim());
     formData.append(
@@ -210,7 +214,7 @@ export function ProfileForm({
 
           <div className="space-y-2">
             <Label htmlFor="displayName">
-              How would you like to be called? *
+              How would you like to be called? Can also be artistic name *
             </Label>
             <Input
               id="displayName"
@@ -263,6 +267,22 @@ export function ProfileForm({
             </div>
 
             <div className="space-y-2">
+              <Label htmlFor="patreonPage">Patreon Page</Label>
+              <Input
+                id="patreonPage"
+                value={patreonPage}
+                onChange={(e) => setPatreonPage(e.target.value)}
+                placeholder="https://patreon.com/yourname"
+                aria-describedby="patreon-help"
+              />
+              <p id="patreon-help" className="text-xs text-muted-foreground">
+                Your Patreon page URL
+              </p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
               <Label htmlFor="location">Location</Label>
               <Input
                 id="location"
@@ -271,9 +291,7 @@ export function ProfileForm({
                 placeholder="City, Country"
               />
             </div>
-          </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="performanceStyle">Performance Style</Label>
               <Input
@@ -422,7 +440,10 @@ export function ProfileForm({
               <div className="flex flex-col items-center gap-2">
                 <Avatar className="w-16 h-16 border-2 border-primary">
                   {profileImageUrl ? (
-                    <AvatarImage src={profileImageUrl} alt={avatarDisplayName} />
+                    <AvatarImage
+                      src={profileImageUrl}
+                      alt={avatarDisplayName}
+                    />
                   ) : (
                     <AvatarFallback className="bg-primary/10 text-primary text-lg font-bold">
                       {avatarDisplayName.charAt(0).toUpperCase()}
@@ -430,9 +451,9 @@ export function ProfileForm({
                   )}
                 </Avatar>
                 <p className="text-xs text-muted-foreground text-center max-w-md">
-                  You can change your profile picture by clicking on &quot;Manage
-                  account&quot; after clicking on the profile picture in the top
-                  right
+                  You can change your profile picture by clicking on
+                  &quot;Manage account&quot; after clicking on the profile
+                  picture in the top right
                 </p>
               </div>
             </div>

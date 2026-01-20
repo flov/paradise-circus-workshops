@@ -134,6 +134,13 @@
       "when": 1768881576834,
       "tag": "0018_typical_wraith",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1768896678214,
+      "tag": "0019_aspiring_iron_patriot",
+      "breakpoints": true
     }
   ]
 }
