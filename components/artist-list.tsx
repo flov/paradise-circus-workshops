@@ -33,7 +33,7 @@ interface ArtistListProps {
 function ArtistCard({ artist }: { artist: Artist }) {
   return (
     <Link
-      href={`/artist/${artist.username}`}
+      href={`/artists/${artist.username}`}
       className="group flex items-start gap-3 p-3 rounded-lg hover:bg-muted/50 transition-colors border border-transparent hover:border-border"
     >
       <Avatar className="size-10 shrink-0">

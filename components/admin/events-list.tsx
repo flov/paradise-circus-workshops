@@ -128,7 +128,7 @@ export async function EventsList() {
                 <TableCell className="text-sm">
                   {event.instructorProfile?.username ? (
                     <Link
-                      href={`/artist/${event.instructorProfile.username}`}
+                      href={`/artists/${event.instructorProfile.username}`}
                       className="text-primary hover:underline"
                     >
                       {event.instructorProfile.displayName || event.instructorProfile.username}

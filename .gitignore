@@ -41,3 +41,5 @@ node_modules/
 
 # Sentry Config File
 .env.sentry-build-plugin
+
+scripts/import-schedules.ts

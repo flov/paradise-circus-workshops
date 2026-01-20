@@ -153,7 +153,7 @@ export function ProfileForm({
       const result = await createProfile(formData);
 
       if (result.success && result.username) {
-        router.push(`/artist/${result.username}`);
+        router.push(`/artists/${result.username}`);
         router.refresh();
       } else {
         setError(result.error || "Failed to save profile");

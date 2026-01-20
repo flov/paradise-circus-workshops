@@ -311,7 +311,7 @@ export default async function BookEventPage({
                     </div>
                     {eventResult.instructorProfile?.username ? (
                       <Link
-                        href={`/artist/${eventResult.instructorProfile.username}`}
+                        href={`/artists/${eventResult.instructorProfile.username}`}
                         className="text-primary hover:underline"
                       >
                         {instructorDisplayName || event.instructor || 'Unknown'}

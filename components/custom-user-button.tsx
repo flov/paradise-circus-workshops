@@ -38,7 +38,7 @@ export function CustomUserButton() {
           label="My Profile"
           href={
             profileData?.username
-              ? `/artist/${profileData?.username}`
+              ? `/artists/${profileData?.username}`
               : "onboarding"
           }
           labelIcon={<User className="h-4 w-4" />}

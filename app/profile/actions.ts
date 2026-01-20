@@ -277,7 +277,7 @@ export async function createProfile(formData: FormData) {
     }
 
     const normalizedUsername = username.trim().toLowerCase();
-    revalidatePath(`/artist/${normalizedUsername}`);
+    revalidatePath(`/artists/${normalizedUsername}`);
     revalidatePath("/profile/edit");
     revalidatePath("/onboarding");
 
