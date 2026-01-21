@@ -148,6 +148,13 @@
       "when": 1768904415295,
       "tag": "0020_rename_bookings_to_participations",
       "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1768968902768,
+      "tag": "0021_adds_website_to_profile",
+      "breakpoints": true
     }
   ]
 }
