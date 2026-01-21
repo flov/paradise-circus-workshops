@@ -25,6 +25,7 @@ export interface ProfileFormData {
   bio?: string;
   instagramHandle?: string;
   patreonPage?: string;
+  website?: string;
   isInstructor: boolean;
   performanceStyle?: string;
   availableForPerformances: boolean;

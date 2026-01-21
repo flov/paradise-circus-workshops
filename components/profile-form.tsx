@@ -47,6 +47,9 @@ export function ProfileForm({
   const [patreonPage, setPatreonPage] = useState(
     initialData?.patreonPage || "",
   );
+  const [website, setWebsite] = useState(
+    initialData?.website || "",
+  );
   const [isInstructor, setIsInstructor] = useState(
     initialData?.isInstructor || false,
   );
@@ -148,6 +151,7 @@ export function ProfileForm({
     formData.append("bio", bio.trim());
     formData.append("instagramHandle", instagramHandle.trim());
     formData.append("patreonPage", patreonPage.trim());
+    formData.append("website", website.trim());
     formData.append("isInstructor", isInstructor.toString());
     formData.append("performanceStyle", performanceStyle.trim());
     formData.append(
@@ -276,6 +280,20 @@ export function ProfileForm({
                 aria-describedby="patreon-help"
               />
             </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="website">Website</Label>
+            <Input
+              id="website"
+              value={website}
+              onChange={(e) => setWebsite(e.target.value)}
+              placeholder="https://yourwebsite.com"
+              aria-describedby="website-help"
+            />
+            <p id="website-help" className="text-xs text-muted-foreground">
+              Your personal or professional website
+            </p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

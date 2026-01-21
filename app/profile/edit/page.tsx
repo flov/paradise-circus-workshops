@@ -38,6 +38,7 @@ export default async function EditProfilePage() {
     bio: profile.bio ?? undefined,
     instagramHandle: profile.instagramHandle ?? undefined,
     patreonPage: profile.patreonPage ?? undefined,
+    website: profile.website ?? undefined,
     performanceStyle: profile.performanceStyle ?? undefined,
     location: profile.location ?? undefined,
     youtubeVideos: profile.youtubeVideos?.join(", ") ?? undefined,

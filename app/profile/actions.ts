@@ -115,6 +115,7 @@ export async function createProfile(formData: FormData) {
     const bio = formData.get("bio") as string;
     const instagramHandle = formData.get("instagramHandle") as string;
     const patreonPage = formData.get("patreonPage") as string;
+    const website = formData.get("website") as string;
     const isInstructor = formData.get("isInstructor") === "true";
     const performanceStyle = formData.get("performanceStyle") as string;
     const availableForPerformances =
@@ -194,6 +195,7 @@ export async function createProfile(formData: FormData) {
             bio: bio || null,
             instagramHandle: normalizedInstagramHandle,
             patreonPage: patreonPage?.trim() || null,
+            website: website?.trim() || null,
             isInstructor,
             performanceStyle: performanceStyle || null,
             availableForPerformances,
@@ -236,6 +238,7 @@ export async function createProfile(formData: FormData) {
             bio: bio || null,
             instagramHandle: normalizedInstagramHandle,
             patreonPage: patreonPage?.trim() || null,
+            website: website?.trim() || null,
             isInstructor,
             performanceStyle: performanceStyle || null,
             availableForPerformances,
@@ -492,6 +495,7 @@ export async function getCurrentUserProfile(): Promise<UserProfile | null> {
         bio: users.bio,
         instagramHandle: users.instagramHandle,
         patreonPage: users.patreonPage,
+        website: users.website,
         youtubeVideos: users.youtubeVideos,
         vimeoVideos: users.vimeoVideos,
         experienceStartDate: users.experienceStartDate,

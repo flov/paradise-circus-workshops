@@ -113,6 +113,20 @@ export default async function ArtistProfilePage({
               </div>
             )}
 
+            {user.website && (
+              <div>
+                <a
+                  href={user.website}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-2 text-primary hover:underline"
+                >
+                  <ExternalLink className="h-4 w-4" />
+                  <span>Website</span>
+                </a>
+              </div>
+            )}
+
             {user.performanceStyle && (
               <p className="text-muted-foreground">
                 Performance style:{" "}

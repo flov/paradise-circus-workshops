@@ -117,6 +117,7 @@ export const users = pgTable(
     bio: text("bio"),
     instagramHandle: varchar("instagram_handle", { length: 100 }),
     patreonPage: varchar("patreon_page", { length: 255 }),
+    website: varchar("website", { length: 255 }),
     youtubeVideos: text("youtube_videos").array(),
     vimeoVideos: text("vimeo_videos").array(),
     experienceStartDate: date("experience_start_date"),
