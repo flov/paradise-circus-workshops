@@ -109,7 +109,7 @@ export default async function ArtistsPage() {
   const artists = await getAllArtists();
 
   return (
-    <div className="container mx-auto max-w-7xl py-12 px-4">
+    <div className="container mx-auto max-w-7xl py-4 px-4">
       <ArtistList artists={artists} />
     </div>
   );

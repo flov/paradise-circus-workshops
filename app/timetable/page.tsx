@@ -34,7 +34,7 @@ export default async function TimetablePage() {
     <div className="min-h-screen bg-background">
       {/* Main Content */}
       <main
-        className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8 space-y-16"
+        className="mx-auto max-w-7xl px-4 py-4 sm:px-6 lg:px-8 space-y-16"
         suppressHydrationWarning
       >
         {/* Weekly Timetable Section */}
@@ -44,66 +44,6 @@ export default async function TimetablePage() {
           userId={userProfile?.id ?? null}
         />
       </main>
-
-      {/* Footer */}
-      <footer
-        className="mt-16 border-t border-border bg-card"
-        suppressHydrationWarning
-      >
-        <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
-            {/* Navigation Links */}
-            <div>
-              <h3 className="text-sm font-semibold text-foreground mb-4">
-                Navigation
-              </h3>
-              <nav className="flex flex-col space-y-2">
-                <Link
-                  href="/timetable"
-                  className="text-sm text-muted-foreground hover:text-primary transition-colors"
-                >
-                  Weekly Events
-                </Link>
-                <Link
-                  href="/artists"
-                  className="text-sm text-muted-foreground hover:text-primary transition-colors"
-                >
-                  Artists
-                </Link>
-                <Link
-                  href="/about"
-                  className="text-sm text-muted-foreground hover:text-primary transition-colors"
-                >
-                  About
-                </Link>
-                <Link
-                  href="/faq"
-                  className="text-sm text-muted-foreground hover:text-primary transition-colors"
-                >
-                  FAQ
-                </Link>
-              </nav>
-            </div>
-
-            {/* Open Hours */}
-            <div>
-              <h3 className="text-sm font-semibold text-foreground mb-4">
-                Open Hours
-              </h3>
-              <div className="space-y-2 text-sm text-muted-foreground">
-                <p>Monday – Sunday</p>
-                <p>10:00 – 24:00 </p>
-              </div>
-            </div>
-          </div>
-
-          <div className="border-t border-border pt-8">
-            <p className="text-center text-sm text-muted-foreground">
-              Paradise Circus
-            </p>
-          </div>
-        </div>
-      </footer>
     </div>
   );
 }

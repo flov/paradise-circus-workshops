@@ -5,7 +5,7 @@ import { Instagram } from "lucide-react";
 
 export function Footer() {
   return (
-    <footer className="py-12 px-4 border-t border-border bg-card">
+    <footer className="py-6 px-4 border-t border-border bg-card">
       <div className="max-w-6xl mx-auto">
         <div className="grid md:grid-cols-3 gap-8 mb-8">
           {/* Brand */}
@@ -14,8 +14,8 @@ export function Footer() {
               Paradise Circus
             </h3>
             <p className="text-muted-foreground text-sm">
-              A flow arts community in Pai, Thailand. Free workshops, weekly shows, 
-              and endless creativity.
+              A flow arts community in Pai, Thailand. Free workshops, weekly
+              shows, and endless creativity.
             </p>
           </div>
 
@@ -24,12 +24,18 @@ export function Footer() {
             <h4 className="font-semibold text-foreground mb-3">Quick Links</h4>
             <ul className="space-y-2">
               <li>
-                <Link href="/timetable" className="text-muted-foreground hover:text-primary text-sm transition-colors">
+                <Link
+                  href="/timetable"
+                  className="text-muted-foreground hover:text-primary text-sm transition-colors"
+                >
                   Weekly Timetable
                 </Link>
               </li>
               <li>
-                <Link href="/artists" className="text-muted-foreground hover:text-primary text-sm transition-colors">
+                <Link
+                  href="/artists"
+                  className="text-muted-foreground hover:text-primary text-sm transition-colors"
+                >
                   Our Artists
                 </Link>
               </li>
@@ -39,7 +45,7 @@ export function Footer() {
           {/* Social */}
           <div>
             <h4 className="font-semibold text-foreground mb-3">Connect</h4>
-            <a 
+            <a
               href="https://www.instagram.com/paradise_pai/"
               target="_blank"
               rel="noopener noreferrer"

@@ -2,20 +2,25 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { SignedIn, SignedOut, SignInButton } from "@clerk/nextjs";
 import { Button } from "@/components/ui/button";
 import { Menu, X } from "lucide-react";
+import { CustomUserButton } from "@/components/custom-user-button";
 
 const navItems = [
+  { href: "/", label: "Home" },
   { href: "/timetable", label: "Timetable" },
   { href: "/artists", label: "Artists" },
+  { href: "/about", label: "About" },
+  { href: "/faq", label: "FAQ" },
 ];
 
 export function Navigation() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   return (
-    <nav className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-md border-b border-border/50">
-      <div className="max-w-6xl mx-auto px-4 py-4">
+    <nav className="fixed top-0 left-0 right-0 z-50 bg-background/90 backdrop-blur-md border-b border-border/50">
+      <div className="max-w-6xl mx-auto px-4 py-2">
         <div className="flex items-center justify-between">
           {/* Logo */}
           <Link href="/" className="flex items-center gap-2">
@@ -39,22 +44,55 @@ export function Navigation() {
             <Button asChild size="sm" className="rounded-full">
               <Link href="/timetable">View Workshops</Link>
             </Button>
+            {/* Auth Buttons */}
+            <div className="flex items-center gap-2">
+              <SignedIn>
+                <CustomUserButton />
+              </SignedIn>
+              <SignedOut>
+                <SignInButton mode="modal">
+                  <Button variant="default" size="sm">
+                    Sign In
+                  </Button>
+                </SignInButton>
+              </SignedOut>
+            </div>
           </div>
 
-          {/* Mobile menu button */}
-          <button
-            type="button"
-            className="md:hidden p-2 text-foreground"
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            aria-label={mobileMenuOpen ? "Close menu" : "Open menu"}
-          >
-            {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-          </button>
+          {/* Mobile nav - Auth buttons and menu button */}
+          <div className="md:hidden flex items-center gap-2">
+            {/* Auth Buttons */}
+            <div className="flex items-center gap-2">
+              <SignedIn>
+                <CustomUserButton />
+              </SignedIn>
+              <SignedOut>
+                <SignInButton mode="modal">
+                  <Button variant="default" size="sm">
+                    Sign In
+                  </Button>
+                </SignInButton>
+              </SignedOut>
+            </div>
+            {/* Mobile menu button */}
+            <button
+              type="button"
+              className="p-1 text-foreground"
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              aria-label={mobileMenuOpen ? "Close menu" : "Open menu"}
+            >
+              {mobileMenuOpen ? (
+                <X className="w-6 h-6" />
+              ) : (
+                <Menu className="w-6 h-6" />
+              )}
+            </button>
+          </div>
         </div>
 
         {/* Mobile menu */}
         {mobileMenuOpen && (
-          <div className="md:hidden pt-4 pb-2 border-t border-border/50 mt-4">
+          <div className="md:hidden pt-4 pb-2 border-border/50">
             <div className="flex flex-col gap-4">
               {navItems.map((item) => (
                 <Link
@@ -66,11 +104,6 @@ export function Navigation() {
                   {item.label}
                 </Link>
               ))}
-              <Button asChild className="rounded-full mt-2">
-                <Link href="/timetable" onClick={() => setMobileMenuOpen(false)}>
-                  View Workshops
-                </Link>
-              </Button>
             </div>
           </div>
         )}

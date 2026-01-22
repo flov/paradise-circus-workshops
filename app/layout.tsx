@@ -2,8 +2,9 @@ import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
 import { ClerkProvider } from "@clerk/nextjs";
-import { Header } from "@/components/header";
+import { Navigation } from "@/components/landing/navigation";
 import "./globals.css";
+import { Footer } from "@/components/landing/footer";
 
 const _geist = Geist({ subsets: ["latin"] });
 const _geistMono = Geist_Mono({ subsets: ["latin"] });
@@ -38,7 +39,8 @@ export default function RootLayout({
     <ClerkProvider
       appearance={{
         elements: {
-          formButtonPrimary: "bg-primary text-primary-foreground hover:bg-primary/90",
+          formButtonPrimary:
+            "bg-primary text-primary-foreground hover:bg-primary/90",
           formFieldInput: "border-input bg-background",
           card: "bg-card border-border",
         },
@@ -52,8 +54,9 @@ export default function RootLayout({
     >
       <html lang="en">
         <body className={`font-sans antialiased`}>
-          <Header />
-          {children}
+          <Navigation />
+          <div className="pt-12">{children}</div>
+          <Footer />
           <Analytics />
         </body>
       </html>
