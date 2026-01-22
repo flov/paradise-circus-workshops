@@ -12,7 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { User, Eye, Search, X, Video, Instagram, Heart, Sparkles } from "lucide-react";
+import { User, Eye, Search, X, Video, Instagram, Heart, Sparkles, FileText } from "lucide-react";
 import Link from "next/link";
 import { getInitials } from "@/lib/utils";
 
@@ -25,6 +25,7 @@ interface Artist {
   props: Array<{ name: string; skillLevel: number }>;
   username: string;
   videoCount?: number;
+  bio?: string;
   patreonPage?: string;
   instagramHandle?: string;
   availableForPerformances?: boolean;
@@ -129,6 +130,7 @@ export function ArtistList({ artists }: ArtistListProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [instructorOnly, setInstructorOnly] = useState(false);
   const [videosOnly, setVideosOnly] = useState(false);
+  const [bioOnly, setBioOnly] = useState(false);
   const [selectedProp, setSelectedProp] = useState<string>("all");
 
   // Get all unique props from all artists
@@ -153,22 +155,26 @@ export function ArtistList({ artists }: ArtistListProps) {
       // Videos filter
       const matchesVideos = !videosOnly || (artist.videoCount ?? 0) > 0;
 
+      // Bio filter
+      const matchesBio = !bioOnly || Boolean(artist.bio?.trim());
+
       // Prop filter
       const matchesProp =
         selectedProp === "all" ||
         artist.props.some((p) => p.name === selectedProp);
 
-      return matchesSearch && matchesInstructor && matchesVideos && matchesProp;
+      return matchesSearch && matchesInstructor && matchesVideos && matchesBio && matchesProp;
     });
-  }, [artists, searchQuery, instructorOnly, videosOnly, selectedProp]);
+  }, [artists, searchQuery, instructorOnly, videosOnly, bioOnly, selectedProp]);
 
   const hasActiveFilters =
-    searchQuery || instructorOnly || videosOnly || selectedProp !== "all";
+    searchQuery || instructorOnly || videosOnly || bioOnly || selectedProp !== "all";
 
   const clearFilters = () => {
     setSearchQuery("");
     setInstructorOnly(false);
     setVideosOnly(false);
+    setBioOnly(false);
     setSelectedProp("all");
   };
 
@@ -228,6 +234,16 @@ export function ArtistList({ artists }: ArtistListProps) {
               >
                 <Video className="size-3.5 mr-1.5" />
                 Videos
+              </Button>
+
+              <Button
+                variant={bioOnly ? "default" : "outline"}
+                size="sm"
+                onClick={() => setBioOnly(!bioOnly)}
+                className="h-9 text-xs"
+              >
+                <FileText className="size-3.5 mr-1.5" />
+                Bio
               </Button>
 
               <Select value={selectedProp} onValueChange={setSelectedProp}>
