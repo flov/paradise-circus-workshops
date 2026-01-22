@@ -53,8 +53,10 @@ export function ShowsSection() {
 
         {/* Shows grid */}
         <div className="grid md:grid-cols-3 gap-6">
-          {shows.map((show) => {
+          {shows.map((show, index) => {
             const IconComponent = show.icon;
+            const isFirstMainShow =
+              show.day === "Thursday" && show.title === "Main Show";
             return (
               <Card
                 key={show.day}
@@ -63,8 +65,23 @@ export function ShowsSection() {
                     ? "bg-primary text-primary-foreground border-primary"
                     : "bg-card border-border/50 hover:border-primary/30"
                 }`}
+                style={
+                  isFirstMainShow
+                    ? {
+                        backgroundImage:
+                          "url('/images/fire-eating-paradise.png')",
+                        backgroundSize: "cover",
+                        backgroundPosition: "center",
+                        backgroundRepeat: "no-repeat",
+                      }
+                    : undefined
+                }
               >
-                <CardContent className="p-8">
+                {/* Dark overlay for readability */}
+                {isFirstMainShow && (
+                  <div className="absolute inset-0 bg-black/25 z-0" />
+                )}
+                <CardContent className="p-8 relative z-10">
                   <div
                     className={`w-12 h-12 rounded-full flex items-center justify-center mb-6 ${
                       show.highlight
@@ -108,16 +125,6 @@ export function ShowsSection() {
               </Card>
             );
           })}
-        </div>
-
-        {/* Additional info */}
-        <div className="mt-12 text-center">
-          <div className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-secondary text-secondary-foreground">
-            <Users className="w-5 h-5" />
-            <span className="text-sm font-medium">
-              Everyone is welcome to watch or perform!
-            </span>
-          </div>
         </div>
       </div>
     </section>

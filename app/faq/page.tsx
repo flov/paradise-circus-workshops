@@ -61,22 +61,10 @@ export default function FAQPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle className="text-2xl">Workshops & Booking</CardTitle>
+            <CardTitle className="text-2xl">Workshops</CardTitle>
           </CardHeader>
           <CardContent>
             <Accordion>
-              <AccordionItem value="book-workshop">
-                <AccordionTrigger value="book-workshop">
-                  How do I book a workshop?
-                </AccordionTrigger>
-                <AccordionContent value="book-workshop">
-                  You can browse our available workshops on the homepage and
-                  click on any workshop to view details and book your spot.
-                  Simply fill out the booking form with your information and
-                  you'll receive a confirmation email with all the details.
-                </AccordionContent>
-              </AccordionItem>
-
               <AccordionItem value="workshop-types">
                 <AccordionTrigger value="workshop-types">
                   What types of workshops do you offer?
@@ -100,17 +88,6 @@ export default function FAQPage() {
                   practitioners. Our instructors are skilled at adapting to
                   different levels and creating an inclusive learning
                   environment.
-                </AccordionContent>
-              </AccordionItem>
-
-              <AccordionItem value="cancel-booking">
-                <AccordionTrigger value="cancel-booking">
-                  Can I cancel my booking?
-                </AccordionTrigger>
-                <AccordionContent value="cancel-booking">
-                  If you cannot come, please have a look in your booking
-                  confirmation. There you will find a link to cancel your
-                  booking.
                 </AccordionContent>
               </AccordionItem>
             </Accordion>
