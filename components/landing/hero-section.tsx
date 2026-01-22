@@ -29,8 +29,11 @@ export function HeroSection() {
         </div>
 
         {/* Main headline */}
-        <h1 className="text-4xl md:text-6xl lg:text-7xl font-serif font-bold text-white leading-tight mb-6 text-balance">
-          <span className="text-primary">Paradise Circus</span>
+        <h1
+          className="text-4xl md:text-6xl lg:text-7xl text-white leading-tight mb-6 text-balance"
+          style={{ fontFamily: "var(--font-rye)" }}
+        >
+          <span className="">The Paradise Circus</span>
         </h1>
 
         {/* Subtitle */}

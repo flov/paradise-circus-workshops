@@ -1,5 +1,9 @@
 import { notFound } from "next/navigation";
-import { getUserByUsername, getUserProps, getUserWorkshops } from "@/app/profile/actions";
+import {
+  getUserByUsername,
+  getUserProps,
+  getUserWorkshops,
+} from "@/app/profile/actions";
 import { getYouTubeEmbedUrl, getVimeoEmbedUrl } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -36,7 +40,7 @@ export default async function ArtistProfilePage({
   const profileImageUrl = user.avatarImageUrl || null;
 
   return (
-    <div className="container mx-auto max-w-4xl py-12 px-4">
+    <div className="container mx-auto max-w-4xl py-4 px-4">
       <div className="space-y-8">
         {/* Header */}
         <div className="flex flex-col md:flex-row gap-6 items-start">
@@ -192,18 +196,22 @@ export default async function ArtistProfilePage({
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className={`grid gap-4 ${
-                    workshops.upcoming.length === 1 
-                      ? 'grid-cols-1' 
-                      : workshops.upcoming.length === 2
-                      ? 'grid-cols-1 md:grid-cols-2'
-                      : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3'
-                  }`}>
+                  <div
+                    className={`grid gap-4 ${
+                      workshops.upcoming.length === 1
+                        ? "grid-cols-1"
+                        : workshops.upcoming.length === 2
+                          ? "grid-cols-1 md:grid-cols-2"
+                          : "grid-cols-1 md:grid-cols-2 lg:grid-cols-3"
+                    }`}
+                  >
                     {workshops.upcoming.map((workshop) => (
                       <EventCard
                         key={workshop.id}
                         event={workshop}
-                        instructorDisplayName={user.displayName || user.username}
+                        instructorDisplayName={
+                          user.displayName || user.username
+                        }
                       />
                     ))}
                   </div>
@@ -221,18 +229,22 @@ export default async function ArtistProfilePage({
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className={`grid gap-4 ${
-                    workshops.past.length === 1 
-                      ? 'grid-cols-1' 
-                      : workshops.past.length === 2
-                      ? 'grid-cols-1 md:grid-cols-2'
-                      : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3'
-                  }`}>
+                  <div
+                    className={`grid gap-4 ${
+                      workshops.past.length === 1
+                        ? "grid-cols-1"
+                        : workshops.past.length === 2
+                          ? "grid-cols-1 md:grid-cols-2"
+                          : "grid-cols-1 md:grid-cols-2 lg:grid-cols-3"
+                    }`}
+                  >
                     {workshops.past.map((workshop) => (
                       <EventCard
                         key={workshop.id}
                         event={workshop}
-                        instructorDisplayName={user.displayName || user.username}
+                        instructorDisplayName={
+                          user.displayName || user.username
+                        }
                       />
                     ))}
                   </div>

@@ -40,7 +40,7 @@ export function Header({
             <Link href="/" className="flex items-center gap-2">
               <div className="h-8 w-8 text-primary text-2xl">🎪</div>
               <div>
-                <h1 className="text-xl font-bold text-foreground text-balance">
+                <h1 className="text-xl font-bold text-foreground text-balance" style={{ fontFamily: 'var(--font-rye)' }}>
                   {title}
                 </h1>
                 {subtitle && (

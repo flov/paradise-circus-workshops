@@ -25,7 +25,10 @@ export function Navigation() {
           {/* Logo */}
           <Link href="/" className="flex items-center gap-2">
             <span className="text-2xl">🎪</span>
-            <span className="text-lg font-serif font-bold text-foreground">
+            <span
+              className="text-lg font-bold text-foreground text-sh"
+              style={{ fontFamily: "var(--font-rye)" }}
+            >
               Paradise Circus
             </span>
           </Link>
