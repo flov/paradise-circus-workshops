@@ -35,14 +35,17 @@ export function CommunitySection() {
             <span className="text-primary font-medium text-sm uppercase tracking-wider">
               More Than a Space
             </span>
-            <h2 className="text-3xl md:text-5xl font-serif font-bold text-foreground mt-4 mb-6 text-balance">
+            <h2
+              style={{ fontFamily: "var(--font-rye)" }}
+              className="text-3xl md:text-5xl font-serif text-foreground mt-4 mb-6 text-balance"
+            >
               A Community of
               <br />
               <span className="text-primary">Circus Legends</span>
             </h2>
             <p className="text-muted-foreground text-lg mb-8 leading-relaxed">
-              Paradise Circus is like an endless flow arts convention. A place
-              where likeminded people who share a passion for circus and
+              Paradise Circus seems like an eternal flow arts convention. A
+              place where likeminded people who share a passion for circus and
               performance arts teach each other every single day. It&apos;s a
               space for creativity, connection, and growth.
             </p>
