@@ -29,7 +29,12 @@ const workshopCategories = [
   },
 ];
 
-export function WorkshopsSection() {
+interface WorkshopsSectionProps {
+  workshopsThisWeek: number;
+  artistsCount: number;
+}
+
+export function WorkshopsSection({ workshopsThisWeek, artistsCount }: WorkshopsSectionProps) {
   return (
     <section className="py-20 px-4 bg-card">
       <div className="max-w-6xl mx-auto">
@@ -55,7 +60,7 @@ export function WorkshopsSection() {
               <Calendar className="w-6 h-6 text-primary" />
             </div>
             <p className="text-2xl md:text-4xl font-bold text-foreground">
-              20+
+              {workshopsThisWeek}
             </p>
             <p className="text-sm text-muted-foreground">Workshops this week</p>
           </div>
@@ -64,9 +69,9 @@ export function WorkshopsSection() {
               <Users className="w-6 h-6 text-primary" />
             </div>
             <p className="text-2xl md:text-4xl font-bold text-foreground">
-              50+
+              {artistsCount}
             </p>
-            <p className="text-sm text-muted-foreground">Active artists</p>
+            <p className="text-sm text-muted-foreground">Artists</p>
           </div>
           <div className="text-center p-4 md:p-6 rounded-2xl bg-background">
             <div className="flex justify-center mb-3">
