@@ -9,7 +9,6 @@ const shows = [
     title: "Open Stage",
     description:
       "An open night where anyone can perform. Perfect for trying new acts!",
-    icon: Mic,
     highlight: false,
   },
   {
@@ -17,7 +16,6 @@ const shows = [
     title: "Main Show",
     description:
       "Our signature weekly show featuring the best acts from the community.",
-    icon: Star,
     highlight: true,
   },
   {
@@ -25,7 +23,6 @@ const shows = [
     title: "Main Show",
     description:
       "End the week with another spectacular showcase of talent and creativity.",
-    icon: Star,
     highlight: true,
   },
 ];
@@ -54,7 +51,6 @@ export function ShowsSection() {
         {/* Shows grid */}
         <div className="grid md:grid-cols-3 gap-6">
           {shows.map((show, index) => {
-            const IconComponent = show.icon;
             const isFirstMainShow =
               show.day === "Thursday" && show.title === "Main Show";
             return (
@@ -82,17 +78,6 @@ export function ShowsSection() {
                   <div className="absolute inset-0 bg-black/25 z-0" />
                 )}
                 <CardContent className="p-8 relative z-10">
-                  <div
-                    className={`w-12 h-12 rounded-full flex items-center justify-center mb-6 ${
-                      show.highlight
-                        ? "bg-primary-foreground/20"
-                        : "bg-primary/10"
-                    }`}
-                  >
-                    <IconComponent
-                      className={`w-6 h-6 ${show.highlight ? "text-primary-foreground" : "text-primary"}`}
-                    />
-                  </div>
                   <p
                     className={`text-sm font-medium uppercase tracking-wider mb-2 ${
                       show.highlight
