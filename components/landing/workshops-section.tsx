@@ -7,8 +7,8 @@ import { ArrowRight, Calendar, Clock, Users } from "lucide-react";
 
 const workshopCategories = [
   {
-    title: "Poi & Flow",
-    description: "Master the art of spinning with fire, LED, and practice poi",
+    title: "Poi, Staff & Flow",
+    description: "Master the art of spinning with fire, LED, and practice poi, staff, and flow",
     icon: "🔥",
   },
   {
@@ -22,9 +22,9 @@ const workshopCategories = [
     icon: "🤸",
   },
   {
-    title: "Magic & Theater",
-    description: "Illusions, sleight of hand, and improv performance",
-    icon: "✨",
+    title: "Clowning & Theater",
+    description: "Clowning and improv performance",
+    icon: "🤡",
   },
 ];
 
@@ -41,7 +41,7 @@ export function WorkshopsSection() {
             Free Daily Workshops
           </h2>
           <p className="text-muted-foreground max-w-2xl mx-auto text-lg">
-            From sunrise stretches to late-night fire spinning, there&apos;s always 
+            From afternoon to late-night fire spinning, there&apos;s always 
             something happening at Paradise Circus. All workshops are taught by 
             community members, for free.
           </p>

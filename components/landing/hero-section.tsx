@@ -30,16 +30,14 @@ export function HeroSection() {
 
         {/* Main headline */}
         <h1 className="text-4xl md:text-6xl lg:text-7xl font-serif font-bold text-white leading-tight mb-6 text-balance">
-          Where Flow Arts
-          <br />
-          <span className="text-primary">Come Alive</span>
+          <span className="text-primary">Paradise Circus</span>
         </h1>
 
         {/* Subtitle */}
         <p className="text-lg md:text-xl text-white/90 max-w-2xl mx-auto mb-10 leading-relaxed text-pretty">
-          A vibrant community in Pai, Thailand where passionate artists teach,
-          learn, and create together. Poi, juggling, acrobatics, yoga, magic —
-          the possibilities are endless.
+          A circus community in Pai, Thailand where passionate artists teach,
+          learn, and create together. Poi, juggling, acrobatics, theater, magic
+          — the possibilities are endless.
         </p>
 
         {/* CTA Buttons */}
