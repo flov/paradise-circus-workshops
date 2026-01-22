@@ -33,16 +33,6 @@ export function Footer() {
                   Our Artists
                 </Link>
               </li>
-              <li>
-                <a 
-                  href="https://www.paradise-circus.app/" 
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-muted-foreground hover:text-primary text-sm transition-colors"
-                >
-                  Workshop App
-                </a>
-              </li>
             </ul>
           </div>
 

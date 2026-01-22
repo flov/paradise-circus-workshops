@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Heart, Globe, Zap } from "lucide-react";
 
@@ -8,7 +9,8 @@ const communityValues = [
   {
     icon: Heart,
     title: "Passion-Driven",
-    description: "United by our love for movement, creativity, and the flow state.",
+    description:
+      "United by our love for movement, creativity, and the flow state.",
   },
   {
     icon: Globe,
@@ -18,7 +20,8 @@ const communityValues = [
   {
     icon: Zap,
     title: "Always Growing",
-    description: "Every day brings new skills, new friends, and new possibilities.",
+    description:
+      "Every day brings new skills, new friends, and new possibilities.",
   },
 ];
 
@@ -38,12 +41,12 @@ export function CommunitySection() {
               <span className="text-primary">Circus Legends</span>
             </h2>
             <p className="text-muted-foreground text-lg mb-8 leading-relaxed">
-              Paradise Circus is like an endless flow arts convention. A place where 
-              likeminded people who share a passion for circus and performance arts 
-              teach each other every single day. It&apos;s a space for creativity, 
-              connection, and growth.
+              Paradise Circus is like an endless flow arts convention. A place
+              where likeminded people who share a passion for circus and
+              performance arts teach each other every single day. It&apos;s a
+              space for creativity, connection, and growth.
             </p>
-            
+
             <div className="space-y-6 mb-10">
               {communityValues.map((value) => {
                 const IconComponent = value.icon;
@@ -53,8 +56,12 @@ export function CommunitySection() {
                       <IconComponent className="w-5 h-5 text-primary" />
                     </div>
                     <div>
-                      <h3 className="font-semibold text-foreground mb-1">{value.title}</h3>
-                      <p className="text-sm text-muted-foreground">{value.description}</p>
+                      <h3 className="font-semibold text-foreground mb-1">
+                        {value.title}
+                      </h3>
+                      <p className="text-sm text-muted-foreground">
+                        {value.description}
+                      </p>
                     </div>
                   </div>
                 );
@@ -71,22 +78,13 @@ export function CommunitySection() {
 
           {/* Right side - Visual element */}
           <div className="relative">
-            <div className="aspect-square rounded-3xl bg-gradient-to-br from-primary/20 via-accent/20 to-primary/10 p-8 flex items-center justify-center">
-              <div className="text-center">
-                <div className="text-6xl md:text-8xl mb-6">🎪</div>
-                <p className="text-2xl md:text-3xl font-serif font-bold text-foreground mb-2">
-                  Paradise Circus
-                </p>
-                <p className="text-muted-foreground">
-                  Pai, Thailand
-                </p>
-                
-                {/* Floating elements */}
-                <div className="absolute top-4 right-4 text-4xl animate-bounce">🔥</div>
-                <div className="absolute bottom-12 left-4 text-3xl animate-pulse">🤹</div>
-                <div className="absolute top-1/4 left-8 text-2xl">✨</div>
-                <div className="absolute bottom-1/4 right-8 text-2xl animate-bounce delay-300">🎭</div>
-              </div>
+            <div className="aspect-[4/3] rounded-3xl overflow-hidden">
+              <Image
+                src="/images/community-christmas-2026-at-paradise.png"
+                alt="Community of circus legends at Paradise Circus"
+                fill
+                className="object-cover rounded-3xl"
+              />
             </div>
           </div>
         </div>

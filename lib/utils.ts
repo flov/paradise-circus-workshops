@@ -318,8 +318,9 @@ export function validateInstagramHandle(handle: string): { isValid: boolean; err
   }
   
   // Instagram handles: 1-30 characters, alphanumeric, dots, underscores
-  // Cannot start or end with dot or underscore
-  const instagramRegex = /^[a-zA-Z0-9]([a-zA-Z0-9._]*[a-zA-Z0-9])?$/;
+  // Cannot start with dot or underscore
+  // Can end with alphanumeric or underscore (but not dot)
+  const instagramRegex = /^[a-zA-Z0-9]([a-zA-Z0-9._]*[a-zA-Z0-9_])?$/;
   
   if (!instagramRegex.test(cleaned)) {
     return { 
