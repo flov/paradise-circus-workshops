@@ -204,7 +204,7 @@ export function ArtistList({ artists }: ArtistListProps) {
           </div>
 
           {/* Search and filters */}
-          <div className="flex flex-col sm:flex-row gap-2">
+          <div className="flex flex-col gap-2">
             <div className="relative flex-1">
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
               <Input
@@ -215,50 +215,54 @@ export function ArtistList({ artists }: ArtistListProps) {
               />
             </div>
 
-            <div className="flex gap-2">
-              <Button
-                variant={instructorOnly ? "default" : "outline"}
-                size="sm"
-                onClick={() => setInstructorOnly(!instructorOnly)}
-                className="h-9 text-xs"
-              >
-                <User className="size-3.5 mr-1.5" />
-                Instructors
-              </Button>
+            <div className="flex flex-col sm:flex-row gap-2">
+              <div className="flex gap-2 flex-wrap">
+                <Button
+                  variant={instructorOnly ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setInstructorOnly(!instructorOnly)}
+                  className="h-9 text-xs"
+                >
+                  <User className="size-3.5 mr-1.5" />
+                  Instructors
+                </Button>
 
-              <Button
-                variant={videosOnly ? "default" : "outline"}
-                size="sm"
-                onClick={() => setVideosOnly(!videosOnly)}
-                className="h-9 text-xs"
-              >
-                <Video className="size-3.5 mr-1.5" />
-                Videos
-              </Button>
+                <Button
+                  variant={videosOnly ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setVideosOnly(!videosOnly)}
+                  className="h-9 text-xs"
+                >
+                  <Video className="size-3.5 mr-1.5" />
+                  Videos
+                </Button>
 
-              <Button
-                variant={bioOnly ? "default" : "outline"}
-                size="sm"
-                onClick={() => setBioOnly(!bioOnly)}
-                className="h-9 text-xs"
-              >
-                <FileText className="size-3.5 mr-1.5" />
-                Bio
-              </Button>
+                <Button
+                  variant={bioOnly ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setBioOnly(!bioOnly)}
+                  className="h-9 text-xs"
+                >
+                  <FileText className="size-3.5 mr-1.5" />
+                  Bio
+                </Button>
+              </div>
 
-              <Select value={selectedProp} onValueChange={setSelectedProp}>
-                <SelectTrigger className="h-9 w-[140px] text-xs">
-                  <SelectValue placeholder="Filter by prop" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All props</SelectItem>
-                  {allProps.map((prop) => (
-                    <SelectItem key={prop} value={prop} className="text-xs">
-                      {prop}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <div className="w-full sm:w-auto">
+                <Select value={selectedProp} onValueChange={setSelectedProp}>
+                  <SelectTrigger className="h-9 w-full sm:w-[140px] text-xs">
+                    <SelectValue placeholder="Filter by prop" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All props</SelectItem>
+                    {allProps.map((prop) => (
+                      <SelectItem key={prop} value={prop} className="text-xs">
+                        {prop}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
           </div>
         </div>
