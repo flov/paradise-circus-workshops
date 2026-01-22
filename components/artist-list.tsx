@@ -128,6 +128,7 @@ function ArtistCard({ artist }: { artist: Artist }) {
 export function ArtistList({ artists }: ArtistListProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [instructorOnly, setInstructorOnly] = useState(false);
+  const [videosOnly, setVideosOnly] = useState(false);
   const [selectedProp, setSelectedProp] = useState<string>("all");
 
   // Get all unique props from all artists
@@ -149,21 +150,25 @@ export function ArtistList({ artists }: ArtistListProps) {
       // Instructor filter
       const matchesInstructor = !instructorOnly || artist.isInstructor;
 
+      // Videos filter
+      const matchesVideos = !videosOnly || (artist.videoCount ?? 0) > 0;
+
       // Prop filter
       const matchesProp =
         selectedProp === "all" ||
         artist.props.some((p) => p.name === selectedProp);
 
-      return matchesSearch && matchesInstructor && matchesProp;
+      return matchesSearch && matchesInstructor && matchesVideos && matchesProp;
     });
-  }, [artists, searchQuery, instructorOnly, selectedProp]);
+  }, [artists, searchQuery, instructorOnly, videosOnly, selectedProp]);
 
   const hasActiveFilters =
-    searchQuery || instructorOnly || selectedProp !== "all";
+    searchQuery || instructorOnly || videosOnly || selectedProp !== "all";
 
   const clearFilters = () => {
     setSearchQuery("");
     setInstructorOnly(false);
+    setVideosOnly(false);
     setSelectedProp("all");
   };
 
@@ -213,6 +218,16 @@ export function ArtistList({ artists }: ArtistListProps) {
               >
                 <User className="size-3.5 mr-1.5" />
                 Instructors
+              </Button>
+
+              <Button
+                variant={videosOnly ? "default" : "outline"}
+                size="sm"
+                onClick={() => setVideosOnly(!videosOnly)}
+                className="h-9 text-xs"
+              >
+                <Video className="size-3.5 mr-1.5" />
+                Videos
               </Button>
 
               <Select value={selectedProp} onValueChange={setSelectedProp}>
