@@ -3,7 +3,6 @@ import { WorkshopsSection } from "@/components/landing/workshops-section";
 import { ShowsSection } from "@/components/landing/shows-section";
 import { CommunitySection } from "@/components/landing/community-section";
 import { InstagramSection } from "@/components/landing/instagram-section";
-import { Footer } from "@/components/landing/footer";
 
 export default function Home() {
   return (
