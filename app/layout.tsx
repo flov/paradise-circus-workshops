@@ -58,9 +58,9 @@ export default function RootLayout({
       }}
     >
       <html lang="en">
-        <body className={`font-sans antialiased ${rye.variable}`}>
+        <body className={`font-sans antialiased ${rye.variable} min-h-screen flex flex-col`}>
           <Navigation />
-          <div className="pt-12">{children}</div>
+          <div className="pt-12 flex-1">{children}</div>
           <Footer />
           <Analytics />
         </body>
