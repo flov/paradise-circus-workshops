@@ -295,6 +295,7 @@ export async function createEvent(formData: FormData) {
 
       revalidatePath("/admin")
       revalidatePath("/")
+      revalidatePath("/api/timetable")
 
       return { success: true }
     }
@@ -435,6 +436,7 @@ export async function createEvent(formData: FormData) {
 
     revalidatePath("/admin")
     revalidatePath("/")
+    revalidatePath("/api/timetable")
 
     return { success: true }
   } catch (error) {
@@ -835,6 +837,7 @@ export async function updateEvent(formData: FormData) {
 
       revalidatePath("/admin")
       revalidatePath("/")
+      revalidatePath("/api/timetable")
 
       return { success: true }
     }
@@ -988,6 +991,7 @@ export async function updateEvent(formData: FormData) {
 
     revalidatePath("/admin")
     revalidatePath("/")
+    revalidatePath("/api/timetable")
     
     // Ensure title and instructorName are not null before creating slug
     if (title && instructorName) {
@@ -1122,6 +1126,7 @@ export async function deleteEvent(eventId: number, cancellationMessage?: string 
 
     revalidatePath("/admin")
     revalidatePath("/")
+    revalidatePath("/api/timetable")
   } catch (error) {
     console.error("Error deleting workshop:", error)
     throw error
