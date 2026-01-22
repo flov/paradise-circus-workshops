@@ -8,7 +8,8 @@ import { ArrowRight, Calendar, Clock, Users } from "lucide-react";
 const workshopCategories = [
   {
     title: "Poi, Staff & Flow",
-    description: "Master the art of spinning with fire, LED, and practice poi, staff, and flow",
+    description:
+      "Master the art of spinning with fire, LED, and practice poi, staff, and flow",
     icon: "🔥",
   },
   {
@@ -41,9 +42,9 @@ export function WorkshopsSection() {
             Free Daily Workshops
           </h2>
           <p className="text-muted-foreground max-w-2xl mx-auto text-lg">
-            From afternoon to late-night fire spinning, there&apos;s always 
-            something happening at Paradise Circus. All workshops are taught by 
-            community members, for free.
+            From afternoon poi lessons to late-night fire spinning, there&apos;s
+            always something happening at Paradise Circus. All workshops are
+            taught by community members, for free.
           </p>
         </div>
 
@@ -53,14 +54,18 @@ export function WorkshopsSection() {
             <div className="flex justify-center mb-3">
               <Calendar className="w-6 h-6 text-primary" />
             </div>
-            <p className="text-2xl md:text-4xl font-bold text-foreground">20+</p>
+            <p className="text-2xl md:text-4xl font-bold text-foreground">
+              20+
+            </p>
             <p className="text-sm text-muted-foreground">Workshops this week</p>
           </div>
           <div className="text-center p-4 md:p-6 rounded-2xl bg-background">
             <div className="flex justify-center mb-3">
               <Users className="w-6 h-6 text-primary" />
             </div>
-            <p className="text-2xl md:text-4xl font-bold text-foreground">50+</p>
+            <p className="text-2xl md:text-4xl font-bold text-foreground">
+              50+
+            </p>
             <p className="text-sm text-muted-foreground">Active artists</p>
           </div>
           <div className="text-center p-4 md:p-6 rounded-2xl bg-background">
@@ -75,8 +80,8 @@ export function WorkshopsSection() {
         {/* Workshop categories grid */}
         <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4 mb-12">
           {workshopCategories.map((category) => (
-            <Card 
-              key={category.title} 
+            <Card
+              key={category.title}
               className="group hover:shadow-lg transition-all duration-300 border-border/50 hover:border-primary/30"
             >
               <CardContent className="p-6">
