@@ -22,6 +22,8 @@ type TimeSlot = {
   isWorkshop: boolean;
   propId: number | null;
   isPublished: boolean;
+  isRecurring: boolean;
+  recurringSeriesId: string | null;
 };
 
 type TimetableData = {
@@ -171,6 +173,8 @@ export function WeeklyTimetable({
           propId: event.propId || null,
           isPublished:
             event.isPublished !== undefined ? event.isPublished : true,
+          isRecurring: (event as any).isRecurring ?? false,
+          recurringSeriesId: (event as any).recurringSeriesId || null,
         });
       });
 
@@ -537,6 +541,8 @@ export function WeeklyTimetable({
                                             isWorkshop: slot.isWorkshop,
                                             propId: slot.propId,
                                             isPublished: slot.isPublished,
+                                            isRecurring: slot.isRecurring,
+                                            recurringSeriesId: slot.recurringSeriesId || undefined,
                                           }}
                                         />
                                       </div>
@@ -757,6 +763,8 @@ export function WeeklyTimetable({
                                         isWorkshop: slot.isWorkshop,
                                         propId: slot.propId,
                                         isPublished: slot.isPublished,
+                                        isRecurring: slot.isRecurring,
+                                        recurringSeriesId: slot.recurringSeriesId || undefined,
                                       }}
                                     />
                                   </div>

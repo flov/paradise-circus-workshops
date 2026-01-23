@@ -76,6 +76,8 @@ export async function GET(request: NextRequest) {
         currentBookings: events.currentBookings,
         propId: events.propId,
         isPublished: events.isPublished,
+        isRecurring: events.isRecurring,
+        recurringSeriesId: events.recurringSeriesId,
         instructorProfile: {
           id: users.id,
           displayName: users.displayName,
@@ -111,6 +113,8 @@ export async function GET(request: NextRequest) {
       currentBookings: event.currentBookings,
       propId: event.propId,
       isPublished: event.isPublished,
+      isRecurring: event.isRecurring,
+      recurringSeriesId: event.recurringSeriesId,
       instructorDisplayName: event.instructorProfile
         ? (event.instructorProfile.displayName || event.instructorProfile.username)
         : null,

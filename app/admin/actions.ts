@@ -923,7 +923,7 @@ export async function updateEvent(formData: FormData) {
       }
     }
 
-    // Only allow admins to change isPublished
+    // Only allow admins to change isPublished and isRecurring
     const updateData: {
       title: string;
       description: string;
@@ -938,6 +938,7 @@ export async function updateEvent(formData: FormData) {
       propId: number | null;
       updatedAt: ReturnType<typeof sql>;
       isPublished?: boolean;
+      isRecurring?: boolean;
     } = {
       title,
       description,
@@ -953,9 +954,18 @@ export async function updateEvent(formData: FormData) {
       updatedAt: sql`CURRENT_TIMESTAMP`,
     };
 
-    // Only update isPublished if user is admin
+    // Only update isPublished and isRecurring if user is admin
     if (userIsAdmin) {
       updateData.isPublished = isPublished;
+      // Only update isRecurring if not converting to recurring (that's handled separately)
+      // For existing recurring events, preserve isRecurring: true
+      // For non-recurring events being updated, set based on form value
+      if (!isRecurringEvent) {
+        updateData.isRecurring = isRecurring;
+      } else {
+        // Preserve isRecurring for existing recurring events
+        updateData.isRecurring = true;
+      }
     }
 
     // Handle converting non-recurring event to recurring
