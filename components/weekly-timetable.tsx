@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
-import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, Repeat } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { createEventSlug } from "@/lib/utils";
 import { EditEventButton } from "@/components/admin/edit-event-button";
@@ -475,14 +475,17 @@ export function WeeklyTimetable({
                                   slot.location?.toLowerCase() ===
                                     "paradise river";
                                 const isPending = !slot.isPublished;
-                                const hasNoInstructorId = isAdmin && slot.instructorId === null;
+                                const hasNoInstructorId =
+                                  isAdmin && slot.instructorId === null;
                                 const getColorClasses = () => {
                                   // Pending events get yellow/orange styling
                                   if (isPending) {
                                     return "bg-yellow-500/20 hover:bg-yellow-500/30 border border-yellow-500/50 border-dashed";
                                   }
                                   // Events without instructorId get dashed borders (admin only)
-                                  const borderDashed = hasNoInstructorId ? " border-dashed" : "";
+                                  const borderDashed = hasNoInstructorId
+                                    ? " border-dashed"
+                                    : "";
                                   if (!slot.isWorkshop) {
                                     return `bg-purple-500/20 hover:bg-purple-500/30 border border-purple-500/40${borderDashed}`;
                                   }
@@ -498,9 +501,9 @@ export function WeeklyTimetable({
                                   >
                                     <a
                                       href={`/event/${createEventSlug(slot.id, slot.title, slot.instructorDisplayName || slot.instructor || "")}`}
-                                      className="block p-2 pr-8"
+                                      className="block p-2"
                                     >
-                                      <div className="text-sm font-medium text-foreground line-clamp-2">
+                                      <div className="text-sm font-medium text-foreground line-clamp-2 flex items-center gap-1.5">
                                         {slot.title}
                                         {isPending && (
                                           <span className="ml-1 text-xs font-normal text-yellow-600 dark:text-yellow-400">
@@ -508,10 +511,23 @@ export function WeeklyTimetable({
                                           </span>
                                         )}
                                       </div>
-                                      <div className="text-xs text-muted-foreground mt-0.5 line-clamp-1">
-                                        {slot.instructorDisplayName ||
-                                          slot.instructor ||
-                                          ""}
+                                      <div className="flex justify-between">
+                                        <div className="text-xs text-muted-foreground mt-0.5 line-clamp-1">
+                                          {slot.instructorDisplayName ||
+                                            slot.instructor ||
+                                            ""}
+                                        </div>
+                                        {isAdmin && slot.isRecurring && (
+                                          <span
+                                            className="inline-flex items-center gap-0.5 text-xs font-normal text-muted-foreground"
+                                            title="Recurring event"
+                                          >
+                                            <Repeat className="h-3 w-3" />
+                                            <span className="sr-only">
+                                              Recurring
+                                            </span>
+                                          </span>
+                                        )}
                                       </div>
                                     </a>
                                     {(isAdmin ||
@@ -542,7 +558,9 @@ export function WeeklyTimetable({
                                             propId: slot.propId,
                                             isPublished: slot.isPublished,
                                             isRecurring: slot.isRecurring,
-                                            recurringSeriesId: slot.recurringSeriesId || undefined,
+                                            recurringSeriesId:
+                                              slot.recurringSeriesId ||
+                                              undefined,
                                           }}
                                         />
                                       </div>
@@ -680,14 +698,17 @@ export function WeeklyTimetable({
                                 .includes("paradise river") ||
                               slot.location?.toLowerCase() === "paradise river";
                             const isPending = !slot.isPublished;
-                            const hasNoInstructorId = isAdmin && slot.instructorId === null;
+                            const hasNoInstructorId =
+                              isAdmin && slot.instructorId === null;
                             const getMobileColorClasses = () => {
                               // Pending events get yellow/orange styling
                               if (isPending) {
                                 return "bg-yellow-500/20 hover:bg-yellow-500/30 active:bg-yellow-500/35 border-yellow-500/50 hover:border-yellow-500/60 active:border-yellow-500/70 border-dashed";
                               }
                               // Events without instructorId get dashed borders (admin only)
-                              const borderDashed = hasNoInstructorId ? " border-dashed" : "";
+                              const borderDashed = hasNoInstructorId
+                                ? " border-dashed"
+                                : "";
                               if (!slot.isWorkshop) {
                                 return `bg-purple-500/15 hover:bg-purple-500/25 active:bg-purple-500/30 border-purple-500/40 hover:border-purple-500/50 active:border-purple-500/60${borderDashed}`;
                               }
@@ -717,11 +738,22 @@ export function WeeklyTimetable({
                                   className="block p-4 pr-12 cursor-pointer"
                                 >
                                   <div className="flex justify-between items-start gap-2 mb-1">
-                                    <div className="font-medium text-foreground flex-1 min-w-0">
+                                    <div className="font-medium text-foreground flex-1 min-w-0 flex items-center gap-1.5">
                                       {slot.title}
                                       {isPending && (
                                         <span className="ml-2 text-xs font-normal text-yellow-600 dark:text-yellow-400">
                                           (Pending Approval)
+                                        </span>
+                                      )}
+                                      {isAdmin && slot.isRecurring && (
+                                        <span
+                                          className="inline-flex items-center gap-0.5 text-xs font-normal text-muted-foreground"
+                                          title="Recurring event"
+                                        >
+                                          <Repeat className="h-3 w-3" />
+                                          <span className="sr-only">
+                                            Recurring
+                                          </span>
                                         </span>
                                       )}
                                     </div>
@@ -764,7 +796,8 @@ export function WeeklyTimetable({
                                         propId: slot.propId,
                                         isPublished: slot.isPublished,
                                         isRecurring: slot.isRecurring,
-                                        recurringSeriesId: slot.recurringSeriesId || undefined,
+                                        recurringSeriesId:
+                                          slot.recurringSeriesId || undefined,
                                       }}
                                     />
                                   </div>

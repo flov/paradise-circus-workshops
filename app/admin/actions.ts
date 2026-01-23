@@ -939,6 +939,7 @@ export async function updateEvent(formData: FormData) {
       updatedAt: ReturnType<typeof sql>;
       isPublished?: boolean;
       isRecurring?: boolean;
+      recurringSeriesId?: string | null;
     } = {
       title,
       description,
@@ -966,6 +967,33 @@ export async function updateEvent(formData: FormData) {
         // Preserve isRecurring for existing recurring events
         updateData.isRecurring = true;
       }
+    }
+
+    // Handle converting recurring event to non-recurring
+    if (isRecurringEvent && !isRecurring && userIsAdmin) {
+      // Convert only the current event to non-recurring
+      // Other events in the series remain as recurring events
+      await db
+        .update(events)
+        .set({
+          ...updateData,
+          isRecurring: false,
+          recurringSeriesId: null,
+        })
+        .where(eq(events.id, eventId));
+
+      revalidatePath("/admin");
+      revalidatePath("/");
+      revalidatePath("/api/timetable");
+
+      // Ensure title and instructorName are not null before creating slug
+      if (title && instructorName) {
+        revalidatePath(
+          `/event/${createEventSlug(eventId, title, instructorName)}`,
+        );
+      }
+
+      return { success: true };
     }
 
     // Handle converting non-recurring event to recurring
