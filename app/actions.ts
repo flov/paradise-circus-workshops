@@ -509,12 +509,12 @@ export async function deleteComment(commentId: number) {
   }
 }
 
-export async function getInstagramTimetableData(startDate?: string) {
+export async function getInstagramTimetableData(startDate?: string, location: string = "paradise-stage") {
   "use server"
   
   try {
     const { events } = await import("@/db/schema")
-    const { and, gte, lte, eq, asc, or } = await import("drizzle-orm")
+    const { and, gte, lte, eq, asc, or, sql } = await import("drizzle-orm")
     
     // Calculate week start (Monday) and end (Sunday)
     const today = startDate ? new Date(startDate) : new Date()
@@ -534,6 +534,7 @@ export async function getInstagramTimetableData(startDate?: string) {
     console.log("Instagram timetable query:", {
       startDateStr,
       endDateStr,
+      location,
       monday: monday.toISOString(),
       sunday: sunday.toISOString(),
     })
@@ -558,7 +559,24 @@ export async function getInstagramTimetableData(startDate?: string) {
     
     console.log("All events in date range:", allEventsInRange.length, allEventsInRange.map(e => ({ title: e.title, location: e.location, date: e.date, isPublished: e.isPublished })))
     
-    // Fetch events for paradise-stage location
+    // Build location filter based on location parameter
+    const locationFilter = location === "paradise-river"
+      ? or(
+          sql`LOWER(COALESCE(${events.location}, '')) LIKE '%paradise-river%'`,
+          sql`LOWER(COALESCE(${events.location}, '')) LIKE '%paradise river%'`,
+          eq(events.location, "paradise-river"),
+          eq(events.location, "Paradise River"),
+          eq(events.location, "PARADISE RIVER")
+        )
+      : or(
+          sql`LOWER(COALESCE(${events.location}, '')) LIKE '%paradise-stage%'`,
+          sql`LOWER(COALESCE(${events.location}, '')) LIKE '%paradise stage%'`,
+          eq(events.location, "paradise-stage"),
+          eq(events.location, "Paradise Stage"),
+          eq(events.location, "PARADISE STAGE")
+        )
+    
+    // Fetch events for the selected location
     // Use case-insensitive matching with SQL template to handle variations
     // Handle null locations by checking if location is not null first
     const eventsData = await db
@@ -576,19 +594,13 @@ export async function getInstagramTimetableData(startDate?: string) {
         and(
           gte(events.date, startDateStr),
           lte(events.date, endDateStr),
-          or(
-            sql`LOWER(COALESCE(${events.location}, '')) LIKE '%paradise-stage%'`,
-            sql`LOWER(COALESCE(${events.location}, '')) LIKE '%paradise stage%'`,
-            eq(events.location, "paradise-stage"),
-            eq(events.location, "Paradise Stage"),
-            eq(events.location, "PARADISE STAGE")
-          ),
+          locationFilter,
           eq(events.isPublished, true)
         )
       )
       .orderBy(asc(events.date), asc(events.startTime))
     
-    console.log("Found paradise-stage events:", eventsData.length, eventsData.map(e => ({ title: e.title, location: e.location, date: e.date })))
+    console.log(`Found ${location} events:`, eventsData.length, eventsData.map(e => ({ title: e.title, location: e.location, date: e.date })))
     
     // Helper function to format time to "12pm" format
     const formatTimeSlot = (time: string): string => {
@@ -719,7 +731,8 @@ export async function getInstagramTimetableData(startDate?: string) {
       }
     }
     
-    const title = `PARADISE STAGE SCHEDULE ${formatDate(monday)} - ${formatDate(sunday)}`
+    const locationName = location === "paradise-river" ? "PARADISE RIVER" : "PARADISE STAGE"
+    const title = `${locationName} SCHEDULE ${formatDate(monday)} - ${formatDate(sunday)}`
     
     return {
       title,

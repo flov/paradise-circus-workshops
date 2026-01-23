@@ -4,11 +4,13 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { ChevronLeft, ChevronRight, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export function InstagramWeekNavigation() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const currentDate = searchParams.get("date") || new Date().toISOString().split("T")[0];
+  const currentLocation = searchParams.get("location") || "paradise-stage";
 
   // Calculate Monday of the current week
   const getMondayOfWeek = (dateStr: string): Date => {
@@ -30,7 +32,11 @@ export function InstagramWeekNavigation() {
 
   const goToWeek = (date: Date) => {
     const dateStr = formatDateForInput(date);
-    router.push(`/instagram?date=${dateStr}`);
+    router.push(`/instagram?date=${dateStr}&location=${currentLocation}`);
+  };
+
+  const handleLocationChange = (newLocation: string) => {
+    router.push(`/instagram?date=${currentDate}&location=${newLocation}`);
   };
 
   const goToPreviousWeek = () => {
@@ -53,7 +59,7 @@ export function InstagramWeekNavigation() {
   const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedDate = e.target.value;
     if (selectedDate) {
-      router.push(`/instagram?date=${selectedDate}`);
+      router.push(`/instagram?date=${selectedDate}&location=${currentLocation}`);
     }
   };
 
@@ -69,46 +75,57 @@ export function InstagramWeekNavigation() {
   };
 
   return (
-    <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-6">
-      <div className="flex items-center gap-2">
-        <Button
-          variant="outline"
-          size="icon"
-          onClick={goToPreviousWeek}
-          className="bg-white/10 border-white/20 text-white hover:bg-white/20"
-        >
-          <ChevronLeft className="h-4 w-4" />
-        </Button>
-        
-        <Button
-          variant="outline"
-          onClick={goToCurrentWeek}
-          className="bg-white/10 border-white/20 text-white hover:bg-white/20 px-4"
-        >
-          Today
-        </Button>
-        
-        <Button
-          variant="outline"
-          size="icon"
-          onClick={goToNextWeek}
-          className="bg-white/10 border-white/20 text-white hover:bg-white/20"
-        >
-          <ChevronRight className="h-4 w-4" />
-        </Button>
-      </div>
+    <div className="flex flex-col items-center justify-center gap-4 mb-6">
+      <div className="flex flex-col sm:flex-row items-center justify-center gap-4 w-full">
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={goToPreviousWeek}
+            className="bg-white/10 border-white/20 text-white hover:bg-white/20"
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </Button>
+          
+          <Button
+            variant="outline"
+            onClick={goToCurrentWeek}
+            className="bg-white/10 border-white/20 text-white hover:bg-white/20 px-4"
+          >
+            Today
+          </Button>
+          
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={goToNextWeek}
+            className="bg-white/10 border-white/20 text-white hover:bg-white/20"
+          >
+            <ChevronRight className="h-4 w-4" />
+          </Button>
+        </div>
 
-      <div className="flex items-center gap-2">
-        <Calendar className="h-4 w-4 text-white/70" />
-        <Input
-          type="date"
-          value={formatDateForInput(monday)}
-          onChange={handleDateChange}
-          className="bg-white/10 border-white/20 text-white placeholder:text-white/50 focus:border-white/40 focus:ring-white/20 w-auto"
-        />
-        <span className="text-white/70 text-sm hidden sm:inline">
-          {formatDateRange()}
-        </span>
+        <div className="flex items-center gap-2">
+          <Calendar className="h-4 w-4 text-white/70" />
+          <Input
+            type="date"
+            value={formatDateForInput(monday)}
+            onChange={handleDateChange}
+            className="bg-white/10 border-white/20 text-white placeholder:text-white/50 focus:border-white/40 focus:ring-white/20 w-auto"
+          />
+          <span className="text-white/70 text-sm hidden sm:inline">
+            {formatDateRange()}
+          </span>
+          <Select value={currentLocation} onValueChange={handleLocationChange}>
+            <SelectTrigger className="bg-white/10 border-white/20 text-white hover:bg-white/20 w-[200px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent className="bg-neutral-800 border-white/20 text-white">
+              <SelectItem value="paradise-stage" className="focus:bg-white/10">Paradise Stage</SelectItem>
+              <SelectItem value="paradise-river" className="focus:bg-white/10">Paradise River</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
       </div>
     </div>
   );

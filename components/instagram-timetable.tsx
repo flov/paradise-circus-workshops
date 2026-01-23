@@ -21,11 +21,13 @@ interface ScheduleData {
 interface InstagramTimetableProps {
   data: ScheduleData;
   aspectRatio?: "square" | "portrait" | "landscape";
+  location?: string;
 }
 
 export function InstagramTimetable({
   data,
   aspectRatio = "landscape",
+  location = "paradise-stage",
 }: InstagramTimetableProps) {
   const aspectClasses = {
     square: "aspect-square max-w-[1080px]",
@@ -40,7 +42,7 @@ export function InstagramTimetable({
     >
       {/* Sunburst Background */}
       <div className="absolute inset-0">
-        <SunburstBackground />
+        <SunburstBackground location={location} />
       </div>
 
       {/* Content */}
@@ -120,9 +122,10 @@ export function InstagramTimetable({
   );
 }
 
-function SunburstBackground() {
+function SunburstBackground({ location = "paradise-stage" }: { location?: string }) {
   const rays = 24;
   const rayElements = [];
+  const stripeColor = location === "paradise-river" ? "#16a34a" : "#dc2626"; // green-600 for river, red-600 for stage
 
   for (let i = 0; i < rays; i++) {
     const rotation = (360 / rays) * i;
@@ -138,7 +141,7 @@ function SunburstBackground() {
           transform: `translate(-50%, -50%) rotate(${rotation}deg)`,
           background:
             i % 2 === 0
-              ? "linear-gradient(to right, #dc2626 0%, #dc2626 50%, transparent 50%)"
+              ? `linear-gradient(to right, ${stripeColor} 0%, ${stripeColor} 50%, transparent 50%)`
               : "linear-gradient(to right, #1a1a1a 0%, #1a1a1a 50%, transparent 50%)",
           clipPath: `polygon(50% 50%, 40% 0%, 55% 0%)`,
         }}
@@ -147,7 +150,7 @@ function SunburstBackground() {
   }
 
   return (
-    <div className="absolute inset-0 bg-[#dc2626] overflow-hidden">
+    <div className={`absolute inset-0 overflow-hidden`} style={{ backgroundColor: stripeColor }}>
       {rayElements}
     </div>
   );
