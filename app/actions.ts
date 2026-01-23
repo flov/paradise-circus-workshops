@@ -508,3 +508,204 @@ export async function deleteComment(commentId: number) {
     return { success: false, error: "Failed to delete comment" }
   }
 }
+
+export async function getInstagramTimetableData(startDate?: string) {
+  "use server"
+  
+  try {
+    const { events } = await import("@/db/schema")
+    const { and, gte, lte, eq, asc, or } = await import("drizzle-orm")
+    
+    // Calculate week start (Monday) and end (Sunday)
+    const today = startDate ? new Date(startDate) : new Date()
+    const dayOfWeek = today.getDay() // 0 = Sunday, 1 = Monday, etc.
+    const daysFromMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1 // Convert Sunday (0) to 6 days from Monday
+    const monday = new Date(today)
+    monday.setDate(today.getDate() - daysFromMonday)
+    monday.setHours(0, 0, 0, 0)
+    
+    const sunday = new Date(monday)
+    sunday.setDate(monday.getDate() + 6)
+    sunday.setHours(23, 59, 59, 999)
+    
+    const startDateStr = monday.toISOString().split("T")[0]
+    const endDateStr = sunday.toISOString().split("T")[0]
+    
+    console.log("Instagram timetable query:", {
+      startDateStr,
+      endDateStr,
+      monday: monday.toISOString(),
+      sunday: sunday.toISOString(),
+    })
+    
+    // First, check if there are any events in the date range (for debugging)
+    const allEventsInRange = await db
+      .select({
+        id: events.id,
+        title: events.title,
+        location: events.location,
+        date: events.date,
+        isPublished: events.isPublished,
+      })
+      .from(events)
+      .where(
+        and(
+          gte(events.date, startDateStr),
+          lte(events.date, endDateStr)
+        )
+      )
+      .limit(10)
+    
+    console.log("All events in date range:", allEventsInRange.length, allEventsInRange.map(e => ({ title: e.title, location: e.location, date: e.date, isPublished: e.isPublished })))
+    
+    // Fetch events for paradise-stage location
+    // Use case-insensitive matching with SQL template to handle variations
+    // Handle null locations by checking if location is not null first
+    const eventsData = await db
+      .select({
+        id: events.id,
+        title: events.title,
+        instructor: events.instructor,
+        date: events.date,
+        startTime: events.startTime,
+        endTime: events.endTime,
+        location: events.location,
+      })
+      .from(events)
+      .where(
+        and(
+          gte(events.date, startDateStr),
+          lte(events.date, endDateStr),
+          or(
+            sql`LOWER(COALESCE(${events.location}, '')) LIKE '%paradise-stage%'`,
+            sql`LOWER(COALESCE(${events.location}, '')) LIKE '%paradise stage%'`,
+            eq(events.location, "paradise-stage"),
+            eq(events.location, "Paradise Stage"),
+            eq(events.location, "PARADISE STAGE")
+          ),
+          eq(events.isPublished, true)
+        )
+      )
+      .orderBy(asc(events.date), asc(events.startTime))
+    
+    console.log("Found paradise-stage events:", eventsData.length, eventsData.map(e => ({ title: e.title, location: e.location, date: e.date })))
+    
+    // Helper function to format time to "12pm" format
+    const formatTimeSlot = (time: string): string => {
+      const [hours, minutes] = time.split(":")
+      const hour = Number.parseInt(hours)
+      const ampm = hour >= 12 ? "pm" : "am"
+      const displayHour = hour % 12 || 12
+      // Round to nearest hour for time slots (or use specific logic)
+      return `${displayHour}${ampm}`
+    }
+    
+    // Helper function to get day abbreviation
+    const getDayAbbr = (dateStr: string): string => {
+      const date = new Date(dateStr + "T00:00:00")
+      const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
+      return days[date.getDay()]
+    }
+    
+    // Generate days array (Mon-Sun) - always in this order
+    const days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+    
+    // Create a mapping from day abbreviation to index in the days array
+    const dayIndexMap: Record<string, number> = {
+      "Mon": 0,
+      "Tue": 1,
+      "Wed": 2,
+      "Thu": 3,
+      "Fri": 4,
+      "Sat": 5,
+      "Sun": 6,
+    }
+    
+    // Collect all unique time slots from events
+    const timeSlotSet = new Set<string>()
+    eventsData.forEach(event => {
+      timeSlotSet.add(formatTimeSlot(event.startTime))
+    })
+    
+    // Sort time slots
+    const timeSlots = Array.from(timeSlotSet).sort((a, b) => {
+      const getHour = (slot: string) => {
+        const match = slot.match(/(\d+)(am|pm)/)
+        if (!match) return 0
+        let hour = Number.parseInt(match[1])
+        if (match[2] === "pm" && hour !== 12) hour += 12
+        if (match[2] === "am" && hour === 12) hour = 0
+        return hour
+      }
+      return getHour(a) - getHour(b)
+    })
+    
+    // If no events, use default time slots
+    if (timeSlots.length === 0) {
+      timeSlots.push("12pm", "1pm", "2pm", "3pm", "4pm", "5pm", "6pm", "7pm", "8pm", "10pm")
+    }
+    
+    // Build events map
+    const eventsMap: Record<string, { name: string; instructor: string; isLogo?: boolean; isSpecial?: boolean } | null> = {}
+    
+    // Initialize all slots to null
+    timeSlots.forEach(time => {
+      days.forEach(day => {
+        eventsMap[`${time}-${day}`] = null
+      })
+    })
+    
+    // Fill in events
+    eventsData.forEach(event => {
+      const dayAbbr = getDayAbbr(event.date)
+      // Only process events that fall within our week (Mon-Sun)
+      if (dayIndexMap[dayAbbr] !== undefined) {
+        const timeSlot = formatTimeSlot(event.startTime)
+        const key = `${timeSlot}-${dayAbbr}`
+        
+        // Check if event title contains special keywords
+        const titleUpper = event.title.toUpperCase()
+        const isSpecial = titleUpper.includes("FIRESHOW") || 
+                         titleUpper.includes("OPEN MIC") || 
+                         titleUpper.includes("OPEN STAGE") ||
+                         titleUpper.includes("JAM")
+        
+        eventsMap[key] = {
+          name: event.title,
+          instructor: event.instructor || "",
+          isSpecial,
+        }
+      }
+    })
+    
+    // Generate title
+    const formatDate = (date: Date): string => {
+      const months = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"]
+      const month = months[date.getMonth()]
+      const day = date.getDate()
+      return `${month} ${day}${getOrdinalSuffix(day)}`
+    }
+    
+    const getOrdinalSuffix = (day: number): string => {
+      if (day > 3 && day < 21) return "TH"
+      switch (day % 10) {
+        case 1: return "ST"
+        case 2: return "ND"
+        case 3: return "RD"
+        default: return "TH"
+      }
+    }
+    
+    const title = `PARADISE STAGE SCHEDULE ${formatDate(monday)} - ${formatDate(sunday)}`
+    
+    return {
+      title,
+      days,
+      timeSlots,
+      events: eventsMap,
+    }
+  } catch (error) {
+    console.error("Error fetching Instagram timetable data:", error)
+    throw error
+  }
+}
