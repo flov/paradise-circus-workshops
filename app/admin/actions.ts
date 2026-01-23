@@ -1464,7 +1464,7 @@ export async function extendRecurringEvents() {
     for (const series of recurringSeries) {
       if (!series.recurringSeriesId) continue;
 
-      // Get all events in this series, ordered by date descending
+      // Get all events in this series that are still marked as recurring, ordered by date descending
       const seriesEvents = await db
         .select({
           id: events.id,
@@ -1482,7 +1482,12 @@ export async function extendRecurringEvents() {
           propId: events.propId,
         })
         .from(events)
-        .where(eq(events.recurringSeriesId, series.recurringSeriesId))
+        .where(
+          and(
+            eq(events.recurringSeriesId, series.recurringSeriesId),
+            eq(events.isRecurring, true),
+          ),
+        )
         .orderBy(desc(events.date));
 
       if (seriesEvents.length === 0) continue;
