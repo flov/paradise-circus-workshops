@@ -223,13 +223,11 @@ export function EventForm({
       selectedLocation === "Other" ? customLocation.trim() : selectedLocation;
     formData.append("location", locationValue);
 
-    // Add recurring fields if recurring is enabled
+    // Add recurring fields - always send isRecurring value (true or false)
     // Note: Server-side validation will ensure only admins can create recurring events
-    if (isRecurring) {
-      formData.append("isRecurring", "true");
-      if (recurUntil) {
-        formData.append("recurUntil", recurUntil);
-      }
+    formData.append("isRecurring", isRecurring ? "true" : "false");
+    if (isRecurring && recurUntil) {
+      formData.append("recurUntil", recurUntil);
     }
 
     await onSubmit(formData);

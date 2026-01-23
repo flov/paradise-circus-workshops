@@ -170,6 +170,7 @@ export async function PendingEventsList() {
                           isWorkshop: event.isWorkshop,
                           isPublished: event.isPublished,
                           propId: event.propId,
+                          isRecurring: event.isRecurring,
                         }} />
                         <DeleteEventButton eventId={event.id} eventTitle={event.title} />
                       </>

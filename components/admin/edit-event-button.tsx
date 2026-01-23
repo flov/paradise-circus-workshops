@@ -17,7 +17,7 @@ import { useRouter } from "next/navigation"
 import type { Event } from "@/db/schema"
 import { EventForm, type EventFormInitialValues } from "./event-form"
 
-export function EditEventButton({ event }: { event: Pick<Event, "id" | "title" | "description" | "instructor" | "instructorId" | "date" | "startTime" | "endTime" | "location" | "whatToBring" | "isWorkshop" | "isPublished" | "propId"> }) {
+export function EditEventButton({ event }: { event: Pick<Event, "id" | "title" | "description" | "instructor" | "instructorId" | "date" | "startTime" | "endTime" | "location" | "whatToBring" | "isWorkshop" | "isPublished" | "propId" | "isRecurring"> }) {
   const router = useRouter()
   const [open, setOpen] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -76,6 +76,7 @@ export function EditEventButton({ event }: { event: Pick<Event, "id" | "title" |
     isWorkshop: event.isWorkshop ?? true,
     isPublished: event.isPublished ?? true,
     propId: event.propId,
+    isRecurring: event.isRecurring ?? false,
   }
 
   return (
