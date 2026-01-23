@@ -263,7 +263,10 @@ export function EventForm({
 
   // Calculate number of events that will be created
   const calculateEventCount = (): number => {
-    if (!isRecurring || !recurUntil || !formattedDate) return 0;
+    if (!isRecurring || !formattedDate) return 0;
+
+    // If recurUntil is not provided, return 1 (for the 1 week ahead event)
+    if (!recurUntil) return 1;
 
     const startDate = new Date(formattedDate);
     const endDate = new Date(recurUntil);
@@ -567,14 +570,13 @@ export function EventForm({
 
           {isRecurring && (
             <div className="space-y-2">
-              <Label htmlFor="recurUntil">Recur Until *</Label>
+              <Label htmlFor="recurUntil">Recur Until (optional)</Label>
               <Input
                 id="recurUntil"
                 name="recurUntil"
                 type="date"
                 value={recurUntil}
                 onChange={(e) => setRecurUntil(e.target.value)}
-                required={isRecurring}
                 disabled={isSubmitting}
                 min={formattedDate || undefined}
               />
@@ -587,9 +589,17 @@ export function EventForm({
                 )}
               {eventCount > 0 && (
                 <p className="text-xs text-muted-foreground">
-                  This will create {eventCount} event
-                  {eventCount !== 1 ? "s" : ""} weekly from {formattedDate}{" "}
-                  until {recurUntil}.
+                  {recurUntil ? (
+                    <>
+                      This will create {eventCount} event
+                      {eventCount !== 1 ? "s" : ""} weekly from {formattedDate}{" "}
+                      until {recurUntil}.
+                    </>
+                  ) : (
+                    <>
+                      This will create 1 event 1 week ahead. Events will be automatically extended weekly.
+                    </>
+                  )}
                 </p>
               )}
             </div>
