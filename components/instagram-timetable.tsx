@@ -7,6 +7,8 @@ interface ScheduleEvent {
   instructor: string
   isLogo?: boolean
   isSpecial?: boolean
+  span?: number // Number of time slots this event spans
+  isOccupied?: boolean // True if this slot is occupied by a multi-slot event
 }
 
 interface ScheduleData {
@@ -67,13 +69,41 @@ export function InstagramTimetable({ data, aspectRatio = "landscape" }: Instagra
             ))}
 
             {/* Time Rows */}
-            {data.timeSlots.map((time) => (
+            {data.timeSlots.map((time, timeIndex) => (
               <React.Fragment key={time}>
                 <TimeCell>{time}</TimeCell>
                 {data.days.map((day) => {
                   const event = data.events[`${time}-${day}`]
+                  
+                  // Check if this cell is occupied by a spanning event starting in an earlier time slot
+                  let isOccupiedByEarlier = false
+                  for (let i = 0; i < timeIndex; i++) {
+                    const earlierTime = data.timeSlots[i]
+                    const earlierEvent = data.events[`${earlierTime}-${day}`]
+                    if (earlierEvent?.span && earlierEvent.span > 1) {
+                      const spanEndIndex = i + earlierEvent.span - 1
+                      // This cell is occupied if it's within the span range (but not the start)
+                      if (timeIndex <= spanEndIndex && timeIndex > i) {
+                        isOccupiedByEarlier = true
+                        break
+                      }
+                    }
+                  }
+                  
+                  // Don't render anything for occupied cells - CSS Grid handles spanning
+                  if (isOccupiedByEarlier) {
+                    return null
+                  }
+                  
+                  // Get the row span for this event (default to 1 if not specified)
+                  const rowSpan = event?.span && event.span > 1 ? event.span : 1
+                  
                   return (
-                    <EventCell key={`${time}-${day}`} event={event} />
+                    <EventCell 
+                      key={`${time}-${day}`} 
+                      event={event} 
+                      rowSpan={rowSpan}
+                    />
                   )
                 })}
               </React.Fragment>
@@ -147,14 +177,22 @@ function TimeCell({ children }: { children: React.ReactNode }) {
   )
 }
 
-function EventCell({ event }: { event: ScheduleEvent | null }) {
+function EventCell({ event, rowSpan = 1 }: { event: ScheduleEvent | null; rowSpan?: number }) {
   if (!event) {
     return <div className="rounded-md sm:rounded-lg" />
   }
 
+  // Apply grid-row-span style if this event spans multiple rows
+  const gridRowStyle = rowSpan > 1 ? { 
+    gridRow: `span ${rowSpan}`,
+  } : {}
+
   if (event.isLogo) {
     return (
-      <div className="bg-black rounded-md sm:rounded-lg flex items-center justify-center p-1">
+      <div 
+        className="bg-black rounded-md sm:rounded-lg flex items-center justify-center p-1"
+        style={gridRowStyle}
+      >
         <div className="text-white text-center">
           <div className="text-[6px] sm:text-[8px] italic">The</div>
           <div className="text-[8px] sm:text-xs font-black border border-white px-1">PARADISE</div>
@@ -167,6 +205,7 @@ function EventCell({ event }: { event: ScheduleEvent | null }) {
   return (
     <div 
       className="bg-[#4a4a4a] rounded-md sm:rounded-lg flex items-center justify-center p-0.5 sm:p-1 overflow-hidden"
+      style={gridRowStyle}
     >
       <div className="text-center w-full">
         <p 

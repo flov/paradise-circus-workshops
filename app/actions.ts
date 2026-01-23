@@ -646,7 +646,7 @@ export async function getInstagramTimetableData(startDate?: string) {
     }
     
     // Build events map
-    const eventsMap: Record<string, { name: string; instructor: string; isLogo?: boolean; isSpecial?: boolean } | null> = {}
+    const eventsMap: Record<string, { name: string; instructor: string; isLogo?: boolean; isSpecial?: boolean; span?: number; isOccupied?: boolean } | null> = {}
     
     // Initialize all slots to null
     timeSlots.forEach(time => {
@@ -655,13 +655,35 @@ export async function getInstagramTimetableData(startDate?: string) {
       })
     })
     
+    // Helper function to calculate duration in hours (rounded up)
+    const calculateDurationHours = (startTime: string, endTime: string): number => {
+      const [startHours, startMinutes] = startTime.split(":").map(Number)
+      const [endHours, endMinutes] = endTime.split(":").map(Number)
+      const startTotalMinutes = startHours * 60 + startMinutes
+      const endTotalMinutes = endHours * 60 + endMinutes
+      const durationMinutes = endTotalMinutes - startTotalMinutes
+      // Round up to nearest hour for display purposes
+      return Math.max(1, Math.ceil(durationMinutes / 60))
+    }
+    
     // Fill in events
     eventsData.forEach(event => {
       const dayAbbr = getDayAbbr(event.date)
       // Only process events that fall within our week (Mon-Sun)
       if (dayIndexMap[dayAbbr] !== undefined) {
-        const timeSlot = formatTimeSlot(event.startTime)
-        const key = `${timeSlot}-${dayAbbr}`
+        const startTimeSlot = formatTimeSlot(event.startTime)
+        const durationHours = calculateDurationHours(event.startTime, event.endTime)
+        
+        // Find the index of the start time slot
+        const startSlotIndex = timeSlots.indexOf(startTimeSlot)
+        
+        // Calculate how many consecutive slots this event spans
+        // Make sure we don't exceed available slots
+        const span = startSlotIndex !== -1 
+          ? Math.min(durationHours, timeSlots.length - startSlotIndex)
+          : 1
+        
+        const key = `${startTimeSlot}-${dayAbbr}`
         
         // Check if event title contains special keywords
         const titleUpper = event.title.toUpperCase()
@@ -674,6 +696,7 @@ export async function getInstagramTimetableData(startDate?: string) {
           name: event.title,
           instructor: event.instructor || "",
           isSpecial,
+          span, // Store span for CSS grid row spanning
         }
       }
     })

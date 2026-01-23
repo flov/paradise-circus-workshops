@@ -9,7 +9,18 @@ import { createEventSlug } from "@/lib/utils";
 import type { Event } from "@/db/schema";
 
 type WeekCalendarProps = {
-  events: Pick<Event, "id" | "title" | "description" | "instructor" | "date" | "startTime" | "endTime" | "currentBookings" | "location">[];
+  events: Pick<
+    Event,
+    | "id"
+    | "title"
+    | "description"
+    | "instructor"
+    | "date"
+    | "startTime"
+    | "endTime"
+    | "currentBookings"
+    | "location"
+  >[];
 };
 
 const TIME_SLOTS = [
@@ -84,7 +95,10 @@ export function WeekCalendar({ events }: WeekCalendarProps) {
         </Button>
 
         <div className="text-center">
-          <h1 className="text-white drop-shadow-black">
+          <h1
+            style={{ fontFamily: "var(--font-rye)" }}
+            className="text-white drop-shadow-black"
+          >
             Paradise Stage Schedule {startDate} - {endDate}
           </h1>
         </div>
@@ -140,7 +154,12 @@ export function WeekCalendar({ events }: WeekCalendarProps) {
                       {eventsInSlot.length > 0 ? (
                         <div className="space-y-2">
                           {eventsInSlot.map((event) => {
-                            const isParadiseRiver = event.location?.toLowerCase().includes("paradise river") || event.location?.toLowerCase() === "paradise river";
+                            const isParadiseRiver =
+                              event.location
+                                ?.toLowerCase()
+                                .includes("paradise river") ||
+                              event.location?.toLowerCase() ===
+                                "paradise river";
                             return (
                               <Link
                                 key={event.id}
