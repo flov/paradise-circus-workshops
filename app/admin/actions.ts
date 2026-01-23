@@ -2,7 +2,7 @@
 
 import { db } from "@/db";
 import { events, participations, props, users } from "@/db/schema";
-import { eq, sql, inArray, asc, desc, isNotNull, and } from "drizzle-orm";
+import { eq, sql, inArray, asc, desc, isNotNull, and, gte } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { createEventSlug } from "@/lib/utils";
 import { auth } from "@clerk/nextjs/server";
@@ -1396,6 +1396,159 @@ export async function deleteEvent(
     revalidatePath("/api/timetable");
   } catch (error) {
     console.error("Error deleting workshop:", error);
+    throw error;
+  }
+}
+
+export async function deleteEventAndFutureInstructorEvents(
+  eventId: number,
+  cancellationMessage?: string | null,
+) {
+  // Check authentication
+  const { userId } = await auth();
+
+  if (!userId) {
+    throw new Error("Unauthorized. You must be signed in to delete events.");
+  }
+
+  // Check authorization: must be admin
+  const userIsAdmin = await isAdmin();
+
+  if (!userIsAdmin) {
+    throw new Error(
+      "Unauthorized. Only admins can delete events and all future instructor events.",
+    );
+  }
+
+  try {
+    // Fetch the current event to get instructor info and date
+    const currentEventResult = await db
+      .select({
+        id: events.id,
+        title: events.title,
+        date: events.date,
+        startTime: events.startTime,
+        endTime: events.endTime,
+        location: events.location,
+        instructor: events.instructor,
+        instructorId: events.instructorId,
+        instructorProfile: {
+          displayName: users.displayName,
+          username: users.username,
+        },
+      })
+      .from(events)
+      .leftJoin(users, eq(events.instructorId, users.id))
+      .where(eq(events.id, eventId))
+      .limit(1);
+
+    if (currentEventResult.length === 0) {
+      throw new Error("Event not found.");
+    }
+
+    const currentEvent = currentEventResult[0];
+    const currentEventDate = currentEvent.date;
+    const currentInstructorId = currentEvent.instructorId;
+    const currentInstructor = currentEvent.instructor;
+
+    // Build matching conditions for future events
+    let matchingCondition;
+    if (currentInstructorId !== null && currentInstructorId !== undefined) {
+      // Match by instructorId
+      matchingCondition = and(
+        eq(events.instructorId, currentInstructorId),
+        gte(events.date, currentEventDate),
+      );
+    } else {
+      // Match by instructor string
+      if (!currentInstructor) {
+        throw new Error(
+          "Cannot delete future events: event has no instructor information.",
+        );
+      }
+      matchingCondition = and(
+        eq(events.instructor, currentInstructor),
+        gte(events.date, currentEventDate),
+      );
+    }
+
+    // Fetch all matching future events (including the current one)
+    const eventsToDelete = await db
+      .select({
+        id: events.id,
+        title: events.title,
+        date: events.date,
+        startTime: events.startTime,
+        endTime: events.endTime,
+        location: events.location,
+        instructor: events.instructor,
+        instructorId: events.instructorId,
+        instructorProfile: {
+          displayName: users.displayName,
+          username: users.username,
+        },
+      })
+      .from(events)
+      .leftJoin(users, eq(events.instructorId, users.id))
+      .where(matchingCondition)
+      .orderBy(asc(events.date), asc(events.startTime));
+
+    if (eventsToDelete.length === 0) {
+      throw new Error("No events found to delete.");
+    }
+
+    // Get instructor name for emails (prefer displayName, fallback to username, then instructor string)
+    const instructorName = currentEvent.instructorProfile
+      ? currentEvent.instructorProfile.displayName ||
+        currentEvent.instructorProfile.username
+      : currentEvent.instructor || "Unknown Instructor";
+
+    // Process each event: send cancellation emails and delete
+    for (const eventToDelete of eventsToDelete) {
+      // Fetch all participations for this event
+      const eventParticipations = await db
+        .select({
+          participantName: participations.participantName,
+          participantEmail: participations.participantEmail,
+        })
+        .from(participations)
+        .where(eq(participations.eventId, eventToDelete.id));
+
+      // Send cancellation emails to all participants
+      if (eventParticipations.length > 0) {
+        const emailPromises = eventParticipations.map((participation) =>
+          sendEventCancelledEmail({
+            participantName: participation.participantName,
+            participantEmail: participation.participantEmail,
+            eventTitle: eventToDelete.title,
+            eventDate: eventToDelete.date,
+            eventStartTime: eventToDelete.startTime,
+            eventEndTime: eventToDelete.endTime,
+            eventLocation: eventToDelete.location || "",
+            instructorName: instructorName,
+            cancellationMessage: cancellationMessage || null,
+          }).catch((error) => {
+            // Log error but don't fail the deletion if email fails
+            console.error(
+              `Failed to send cancellation email to ${participation.participantEmail}:`,
+              error,
+            );
+          }),
+        );
+
+        // Wait for all emails to be sent (or fail gracefully)
+        await Promise.allSettled(emailPromises);
+      }
+
+      // Delete the event (this will cascade delete participations due to foreign key constraint)
+      await db.delete(events).where(eq(events.id, eventToDelete.id));
+    }
+
+    revalidatePath("/admin");
+    revalidatePath("/");
+    revalidatePath("/api/timetable");
+  } catch (error) {
+    console.error("Error deleting event and future instructor events:", error);
     throw error;
   }
 }

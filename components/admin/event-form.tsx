@@ -54,6 +54,10 @@ type EventFormProps = {
     eventId: number,
     cancellationMessage?: string | null,
   ) => Promise<void>;
+  onDeleteAllFuture?: (
+    eventId: number,
+    cancellationMessage?: string | null,
+  ) => Promise<void>;
   eventTitle?: string;
 };
 
@@ -66,6 +70,7 @@ export function EventForm({
   submitButtonText = "Save Event",
   submittingText = "Saving...",
   onDelete,
+  onDeleteAllFuture,
   eventTitle,
 }: EventFormProps) {
   const [availableProps, setAvailableProps] = useState<
@@ -93,6 +98,9 @@ export function EventForm({
   );
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [isDeletingAllFuture, setIsDeletingAllFuture] = useState(false);
+  const [deleteAllFutureDialogOpen, setDeleteAllFutureDialogOpen] =
+    useState(false);
   const [cancellationMessage, setCancellationMessage] = useState("");
 
   // Initialize date state
@@ -250,6 +258,32 @@ export function EventForm({
 
   function handleDeleteDialogOpenChange(newOpen: boolean) {
     setDeleteDialogOpen(newOpen);
+    if (!newOpen) {
+      // Reset cancellation message when dialog closes
+      setCancellationMessage("");
+    }
+  }
+
+  async function handleDeleteAllFuture() {
+    if (!onDeleteAllFuture || !initialValues?.id) return;
+
+    setIsDeletingAllFuture(true);
+    try {
+      await onDeleteAllFuture(
+        initialValues.id,
+        cancellationMessage.trim() || null,
+      );
+      setDeleteAllFutureDialogOpen(false);
+      setCancellationMessage("");
+    } catch (err) {
+      console.error("Failed to delete event and future events:", err);
+    } finally {
+      setIsDeletingAllFuture(false);
+    }
+  }
+
+  function handleDeleteAllFutureDialogOpenChange(newOpen: boolean) {
+    setDeleteAllFutureDialogOpen(newOpen);
     if (!newOpen) {
       // Reset cancellation message when dialog closes
       setCancellationMessage("");
@@ -595,7 +629,8 @@ export function EventForm({
                     </>
                   ) : (
                     <>
-                      This will create 1 event 1 week ahead. Events will be automatically extended weekly.
+                      This will create 1 event 1 week ahead. Events will be
+                      automatically extended weekly.
                     </>
                   )}
                 </p>
@@ -611,67 +646,19 @@ export function EventForm({
         </div>
       )}
 
-      <div className="flex justify-between gap-3">
-        {onDelete && initialValues?.id ? (
-          <AlertDialog
-            open={deleteDialogOpen}
-            onOpenChange={handleDeleteDialogOpenChange}
-          >
-            <AlertDialogTrigger asChild>
-              <Button
-                type="button"
-                variant="destructive"
-                disabled={isSubmitting || isDeleting}
-              >
-                {isDeleting ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Deleting...
-                  </>
-                ) : (
-                  <>
-                    <Trash2 className="mr-2 h-4 w-4" />
-                    Cancel Event
-                  </>
-                )}
-              </Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent className="max-w-md">
-              <AlertDialogHeader>
-                <AlertDialogTitle>Delete Event</AlertDialogTitle>
-                <AlertDialogDescription>
-                  Are you sure you want to delete "
-                  {eventTitle || initialValues.title || "this event"}"? This
-                  will also delete all associated participations and send cancellation
-                  emails to all participants. This action cannot be undone.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <div className="space-y-2 py-4">
-                <Label htmlFor="cancellation-message-form">
-                  Cancellation Message (Optional)
-                </Label>
-                <Textarea
-                  id="cancellation-message-form"
-                  placeholder="Add a message to inform participants about why this event was cancelled..."
-                  value={cancellationMessage}
-                  onChange={(e) => setCancellationMessage(e.target.value)}
-                  disabled={isDeleting}
-                  rows={4}
-                  className="resize-none"
-                />
-                <p className="text-sm text-muted-foreground">
-                  This message will be included in the cancellation email sent
-                  to all participants.
-                </p>
-              </div>
-              <AlertDialogFooter>
-                <AlertDialogCancel disabled={isDeleting}>
-                  Cancel
-                </AlertDialogCancel>
-                <AlertDialogAction
-                  onClick={handleDelete}
-                  disabled={isDeleting}
-                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+      <div className="flex flex-col md:flex-row md:justify-between gap-3">
+        <div className="flex flex-col sm:flex-row gap-2">
+          {onDelete && initialValues?.id ? (
+            <AlertDialog
+              open={deleteDialogOpen}
+              onOpenChange={handleDeleteDialogOpenChange}
+            >
+              <AlertDialogTrigger asChild>
+                <Button
+                  type="button"
+                  variant="destructive"
+                  disabled={isSubmitting || isDeleting || isDeletingAllFuture}
+                  className="w-full sm:w-auto"
                 >
                   {isDeleting ? (
                     <>
@@ -679,25 +666,159 @@ export function EventForm({
                       Deleting...
                     </>
                   ) : (
-                    "Delete Event"
+                    <>
+                      <Trash2 className="mr-2 h-4 w-4" />
+                      Delete Event
+                    </>
                   )}
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
-        ) : (
-          <div />
-        )}
-        <div className="flex gap-3">
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent className="max-w-md">
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Delete Event</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Are you sure you want to delete "
+                    {eventTitle || initialValues.title || "this event"}"? This
+                    will also delete all associated participations and send
+                    cancellation emails to all participants. This action cannot
+                    be undone.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <div className="space-y-2 py-4">
+                  <Label htmlFor="cancellation-message-form">
+                    Cancellation Message (Optional)
+                  </Label>
+                  <Textarea
+                    id="cancellation-message-form"
+                    placeholder="Add a message to inform participants about why this event was cancelled..."
+                    value={cancellationMessage}
+                    onChange={(e) => setCancellationMessage(e.target.value)}
+                    disabled={isDeleting}
+                    rows={4}
+                    className="resize-none"
+                  />
+                  <p className="text-sm text-muted-foreground">
+                    This message will be included in the cancellation email sent
+                    to all participants.
+                  </p>
+                </div>
+                <AlertDialogFooter>
+                  <AlertDialogCancel disabled={isDeleting}>
+                    Cancel
+                  </AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={handleDelete}
+                    disabled={isDeleting}
+                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                  >
+                    {isDeleting ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Deleting...
+                      </>
+                    ) : (
+                      "Delete Event"
+                    )}
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          ) : null}
+          {onDeleteAllFuture && userProfile?.isAdmin && initialValues?.id ? (
+            <AlertDialog
+              open={deleteAllFutureDialogOpen}
+              onOpenChange={handleDeleteAllFutureDialogOpenChange}
+            >
+              <AlertDialogTrigger asChild>
+                <Button
+                  type="button"
+                  variant="destructive"
+                  disabled={isSubmitting || isDeleting || isDeletingAllFuture}
+                  className="w-full sm:w-auto"
+                >
+                  {isDeletingAllFuture ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Deleting...
+                    </>
+                  ) : (
+                    <>
+                      <Trash2 className="mr-2 h-4 w-4" />
+                      Delete and All Future Events
+                    </>
+                  )}
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent className="max-w-md">
+                <AlertDialogHeader>
+                  <AlertDialogTitle>
+                    Delete Event and All Future Events
+                  </AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Are you sure you want to delete "
+                    {eventTitle || initialValues.title || "this event"}" and all
+                    future events for this instructor? This will delete all
+                    events from this date onwards for the same instructor and
+                    send cancellation emails to all participants. This action
+                    cannot be undone.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <div className="space-y-2 py-4">
+                  <Label htmlFor="cancellation-message-all-future-form">
+                    Cancellation Message (Optional)
+                  </Label>
+                  <Textarea
+                    id="cancellation-message-all-future-form"
+                    placeholder="Add a message to inform participants about why these events were cancelled..."
+                    value={cancellationMessage}
+                    onChange={(e) => setCancellationMessage(e.target.value)}
+                    disabled={isDeletingAllFuture}
+                    rows={4}
+                    className="resize-none"
+                  />
+                  <p className="text-sm text-muted-foreground">
+                    This message will be included in the cancellation email sent
+                    to all participants for all affected events.
+                  </p>
+                </div>
+                <AlertDialogFooter>
+                  <AlertDialogCancel disabled={isDeletingAllFuture}>
+                    Cancel
+                  </AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={handleDeleteAllFuture}
+                    disabled={isDeletingAllFuture}
+                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                  >
+                    {isDeletingAllFuture ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Deleting...
+                      </>
+                    ) : (
+                      "Delete All Future Events"
+                    )}
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          ) : null}
+        </div>
+        <div className="flex flex-col sm:flex-row gap-3">
           <Button
             type="button"
             variant="outline"
             onClick={onCancel}
-            disabled={isSubmitting || isDeleting}
+            disabled={isSubmitting || isDeleting || isDeletingAllFuture}
+            className="w-full sm:w-auto"
           >
             Cancel
           </Button>
-          <Button type="submit" disabled={isSubmitting || isDeleting}>
+          <Button
+            type="submit"
+            disabled={isSubmitting || isDeleting || isDeletingAllFuture}
+            className="w-full sm:w-auto"
+          >
             {isSubmitting ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
