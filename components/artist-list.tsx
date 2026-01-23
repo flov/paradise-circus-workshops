@@ -46,7 +46,7 @@ function ArtistCard({ artist }: { artist: Artist }) {
           src={artist.avatar || "/placeholder.svg"}
           alt={artist.name}
         />
-        <AvatarFallback className="bg-primary/10 text-primary text-sm font-medium">
+        <AvatarFallback className="bg-primary/10 text-primary text-base font-medium">
           {getInitials(artist.name)}
         </AvatarFallback>
       </Avatar>
@@ -54,9 +54,9 @@ function ArtistCard({ artist }: { artist: Artist }) {
       <div className="flex-1 min-w-0 space-y-1.5">
         {/* Name and badges row */}
         <div className="flex flex-wrap items-center gap-1.5">
-          <span className="font-medium text-sm truncate">{artist.name}</span>
+          <span className="font-medium text-base truncate">{artist.name}</span>
           {artist.isInstructor && (
-            <Badge variant="default" className="h-5 text-[10px] px-1.5 gap-0.5">
+            <Badge variant="default" className="h-5 text-xs px-1.5 gap-0.5">
               <User className="size-2.5" />
               Instructor
             </Badge>
@@ -65,7 +65,7 @@ function ArtistCard({ artist }: { artist: Artist }) {
           {artist?.workshopCount > 0 && (
             <Badge
               variant="purple"
-              className="h-5 text-[10px] px-1.5 gap-0.5"
+              className="h-5 text-xs px-1.5 gap-0.5"
             >
               <Eye className="size-2.5" />
               {artist.workshopCount!} Workshop
@@ -76,7 +76,7 @@ function ArtistCard({ artist }: { artist: Artist }) {
           {artist?.videoCount > 0 && (
             <Badge
               variant="purple"
-              className="h-5 text-[10px] px-1.5 gap-0.5"
+              className="h-5 text-xs px-1.5 gap-0.5"
             >
               <Video className="size-2.5" />
               {artist.videoCount!} Video
@@ -84,18 +84,18 @@ function ArtistCard({ artist }: { artist: Artist }) {
             </Badge>
           )}
           {artist.patreonPage && (
-            <Badge variant="pink" className="h-5 text-[10px] px-1.5 gap-0.5">
+            <Badge variant="pink" className="h-5 text-xs px-1.5 gap-0.5">
               <Heart className="size-2.5" />
               Patreon
             </Badge>
           )}
           {artist.instagramHandle && (
-            <Badge variant="purple" className="h-5 text-[10px] px-1.5 gap-0.5">
+            <Badge variant="purple" className="h-5 text-xs px-1.5 gap-0.5">
               <Instagram className="size-2.5" />
             </Badge>
           )}
           {artist.availableForPerformances && (
-            <Badge variant="amber" className="h-5 text-[10px] px-1.5 gap-0.5">
+            <Badge variant="amber" className="h-5 text-xs px-1.5 gap-0.5">
               <Sparkles className="size-2.5" />
               Available
             </Badge>
@@ -109,17 +109,17 @@ function ArtistCard({ artist }: { artist: Artist }) {
               <Badge
                 key={prop.name}
                 variant="outline"
-                className="h-5 px-1.5 font-normal text-muted-foreground"
+                className="h-5 px-1.5 font-normal text-sm text-muted-foreground"
               >
                 {prop.name}
-                <span className="ml-1 text-[9px] opacity-75">
+                <span className="ml-1 text-xs opacity-75">
                   {prop.skillLevel}/10
                 </span>
               </Badge>
             ))}
           </div>
         ) : (
-          <span className="text-xs text-muted-foreground">—</span>
+          <span className="text-sm text-muted-foreground">—</span>
         )}
       </div>
     </Link>
@@ -185,7 +185,7 @@ export function ArtistList({ artists }: ArtistListProps) {
           <div className="flex items-center justify-between">
             <div>
               <h2 className="font-semibold">Artists</h2>
-              <p className="text-sm text-muted-foreground">
+              <p className="text-base text-muted-foreground">
                 {filteredArtists.length} of {artists.length} performer
                 {artists.length !== 1 ? "s" : ""}
               </p>
@@ -221,7 +221,7 @@ export function ArtistList({ artists }: ArtistListProps) {
                   variant={instructorOnly ? "default" : "outline"}
                   size="sm"
                   onClick={() => setInstructorOnly(!instructorOnly)}
-                  className="h-9 text-xs"
+                  className="h-9 text-sm"
                 >
                   <User className="size-3.5 mr-1.5" />
                   Instructors
@@ -231,7 +231,7 @@ export function ArtistList({ artists }: ArtistListProps) {
                   variant={videosOnly ? "default" : "outline"}
                   size="sm"
                   onClick={() => setVideosOnly(!videosOnly)}
-                  className="h-9 text-xs"
+                  className="h-9 text-sm"
                 >
                   <Video className="size-3.5 mr-1.5" />
                   Videos
@@ -241,7 +241,7 @@ export function ArtistList({ artists }: ArtistListProps) {
                   variant={bioOnly ? "default" : "outline"}
                   size="sm"
                   onClick={() => setBioOnly(!bioOnly)}
-                  className="h-9 text-xs"
+                  className="h-9 text-sm"
                 >
                   <FileText className="size-3.5 mr-1.5" />
                   Bio
@@ -250,13 +250,13 @@ export function ArtistList({ artists }: ArtistListProps) {
 
               <div className="w-full sm:w-auto">
                 <Select value={selectedProp} onValueChange={setSelectedProp}>
-                  <SelectTrigger className="h-9 w-full sm:w-[140px] text-xs">
+                  <SelectTrigger className="h-9 w-full sm:w-[140px] text-sm">
                     <SelectValue placeholder="Filter by prop" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All props</SelectItem>
                     {allProps.map((prop) => (
-                      <SelectItem key={prop} value={prop} className="text-xs">
+                      <SelectItem key={prop} value={prop} className="text-sm">
                         {prop}
                       </SelectItem>
                     ))}
@@ -273,7 +273,7 @@ export function ArtistList({ artists }: ArtistListProps) {
               <ArtistCard key={artist.id} artist={artist} />
             ))
           ) : (
-            <div className="p-8 text-center text-muted-foreground text-sm">
+            <div className="p-8 text-center text-muted-foreground text-base">
               No artists found matching your filters.
             </div>
           )}
