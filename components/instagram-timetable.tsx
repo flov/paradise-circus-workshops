@@ -122,7 +122,11 @@ export function InstagramTimetable({
   );
 }
 
-function SunburstBackground({ location = "paradise-stage" }: { location?: string }) {
+function SunburstBackground({
+  location = "paradise-stage",
+}: {
+  location?: string;
+}) {
   const rays = 24;
   const rayElements = [];
   const stripeColor = location === "paradise-river" ? "#16a34a" : "#dc2626"; // green-600 for river, red-600 for stage
@@ -150,7 +154,10 @@ function SunburstBackground({ location = "paradise-stage" }: { location?: string
   }
 
   return (
-    <div className={`absolute inset-0 overflow-hidden`} style={{ backgroundColor: stripeColor }}>
+    <div
+      className={`absolute inset-0 overflow-hidden`}
+      style={{ backgroundColor: stripeColor }}
+    >
       {rayElements}
     </div>
   );
@@ -225,7 +232,7 @@ function EventCell({
     >
       <div className="text-center w-full">
         <p
-          className="text-white font-bold text-[6px] sm:text-[9px] md:text-[10px] lg:text-xs leading-tight line-clamp-2"
+          className="text-white font-bold text-[10px] sm:text-[13px] md:text-[14px] lg:text-base leading-tight line-clamp-2"
           style={{
             fontFamily: "'Arial Black', 'Arial Bold', Arial, sans-serif",
           }}
@@ -234,7 +241,7 @@ function EventCell({
         </p>
         {event.instructor && (
           <p
-            className="text-white font-bold text-[5px] sm:text-[7px] md:text-[8px] lg:text-[10px] leading-tight opacity-90"
+            className="text-white font-bold text-[9px] sm:text-[11px] md:text-[12px] lg:text-sm leading-tight opacity-90"
             style={{ fontFamily: "'Arial', sans-serif" }}
           >
             {event.instructor}
