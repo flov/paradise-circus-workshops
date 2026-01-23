@@ -17,6 +17,7 @@ const shows = [
     description:
       "Our signature weekly show featuring the best acts from the community.",
     highlight: true,
+    backgroundImage: "/images/fire-eating-paradise.png",
   },
   {
     day: "Sunday",
@@ -51,8 +52,7 @@ export function ShowsSection() {
         {/* Shows grid */}
         <div className="grid md:grid-cols-3 gap-6">
           {shows.map((show, index) => {
-            const isFirstMainShow =
-              show.day === "Thursday" && show.title === "Main Show";
+            const hasBackgroundImage = !!show.backgroundImage;
             return (
               <Card
                 key={show.day}
@@ -62,10 +62,9 @@ export function ShowsSection() {
                     : "bg-card border-border/50 hover:border-primary/30"
                 }`}
                 style={
-                  isFirstMainShow
+                  hasBackgroundImage
                     ? {
-                        backgroundImage:
-                          "url('/images/fire-eating-paradise.png')",
+                        backgroundImage: `url('${show.backgroundImage}')`,
                         backgroundSize: "cover",
                         backgroundPosition: "center",
                         backgroundRepeat: "no-repeat",
@@ -74,7 +73,7 @@ export function ShowsSection() {
                 }
               >
                 {/* Dark overlay for readability */}
-                {isFirstMainShow && (
+                {hasBackgroundImage && (
                   <div className="absolute inset-0 bg-black/25 z-0" />
                 )}
                 <CardContent className="p-8 relative z-10">
