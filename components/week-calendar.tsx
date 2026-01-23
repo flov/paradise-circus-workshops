@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { format, startOfWeek, addDays, parseISO, isSameDay } from "date-fns";
-import { Fragment, useState } from "react";
+import { Fragment, useState, useEffect } from "react";
+import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { createEventSlug } from "@/lib/utils";
@@ -37,7 +38,63 @@ const TIME_SLOTS = [
 ];
 
 export function WeekCalendar({ events }: WeekCalendarProps) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const [weekOffset, setWeekOffset] = useState(0);
+
+  // Helper function to format date as YYYY-MM-DD in local timezone
+  const formatLocalDate = (date: Date): string => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  };
+
+  // Get Monday of a given week offset
+  const getMondayOfWeek = (offset: number): Date => {
+    const today = new Date();
+    return startOfWeek(addDays(today, offset * 7), {
+      weekStartsOn: 1,
+    });
+  };
+
+  // Calculate week offset from a Monday date
+  const getWeekOffsetFromDate = (mondayDate: Date): number => {
+    const today = new Date();
+    const currentMonday = startOfWeek(today, { weekStartsOn: 1 });
+    const targetMonday = startOfWeek(mondayDate, { weekStartsOn: 1 });
+    
+    const diffTime = targetMonday.getTime() - currentMonday.getTime();
+    const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
+    return Math.round(diffDays / 7);
+  };
+
+  // Initialize week from URL query parameter
+  useEffect(() => {
+    const weekParam = searchParams.get("week");
+    if (weekParam) {
+      try {
+        const mondayDate = new Date(weekParam + "T00:00:00");
+        if (!isNaN(mondayDate.getTime())) {
+          const offset = getWeekOffsetFromDate(mondayDate);
+          setWeekOffset(offset);
+        }
+      } catch (error) {
+        // Invalid date, use default
+        console.error("Invalid week parameter:", error);
+      }
+    }
+  }, [searchParams]);
+
+  // Update URL when week changes
+  const updateWeekInUrl = (offset: number) => {
+    const monday = getMondayOfWeek(offset);
+    const mondayStr = formatLocalDate(monday);
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("week", mondayStr);
+    router.push(`${pathname}?${params.toString()}`, { scroll: false });
+  };
 
   const today = new Date();
   const weekStart = startOfWeek(addDays(today, weekOffset * 7), {
@@ -88,7 +145,11 @@ export function WeekCalendar({ events }: WeekCalendarProps) {
         <Button
           variant="outline"
           size="icon"
-          onClick={() => setWeekOffset(weekOffset - 1)}
+          onClick={() => {
+            const newOffset = weekOffset - 1;
+            setWeekOffset(newOffset);
+            updateWeekInUrl(newOffset);
+          }}
           className="bg-slate-700 hover:bg-slate-600 border-slate-600"
         >
           <ChevronLeft className="h-4 w-4 text-white" />
@@ -106,7 +167,11 @@ export function WeekCalendar({ events }: WeekCalendarProps) {
         <Button
           variant="outline"
           size="icon"
-          onClick={() => setWeekOffset(weekOffset + 1)}
+          onClick={() => {
+            const newOffset = weekOffset + 1;
+            setWeekOffset(newOffset);
+            updateWeekInUrl(newOffset);
+          }}
           className="bg-slate-700 hover:bg-slate-600 border-slate-600"
         >
           <ChevronRight className="h-4 w-4 text-white" />

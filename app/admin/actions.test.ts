@@ -1,19 +1,12 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
-import {
-  createEvent,
-  approveEvent,
-  updateEvent,
-  deleteEvent,
-  deleteBooking,
-  extendRecurringEvents,
-} from "./actions";
-import {
-  cleanupDatabase,
-  createTestUser,
-  createTestEvent,
-  createTestParticipation,
-  getTestDb,
-} from "@/tests/helpers/db";
+
+// Mock Clerk before importing actions that use it
+vi.mock("@clerk/nextjs/server", () => ({
+  auth: vi.fn(),
+  currentUser: vi.fn(),
+}));
+
+// Import auth helpers first to ensure Clerk mock is set up before importing actions
 import {
   resetAuthMocks,
   mockAdminAuth,
@@ -23,6 +16,22 @@ import {
   mockCurrentUserData,
   createMockUser,
 } from "@/tests/helpers/auth";
+import {
+  createEvent,
+  approveEvent,
+  updateEvent,
+  deleteEvent,
+  deleteBooking,
+  extendRecurringEvents,
+  deleteEventAndFutureInstructorEvents,
+} from "./actions";
+import {
+  cleanupDatabase,
+  createTestUser,
+  createTestEvent,
+  createTestParticipation,
+  getTestDb,
+} from "@/tests/helpers/db";
 import {
   resetEmailMocks,
   wasEmailSent,
@@ -34,11 +43,18 @@ import {
 } from "@/tests/helpers/form-data";
 import { revalidatePath } from "next/cache";
 import { eq } from "drizzle-orm";
-import { events, participations } from "@/db/schema";
+import { events, participations, users } from "@/db/schema";
 import { randomUUID } from "crypto";
 import { isAdmin, isInstructor, getAllAdmins } from "@/app/profile/actions";
 
 vi.mock("next/cache");
+vi.mock("@/app/profile/actions", async () => {
+  const actual = await vi.importActual("@/app/profile/actions");
+  return {
+    ...actual,
+    isAdmin: vi.fn().mockResolvedValue(false),
+  };
+});
 
 describe("extendRecurringEvents", () => {
   beforeEach(async () => {
@@ -345,5 +361,429 @@ describe("extendRecurringEvents", () => {
       .where(eq(events.recurringSeriesId, seriesId));
 
     expect(allEvents).toHaveLength(0);
+  });
+});
+
+describe("deleteEventAndFutureInstructorEvents", () => {
+  beforeEach(async () => {
+    await cleanupDatabase();
+    resetAuthMocks();
+    resetEmailMocks();
+    vi.clearAllMocks();
+    // Reset isAdmin mock to return false by default
+    vi.mocked(isAdmin).mockResolvedValue(false);
+  });
+
+  it("should successfully delete event and all future events with instructorId", async () => {
+    const admin = await createTestUser({
+      clerkUserId: "admin-user",
+      isAdmin: true,
+    });
+    // Verify admin user was created correctly
+    expect(admin.clerkUserId).toBe("admin-user");
+    expect(admin.isAdmin).toBe(true);
+    
+    const instructor = await createTestUser({
+      clerkUserId: "instructor-user",
+      isInstructor: true,
+    });
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const nextWeek = new Date(today);
+    nextWeek.setDate(nextWeek.getDate() + 7);
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+
+    // Create events: one past, one today, one tomorrow, one next week
+    const pastEvent = await createTestEvent({
+      date: yesterday.toISOString().split("T")[0],
+      instructorId: instructor.id,
+      instructor: null,
+    });
+    const currentEvent = await createTestEvent({
+      date: today.toISOString().split("T")[0],
+      instructorId: instructor.id,
+      instructor: null,
+    });
+    const futureEvent1 = await createTestEvent({
+      date: tomorrow.toISOString().split("T")[0],
+      instructorId: instructor.id,
+      instructor: null,
+    });
+    const futureEvent2 = await createTestEvent({
+      date: nextWeek.toISOString().split("T")[0],
+      instructorId: instructor.id,
+      instructor: null,
+    });
+
+    // Create an event with different instructor (should not be deleted)
+    const otherInstructor = await createTestUser({
+      clerkUserId: "other-instructor",
+      isInstructor: true,
+    });
+    const otherEvent = await createTestEvent({
+      date: tomorrow.toISOString().split("T")[0],
+      instructorId: otherInstructor.id,
+      instructor: null,
+    });
+
+    // Verify the admin user exists in the database and isAdmin is true
+    const db = getTestDb();
+    const adminCheck = await db
+      .select()
+      .from(users)
+      .where(eq(users.clerkUserId, admin.clerkUserId))
+      .limit(1);
+    expect(adminCheck).toHaveLength(1);
+    expect(adminCheck[0].isAdmin).toBe(true);
+
+    mockAdminAuth(admin.clerkUserId);
+    vi.mocked(isAdmin).mockResolvedValue(true);
+
+    await deleteEventAndFutureInstructorEvents(currentEvent.id);
+
+    // Verify paths were revalidated
+    expect(revalidatePath).toHaveBeenCalledWith("/admin");
+    expect(revalidatePath).toHaveBeenCalledWith("/");
+    expect(revalidatePath).toHaveBeenCalledWith("/api/timetable");
+
+    // Verify events were deleted
+    const remainingEvents = await db
+      .select()
+      .from(events)
+      .where(eq(events.id, currentEvent.id));
+
+    expect(remainingEvents).toHaveLength(0);
+
+    // Verify past event was NOT deleted
+    const pastEventCheck = await db
+      .select()
+      .from(events)
+      .where(eq(events.id, pastEvent.id));
+    expect(pastEventCheck).toHaveLength(1);
+
+    // Verify future events with same instructor were deleted
+    const futureEvent1Check = await db
+      .select()
+      .from(events)
+      .where(eq(events.id, futureEvent1.id));
+    expect(futureEvent1Check).toHaveLength(0);
+
+    const futureEvent2Check = await db
+      .select()
+      .from(events)
+      .where(eq(events.id, futureEvent2.id));
+    expect(futureEvent2Check).toHaveLength(0);
+
+    // Verify event with different instructor was NOT deleted
+    const otherEventCheck = await db
+      .select()
+      .from(events)
+      .where(eq(events.id, otherEvent.id));
+    expect(otherEventCheck).toHaveLength(1);
+  });
+
+  it("should successfully delete event and all future events with instructor string", async () => {
+    const admin = await createTestUser({
+      clerkUserId: "admin-user",
+      isAdmin: true,
+    });
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const nextWeek = new Date(today);
+    nextWeek.setDate(nextWeek.getDate() + 7);
+
+    const instructorName = "Test Instructor Name";
+
+    // Create events with instructor string (no instructorId)
+    const currentEvent = await createTestEvent({
+      date: today.toISOString().split("T")[0],
+      instructor: instructorName,
+      instructorId: null,
+    });
+    const futureEvent1 = await createTestEvent({
+      date: tomorrow.toISOString().split("T")[0],
+      instructor: instructorName,
+      instructorId: null,
+    });
+    const futureEvent2 = await createTestEvent({
+      date: nextWeek.toISOString().split("T")[0],
+      instructor: instructorName,
+      instructorId: null,
+    });
+
+    // Create an event with different instructor string (should not be deleted)
+    const otherEvent = await createTestEvent({
+      date: tomorrow.toISOString().split("T")[0],
+      instructor: "Other Instructor",
+      instructorId: null,
+    });
+
+    mockAdminAuth(admin.clerkUserId);
+    vi.mocked(isAdmin).mockResolvedValue(true);
+
+    await deleteEventAndFutureInstructorEvents(currentEvent.id);
+
+    // Verify events were deleted
+    const db = getTestDb();
+    const remainingEvents = await db
+      .select()
+      .from(events)
+      .where(eq(events.id, currentEvent.id));
+
+    expect(remainingEvents).toHaveLength(0);
+
+    // Verify future events with same instructor string were deleted
+    const futureEvent1Check = await db
+      .select()
+      .from(events)
+      .where(eq(events.id, futureEvent1.id));
+    expect(futureEvent1Check).toHaveLength(0);
+
+    const futureEvent2Check = await db
+      .select()
+      .from(events)
+      .where(eq(events.id, futureEvent2.id));
+    expect(futureEvent2Check).toHaveLength(0);
+
+    // Verify event with different instructor string was NOT deleted
+    const otherEventCheck = await db
+      .select()
+      .from(events)
+      .where(eq(events.id, otherEvent.id));
+    expect(otherEventCheck).toHaveLength(1);
+  });
+
+  it("should send cancellation emails to all participants", async () => {
+    const admin = await createTestUser({
+      clerkUserId: "admin-user",
+      isAdmin: true,
+    });
+    const instructor = await createTestUser({
+      clerkUserId: "instructor-user",
+      isInstructor: true,
+    });
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+
+    const currentEvent = await createTestEvent({
+      date: today.toISOString().split("T")[0],
+      instructorId: instructor.id,
+      instructor: null,
+    });
+    const futureEvent = await createTestEvent({
+      date: tomorrow.toISOString().split("T")[0],
+      instructorId: instructor.id,
+      instructor: null,
+    });
+
+    // Create participations
+    const participation1 = await createTestParticipation(currentEvent.id, {
+      participantEmail: "participant1@example.com",
+      participantName: "Participant 1",
+    });
+    const participation2 = await createTestParticipation(futureEvent.id, {
+      participantEmail: "participant2@example.com",
+      participantName: "Participant 2",
+    });
+
+    mockAdminAuth(admin.clerkUserId);
+    vi.mocked(isAdmin).mockResolvedValue(true);
+
+    await deleteEventAndFutureInstructorEvents(currentEvent.id, "Test cancellation message");
+
+    // Verify emails were sent
+    expect(wasEmailSent("participant1@example.com")).toBe(true);
+    expect(wasEmailSent("participant2@example.com")).toBe(true);
+
+    const emails = getSentEmails();
+    const email1 = emails.find((e) => e.to === "participant1@example.com");
+    const email2 = emails.find((e) => e.to === "participant2@example.com");
+
+    expect(email1).toBeDefined();
+    expect(email2).toBeDefined();
+    if (email1) {
+      expect(email1.subject).toContain("cancelled");
+      expect(email1.body).toContain("Test cancellation message");
+    }
+  });
+
+  it("should fail when not authenticated", async () => {
+    const event = await createTestEvent();
+    mockUnauthenticated();
+
+    await expect(
+      deleteEventAndFutureInstructorEvents(event.id),
+    ).rejects.toThrow("Unauthorized");
+  });
+
+  it("should fail when user is not admin", async () => {
+    const regularUser = await createTestUser({
+      clerkUserId: "regular-user",
+      isAdmin: false,
+    });
+    const event = await createTestEvent();
+
+    mockRegularUserAuth("regular-user");
+
+    await expect(
+      deleteEventAndFutureInstructorEvents(event.id),
+    ).rejects.toThrow("Only admins can delete events and all future instructor events");
+  });
+
+  it("should fail when event not found", async () => {
+    const admin = await createTestUser({
+      clerkUserId: "admin-user",
+      isAdmin: true,
+    });
+
+    mockAdminAuth(admin.clerkUserId);
+    vi.mocked(isAdmin).mockResolvedValue(true);
+
+    await expect(
+      deleteEventAndFutureInstructorEvents(99999),
+    ).rejects.toThrow("Event not found");
+  });
+
+  it("should fail when event has no instructor information", async () => {
+    const admin = await createTestUser({
+      clerkUserId: "admin-user",
+      isAdmin: true,
+    });
+
+    const event = await createTestEvent({
+      instructor: null,
+      instructorId: null,
+    });
+
+    mockAdminAuth(admin.clerkUserId);
+    vi.mocked(isAdmin).mockResolvedValue(true);
+
+    await expect(
+      deleteEventAndFutureInstructorEvents(event.id),
+    ).rejects.toThrow("Cannot delete future events: event has no instructor information");
+  });
+
+  it("should only delete events from current date onwards", async () => {
+    const admin = await createTestUser({
+      clerkUserId: "admin-user",
+      isAdmin: true,
+    });
+    const instructor = await createTestUser({
+      clerkUserId: "instructor-user",
+      isInstructor: true,
+    });
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+
+    // Create past event (should NOT be deleted)
+    const pastEvent = await createTestEvent({
+      date: yesterday.toISOString().split("T")[0],
+      instructorId: instructor.id,
+      instructor: null,
+    });
+
+    // Create current event (should be deleted)
+    const currentEvent = await createTestEvent({
+      date: today.toISOString().split("T")[0],
+      instructorId: instructor.id,
+      instructor: null,
+    });
+
+    // Create future event (should be deleted)
+    const futureEvent = await createTestEvent({
+      date: tomorrow.toISOString().split("T")[0],
+      instructorId: instructor.id,
+      instructor: null,
+    });
+
+    mockAdminAuth(admin.clerkUserId);
+    vi.mocked(isAdmin).mockResolvedValue(true);
+
+    await deleteEventAndFutureInstructorEvents(currentEvent.id);
+
+    // Verify past event was NOT deleted
+    const db = getTestDb();
+    const pastEventCheck = await db
+      .select()
+      .from(events)
+      .where(eq(events.id, pastEvent.id));
+    expect(pastEventCheck).toHaveLength(1);
+
+    // Verify current and future events were deleted
+    const currentEventCheck = await db
+      .select()
+      .from(events)
+      .where(eq(events.id, currentEvent.id));
+    expect(currentEventCheck).toHaveLength(0);
+
+    const futureEventCheck = await db
+      .select()
+      .from(events)
+      .where(eq(events.id, futureEvent.id));
+    expect(futureEventCheck).toHaveLength(0);
+  });
+
+  it("should delete participations when events are deleted", async () => {
+    const admin = await createTestUser({
+      clerkUserId: "admin-user",
+      isAdmin: true,
+    });
+    const instructor = await createTestUser({
+      clerkUserId: "instructor-user",
+      isInstructor: true,
+    });
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+
+    const currentEvent = await createTestEvent({
+      date: today.toISOString().split("T")[0],
+      instructorId: instructor.id,
+      instructor: null,
+    });
+    const futureEvent = await createTestEvent({
+      date: tomorrow.toISOString().split("T")[0],
+      instructorId: instructor.id,
+      instructor: null,
+    });
+
+    const participation1 = await createTestParticipation(currentEvent.id);
+    const participation2 = await createTestParticipation(futureEvent.id);
+
+    mockAdminAuth(admin.clerkUserId);
+    vi.mocked(isAdmin).mockResolvedValue(true);
+
+    await deleteEventAndFutureInstructorEvents(currentEvent.id);
+
+    // Verify participations were deleted (cascade delete)
+    const db = getTestDb();
+    const participation1Check = await db
+      .select()
+      .from(participations)
+      .where(eq(participations.id, participation1.id));
+    expect(participation1Check).toHaveLength(0);
+
+    const participation2Check = await db
+      .select()
+      .from(participations)
+      .where(eq(participations.id, participation2.id));
+    expect(participation2Check).toHaveLength(0);
   });
 });

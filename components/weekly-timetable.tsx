@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { ChevronLeft, ChevronRight, Plus, Repeat } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { createEventSlug } from "@/lib/utils";
@@ -56,6 +57,8 @@ export function WeeklyTimetable({
   isAdmin?: boolean;
   userId?: number | null;
 }) {
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const [currentWeek, setCurrentWeek] = useState(0); // 0 = current week
   const [timetableData, setTimetableData] = useState<TimetableData>({});
   const [weekDates, setWeekDates] = useState<Date[]>([]);
@@ -123,6 +126,53 @@ export function WeeklyTimetable({
     }
     return dates;
   };
+
+  // Get Monday of a given week offset
+  const getMondayOfWeek = (weekOffset: number): Date => {
+    const now = new Date();
+    const currentDay = now.getDay();
+    const mondayOffset = currentDay === 0 ? -6 : 1 - currentDay;
+
+    const monday = new Date(now);
+    monday.setDate(now.getDate() + mondayOffset + weekOffset * 7);
+    monday.setHours(0, 0, 0, 0);
+    return monday;
+  };
+
+  // Calculate week offset from a Monday date
+  const getWeekOffsetFromDate = (mondayDate: Date): number => {
+    const now = new Date();
+    const currentDay = now.getDay();
+    const mondayOffset = currentDay === 0 ? -6 : 1 - currentDay;
+
+    const currentMonday = new Date(now);
+    currentMonday.setDate(now.getDate() + mondayOffset);
+    currentMonday.setHours(0, 0, 0, 0);
+
+    const targetMonday = new Date(mondayDate);
+    targetMonday.setHours(0, 0, 0, 0);
+
+    const diffTime = targetMonday.getTime() - currentMonday.getTime();
+    const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
+    return Math.round(diffDays / 7);
+  };
+
+  // Initialize week from URL query parameter
+  useEffect(() => {
+    const weekParam = searchParams.get("week");
+    if (weekParam) {
+      try {
+        const mondayDate = new Date(weekParam + "T00:00:00");
+        if (!isNaN(mondayDate.getTime())) {
+          const weekOffset = getWeekOffsetFromDate(mondayDate);
+          setCurrentWeek(weekOffset);
+        }
+      } catch (error) {
+        // Invalid date, use default
+        console.error("Invalid week parameter:", error);
+      }
+    }
+  }, [searchParams]);
 
   const loadWeekData = useCallback(async () => {
     setIsLoading(true);
@@ -250,9 +300,31 @@ export function WeeklyTimetable({
     return `${startStr} - ${endStr}`;
   };
 
-  const goToPreviousWeek = () => setCurrentWeek((prev) => prev - 1);
-  const goToNextWeek = () => setCurrentWeek((prev) => prev + 1);
-  const goToCurrentWeek = () => setCurrentWeek(0);
+  // Update URL when week changes
+  const updateWeekInUrl = (weekOffset: number) => {
+    const monday = getMondayOfWeek(weekOffset);
+    const mondayStr = formatLocalDate(monday);
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("week", mondayStr);
+    router.push(`/timetable?${params.toString()}`, { scroll: false });
+  };
+
+  const goToPreviousWeek = () => {
+    const newWeek = currentWeek - 1;
+    setCurrentWeek(newWeek);
+    updateWeekInUrl(newWeek);
+  };
+  
+  const goToNextWeek = () => {
+    const newWeek = currentWeek + 1;
+    setCurrentWeek(newWeek);
+    updateWeekInUrl(newWeek);
+  };
+  
+  const goToCurrentWeek = () => {
+    setCurrentWeek(0);
+    updateWeekInUrl(0);
+  };
 
   // Get current time slot based on current hour
   const getCurrentTimeSlot = (): string | null => {
@@ -275,6 +347,7 @@ export function WeeklyTimetable({
     // Switch to current week if not already there
     if (currentWeek !== 0) {
       setCurrentWeek(0);
+      updateWeekInUrl(0);
       setShouldScrollToNow(true);
       return;
     }
