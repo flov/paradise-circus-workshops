@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { createEventSlug } from "@/lib/utils";
 import { EditEventButton } from "@/components/admin/edit-event-button";
 import { AddEventButton } from "@/components/admin/add-event-button";
+import { MobileLandscapeHint } from "@/components/mobile-landscape-hint";
 
 type TimeSlot = {
   id: number;
@@ -476,6 +477,9 @@ export function WeeklyTimetable({
 
   return (
     <div className="space-y-4">
+      {/* Mobile landscape hint */}
+      <MobileLandscapeHint />
+      
       {/* Header with navigation */}
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <div>
