@@ -12,7 +12,7 @@ import { PendingEventsList } from "@/components/admin/pending-events-list";
 import { Clock } from "lucide-react";
 import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
-import { isAdmin } from "@/app/profile/actions";
+import { isAdmin, isInstructor } from "@/app/profile/actions";
 import { isEventPast } from "@/lib/utils";
 
 export default async function PendingApprovalPage() {
@@ -23,9 +23,10 @@ export default async function PendingApprovalPage() {
     redirect("/sign-in");
   }
 
-  // Check admin authorization
+  // Check admin or instructor authorization
   const userIsAdmin = await isAdmin();
-  if (!userIsAdmin) {
+  const userIsInstructor = await isInstructor();
+  if (!userIsAdmin && !userIsInstructor) {
     redirect("/");
   }
 

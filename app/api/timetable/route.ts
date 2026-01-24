@@ -15,18 +15,22 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    // Check if user is admin
+    // Check if user is admin or instructor
     const { userId: clerkUserId } = await auth()
     let userIsAdmin = false
+    let userIsInstructor = false
     
     if (clerkUserId) {
       const userResult = await db
-        .select({ isAdmin: users.isAdmin })
+        .select({ isAdmin: users.isAdmin, isInstructor: users.isInstructor })
         .from(users)
         .where(eq(users.clerkUserId, clerkUserId))
         .limit(1)
       
-      userIsAdmin = userResult.length > 0 && userResult[0].isAdmin === true
+      if (userResult.length > 0) {
+        userIsAdmin = userResult[0].isAdmin === true
+        userIsInstructor = userResult[0].isInstructor === true
+      }
     }
 
     // Build where conditions
@@ -37,6 +41,7 @@ export async function GET(request: NextRequest) {
 
     // Build publish condition:
     // - If user is admin: show all events (published and unpublished)
+    // - If user is instructor: show published events + all unpublished events (from all instructors)
     // - If userId is provided and valid: show published events + unpublished events for that instructor
     // - Otherwise: only show published events
     const parsedUserId = userId ? Number.parseInt(userId, 10) : null
@@ -46,8 +51,14 @@ export async function GET(request: NextRequest) {
     if (userIsAdmin) {
       // Admins see all events (published and unpublished)
       publishCondition = undefined // No filter needed
+    } else if (userIsInstructor) {
+      // Instructors see published events + all unpublished events (from all instructors)
+      publishCondition = or(
+        eq(events.isPublished, true),
+        eq(events.isPublished, false)
+      )
     } else if (isValidUserId) {
-      // Instructors see published events + their own unpublished events
+      // If userId is provided but user is not an instructor, show published events + their own unpublished events
       publishCondition = or(
         eq(events.isPublished, true),
         and(
