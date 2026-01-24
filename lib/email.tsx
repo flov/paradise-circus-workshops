@@ -9,6 +9,7 @@ import { AdminEventPendingEmail } from "@/emails/admin-event-pending";
 import { EventCommentNotificationEmail } from "@/emails/event-comment-notification";
 import { EventCancelledEmail } from "@/emails/event-cancelled";
 import { InstructorAssignedEmail } from "@/emails/instructor-assigned";
+import { RecapAddedEmail } from "@/emails/recap-added";
 
 type BookingConfirmationEmailProps = {
   participantName: string;
@@ -636,6 +637,96 @@ The Paradise Circus Team
     console.log("Instructor assignment email sent to:", instructorEmail);
   } catch (error) {
     console.error("Failed to send instructor assignment email:", error);
+    throw error;
+  }
+
+  return { success: true };
+}
+
+type RecapAddedEmailProps = {
+  recipientName: string;
+  recipientEmail: string;
+  eventTitle: string;
+  eventDate: string;
+  eventStartTime: string;
+  eventEndTime: string;
+  eventLocation: string;
+  instructorName: string | null;
+  eventUrl: string;
+  recapVideoId: string;
+};
+
+// Helper function to format date for recap email
+function formatDateForRecap(dateString: string) {
+  const date = new Date(dateString);
+  return date.toLocaleDateString("en-US", {
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+  });
+}
+
+// Helper function to format time for recap email
+function formatTimeForRecap(time: string) {
+  const [hours, minutes] = time.split(":");
+  const hour = Number.parseInt(hours);
+  const ampm = hour >= 12 ? "PM" : "AM";
+  const displayHour = hour % 12 || 12;
+  return `${displayHour}:${minutes} ${ampm}`;
+}
+
+export async function sendRecapAddedEmail(props: RecapAddedEmailProps) {
+  const { recipientEmail, recipientName, eventTitle, eventDate, eventStartTime, eventEndTime, eventLocation, instructorName, eventUrl, recapVideoId } = props;
+
+  // Render React Email component to HTML
+  const emailHtml = await render(<RecapAddedEmail {...props} />);
+
+  // Generate plain text version
+  const formattedDate = formatDateForRecap(eventDate);
+
+  const emailText = `
+Paradise Circus - Workshop Recap Available
+
+Dear ${recipientName},
+
+A recap video has been added for the workshop "${eventTitle}".
+
+Event Details:
+- Title: ${eventTitle}
+- Date: ${formattedDate}
+- Time: ${formatTimeForRecap(eventStartTime)} - ${formatTimeForRecap(eventEndTime)}
+- Location: ${eventLocation}
+${instructorName ? `- Instructor: ${instructorName}` : ""}
+
+Watch the recap video: ${eventUrl}
+
+Relive the workshop experience and catch up on what you might have missed!
+
+The Paradise Circus Team
+  `.trim();
+
+  // Send email via Resend
+  if (!process.env.RESEND_API_KEY) {
+    console.error("RESEND_API_KEY is not set. Email will not be sent.");
+    return { success: false, error: "Email service not configured" };
+  }
+
+  try {
+    const resend = new Resend(process.env.RESEND_API_KEY);
+    const fromEmail = process.env.RESEND_FROM_EMAIL || "onboarding@resend.dev";
+
+    await resend.emails.send({
+      from: fromEmail,
+      to: recipientEmail,
+      subject: `Workshop Recap Available: ${eventTitle}`,
+      html: emailHtml,
+      text: emailText,
+    });
+
+    console.log("Recap notification email sent to:", recipientEmail);
+  } catch (error) {
+    console.error("Failed to send recap notification email:", error);
     throw error;
   }
 

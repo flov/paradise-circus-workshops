@@ -4,8 +4,8 @@ import { db } from "@/db";
 import { events, participations, props, users } from "@/db/schema";
 import { eq, sql, inArray, asc, desc, isNotNull, and, gte } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
-import { createEventSlug } from "@/lib/utils";
-import { auth } from "@clerk/nextjs/server";
+import { createEventSlug, getUserEmail } from "@/lib/utils";
+import { auth, currentUser } from "@clerk/nextjs/server";
 import { isAdmin, isInstructor, getAllAdmins } from "@/app/profile/actions";
 import {
   sendEventPendingApprovalEmail,
@@ -13,6 +13,7 @@ import {
   sendEventApprovedEmail,
   sendEventCancelledEmail,
   sendInstructorAssignedEmail,
+  sendRecapAddedEmail,
 } from "@/lib/email";
 import { randomUUID } from "crypto";
 
@@ -1679,15 +1680,34 @@ export async function updateEventRecapVideo(
   }
 
   try {
-    // Verify event exists and is a workshop
+    // Get current user's email to exclude them from notifications
+    const clerkUser = await currentUser();
+    const currentUserEmail = clerkUser ? getUserEmail(clerkUser) : null;
+
+    // Check if this is adding a recap (not removing)
+    const wasAddingRecap = recapVideoId !== null;
+
+    // Verify event exists and is a workshop, fetch full event details
     const eventResult = await db
       .select({
         id: events.id,
+        title: events.title,
         isWorkshop: events.isWorkshop,
         date: events.date,
+        startTime: events.startTime,
         endTime: events.endTime,
+        location: events.location,
+        instructor: events.instructor,
+        instructorId: events.instructorId,
+        recapVideoId: events.recapVideoId,
+        instructorProfile: {
+          displayName: users.displayName,
+          username: users.username,
+          email: users.email,
+        },
       })
       .from(events)
+      .leftJoin(users, eq(events.instructorId, users.id))
       .where(eq(events.id, eventId))
       .limit(1);
 
@@ -1704,6 +1724,9 @@ export async function updateEventRecapVideo(
       };
     }
 
+    // Only send notifications if we're adding a recap (not removing)
+    const shouldSendNotifications = wasAddingRecap && !event.recapVideoId;
+
     // Update the recap video ID
     await db
       .update(events)
@@ -1712,6 +1735,103 @@ export async function updateEventRecapVideo(
         updatedAt: sql`CURRENT_TIMESTAMP`,
       })
       .where(eq(events.id, eventId));
+
+    // Send email notifications if recap was added
+    if (shouldSendNotifications && recapVideoId) {
+      // Get instructor name and email
+      const instructorName = event.instructorProfile
+        ? event.instructorProfile.displayName || event.instructorProfile.username
+        : event.instructor || null;
+      const instructorEmail = event.instructorProfile?.email || null;
+
+      // Fetch all participants for this event
+      const eventParticipations = await db
+        .select({
+          participantName: participations.participantName,
+          participantEmail: participations.participantEmail,
+        })
+        .from(participations)
+        .where(eq(participations.eventId, eventId));
+
+      // Create event URL
+      const appUrl =
+        process.env.NEXT_PUBLIC_APP_URL || "https://paradise-circus.app";
+      const eventSlug = createEventSlug(
+        event.id,
+        event.title,
+        instructorName,
+      );
+      const eventUrl = `${appUrl}/event/${eventSlug}`;
+
+      // Send emails to participants (excluding the user who posted)
+      const emailPromises: Promise<{ success: boolean }>[] = [];
+
+      for (const participation of eventParticipations) {
+        // Skip if this is the user who posted the recap
+        if (
+          currentUserEmail &&
+          participation.participantEmail.toLowerCase() ===
+            currentUserEmail.toLowerCase()
+        ) {
+          continue;
+        }
+
+        emailPromises.push(
+          sendRecapAddedEmail({
+            recipientName: participation.participantName,
+            recipientEmail: participation.participantEmail,
+            eventTitle: event.title,
+            eventDate: event.date,
+            eventStartTime: event.startTime,
+            eventEndTime: event.endTime,
+            eventLocation: event.location || "",
+            instructorName,
+            eventUrl,
+            recapVideoId,
+          }).catch((error) => {
+            console.error(
+              `Failed to send recap email to ${participation.participantEmail}:`,
+              error,
+            );
+            return { success: false };
+          }),
+        );
+      }
+
+      // Send email to instructor (if exists and not the user who posted)
+      if (
+        instructorEmail &&
+        instructorName &&
+        (!currentUserEmail ||
+          instructorEmail.toLowerCase() !== currentUserEmail.toLowerCase())
+      ) {
+        emailPromises.push(
+          sendRecapAddedEmail({
+            recipientName: instructorName,
+            recipientEmail: instructorEmail,
+            eventTitle: event.title,
+            eventDate: event.date,
+            eventStartTime: event.startTime,
+            eventEndTime: event.endTime,
+            eventLocation: event.location || "",
+            instructorName,
+            eventUrl,
+            recapVideoId,
+          }).catch((error) => {
+            console.error(
+              `Failed to send recap email to instructor ${instructorEmail}:`,
+              error,
+            );
+            return { success: false };
+          }),
+        );
+      }
+
+      // Send all emails in parallel (don't wait for them to complete)
+      Promise.all(emailPromises).catch((error) => {
+        console.error("Error sending recap notification emails:", error);
+      });
+    }
 
     revalidatePath(`/event`);
     revalidatePath("/api/timetable");
