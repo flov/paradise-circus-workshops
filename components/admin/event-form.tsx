@@ -228,7 +228,6 @@ export function EventForm({
     formData.append("location", locationValue);
 
     // Add recurring fields - always send isRecurring value (true or false)
-    // Note: Server-side validation will ensure only admins can create recurring events
     formData.append("isRecurring", isRecurring ? "true" : "false");
 
     await onSubmit(formData);
@@ -538,7 +537,7 @@ export function EventForm({
         </p>
       </div>
 
-      {userProfile && userProfile.isAdmin && (
+      {(userProfile?.isAdmin || userProfile?.isInstructor) && (
         <div className="space-y-4 border-t pt-4">
           <div className="space-y-2">
             <label className="flex items-center space-x-2 cursor-pointer">
@@ -558,7 +557,11 @@ export function EventForm({
             <p className="text-xs text-muted-foreground">
               Check this box to create this workshop weekly. Events will be
               automatically extended weekly, creating 1 event 1 week ahead.
-              Only admins can create recurring workshops.
+              {userProfile.isInstructor && !userProfile.isAdmin && (
+                <span className="block mt-1">
+                  Your recurring workshop will be submitted for admin approval.
+                </span>
+              )}
             </p>
           </div>
         </div>

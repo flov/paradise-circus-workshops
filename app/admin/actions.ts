@@ -66,13 +66,7 @@ export async function createEvent(formData: FormData) {
     return { success: false, error: "Missing required fields" };
   }
 
-  // Validate recurring fields - only admins can create recurring events
-  if (isRecurring && !userIsAdmin) {
-    return {
-      success: false,
-      error: "Unauthorized. Only admins can create recurring events.",
-    };
-  }
+  // Recurring events are allowed for both admins and instructors
 
   // Validate that either instructorId or instructor string is provided
   if (!instructorIdInput && !instructor) {
@@ -708,13 +702,7 @@ export async function updateEvent(formData: FormData) {
   const userIsAdmin = await isAdmin();
   const userIsInstructor = await isInstructor();
 
-  // Validate recurring fields - only admins can create/update recurring events
-  if (isRecurring && !userIsAdmin) {
-    return {
-      success: false,
-      error: "Unauthorized. Only admins can create recurring events.",
-    };
-  }
+  // Recurring events are allowed for both admins and instructors
 
   // Fetch current event state to check if isPublished is changing and if it's recurring
   const currentEventResult = await db
@@ -743,12 +731,11 @@ export async function updateEvent(formData: FormData) {
   const isRecurringEvent =
     currentEvent.recurringSeriesId !== null && currentEvent.isRecurring;
 
-  // Only admins can update recurring events (to update all instances)
+  // Instructors can update their own recurring events, but only single instances
+  // Admins can update all instances in a recurring series
   if (isRecurringEvent && !userIsAdmin) {
-    return {
-      success: false,
-      error: "Unauthorized. Only admins can update recurring events.",
-    };
+    // For instructors, we'll allow updating single events in a recurring series
+    // but not converting between recurring/non-recurring or updating all instances
   }
 
   if (!userIsAdmin) {
@@ -901,9 +888,11 @@ export async function updateEvent(formData: FormData) {
       updatedAt: sql`CURRENT_TIMESTAMP`,
     };
 
-    // Only update isPublished and isRecurring if user is admin
-    if (userIsAdmin) {
-      updateData.isPublished = isPublished;
+      // Only update isPublished if user is admin
+      if (userIsAdmin) {
+        updateData.isPublished = isPublished;
+      }
+      // Both admins and instructors can update isRecurring
       // Only update isRecurring if not converting to recurring (that's handled separately)
       // For existing recurring events, preserve isRecurring: true
       // For non-recurring events being updated, set based on form value
@@ -913,10 +902,10 @@ export async function updateEvent(formData: FormData) {
         // Preserve isRecurring for existing recurring events
         updateData.isRecurring = true;
       }
-    }
 
-    // Handle converting recurring event to non-recurring
-    if (isRecurringEvent && !isRecurring && userIsAdmin) {
+    // Handle converting recurring event to non-recurring (admins and instructors)
+    // Note: This only converts the current event, not the entire series
+    if (isRecurringEvent && !isRecurring) {
       // Convert only the current event to non-recurring
       // Other events in the series remain as recurring events
       await db
@@ -942,8 +931,8 @@ export async function updateEvent(formData: FormData) {
       return { success: true };
     }
 
-    // Handle converting non-recurring event to recurring
-    if (!isRecurringEvent && isRecurring && userIsAdmin) {
+    // Handle converting non-recurring event to recurring (admins and instructors)
+    if (!isRecurringEvent && isRecurring) {
       // Generate UUID for recurring series
       const recurringSeriesId = randomUUID();
 
@@ -1003,7 +992,8 @@ export async function updateEvent(formData: FormData) {
       return { success: true };
     }
 
-    // Handle recurring events - update all events in the series
+    // Handle recurring events - update all events in the series (admin only)
+    // Instructors can only update single events in a recurring series
     if (isRecurringEvent && userIsAdmin && currentEvent.recurringSeriesId) {
       // Check if start date changed - if so, we need to recalculate dates
       const startDateChanged = currentEvent.date !== date;
