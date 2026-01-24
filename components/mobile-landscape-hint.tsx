@@ -4,9 +4,21 @@ import { useState, useEffect } from "react";
 import { Smartphone, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
+const STORAGE_KEY = "mobile-landscape-hint-dismissed";
+
 export function MobileLandscapeHint() {
   const [isPortrait, setIsPortrait] = useState(false);
   const [isDismissed, setIsDismissed] = useState(false);
+  const [isLoaded, setIsLoaded] = useState(false);
+
+  // Load dismissed state from localStorage on mount
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    
+    const dismissed = localStorage.getItem(STORAGE_KEY) === "true";
+    setIsDismissed(dismissed);
+    setIsLoaded(true);
+  }, []);
 
   useEffect(() => {
     // Check initial orientation
@@ -40,8 +52,15 @@ export function MobileLandscapeHint() {
     };
   }, []);
 
-  // Don't show if dismissed or not in portrait mode
-  if (isDismissed || !isPortrait) {
+  const handleDismiss = () => {
+    setIsDismissed(true);
+    if (typeof window !== "undefined") {
+      localStorage.setItem(STORAGE_KEY, "true");
+    }
+  };
+
+  // Don't show if not loaded yet, dismissed, or not in portrait mode
+  if (!isLoaded || isDismissed || !isPortrait) {
     return null;
   }
 
@@ -88,7 +107,7 @@ export function MobileLandscapeHint() {
             variant="ghost"
             size="icon"
             className="flex-shrink-0 h-8 w-8 text-secondary-foreground hover:bg-secondary-foreground/20"
-            onClick={() => setIsDismissed(true)}
+            onClick={handleDismiss}
             aria-label="Dismiss"
           >
             <X className="h-4 w-4" />
