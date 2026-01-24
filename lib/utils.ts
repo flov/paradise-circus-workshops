@@ -27,10 +27,14 @@ export function getUserEmail(user: { emailAddresses: Array<{ emailAddress: strin
   return user.emailAddresses[0]?.emailAddress || ""
 }
 
+// Thailand timezone offset: UTC+7 (no daylight saving time)
+const THAILAND_OFFSET_HOURS = 7
+
 /**
  * Check if an event is in the past based on its date and end time
+ * Event times are stored in Thailand timezone (Asia/Bangkok, UTC+7)
  * @param date - Event date (string in YYYY-MM-DD format or Date object)
- * @param endTime - Event end time in HH:MM format (24-hour)
+ * @param endTime - Event end time in HH:MM format (24-hour, Thailand timezone)
  * @returns true if the event has already ended
  */
 export function isEventPast(date: string | Date, endTime: string): boolean {
@@ -77,9 +81,10 @@ export function isEventPast(date: string | Date, endTime: string): boolean {
     return false
   }
   
-  // Create a date object for the event end time in local timezone
-  // Note: month is 0-indexed in Date constructor
-  const eventEndDate = new Date(year, month - 1, day, hours, minutes, 0, 0)
+  // Create the event end time in UTC by converting from Thailand time (UTC+7)
+  // Example: 2:00 PM Thailand = 7:00 AM UTC (14:00 - 7 = 7:00)
+  const eventEndDateUTC = Date.UTC(year, month - 1, day, hours, minutes, 0, 0)
+  const eventEndDate = new Date(eventEndDateUTC - (THAILAND_OFFSET_HOURS * 60 * 60 * 1000))
   
   return now > eventEndDate
 }
