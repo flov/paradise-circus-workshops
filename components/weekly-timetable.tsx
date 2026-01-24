@@ -624,7 +624,7 @@ export function WeeklyTimetable({
                                     "paradise river";
                                 const isPending = !slot.isPublished;
                                 const hasNoInstructorId =
-                                  isAdmin && slot.instructorId === null;
+                                  isAdmin && (slot.instructorId === null || slot.instructorId === undefined);
                                 const isBlocked = slot.isBlocked === true;
                                 const getColorClasses = () => {
                                   // Blocked entries get muted styling
@@ -642,16 +642,14 @@ export function WeeklyTimetable({
                                     return "bg-yellow-500/20 hover:bg-yellow-500/30 border border-yellow-500/50 border-dashed";
                                   }
                                   // Events without instructorId get dashed borders (admin only)
-                                  const borderDashed = hasNoInstructorId
-                                    ? " border-dashed"
-                                    : "";
+                                  const borderStyle = hasNoInstructorId ? "border-dashed" : "border-solid";
                                   if (!slot.isWorkshop) {
-                                    return `bg-purple-500/20 hover:bg-purple-500/30 border border-purple-500/40${borderDashed}`;
+                                    return `bg-purple-500/20 hover:bg-purple-500/30 border ${borderStyle} border-purple-500/40`;
                                   }
                                   const baseClasses = isParadiseRiver
-                                    ? "bg-blue-500/20 hover:bg-blue-500/30 border border-blue-500/40"
-                                    : "bg-red-500/20 hover:bg-red-500/30 border border-red-500/40";
-                                  return `${baseClasses}${borderDashed}`;
+                                    ? `bg-blue-500/20 hover:bg-blue-500/30 border ${borderStyle} border-blue-500/40`
+                                    : `bg-red-500/20 hover:bg-red-500/30 border ${borderStyle} border-red-500/40`;
+                                  return baseClasses;
                                 };
                                 return (
                                   <div
@@ -858,7 +856,7 @@ export function WeeklyTimetable({
                               slot.location?.toLowerCase() === "paradise river";
                             const isPending = !slot.isPublished;
                             const hasNoInstructorId =
-                              isAdmin && slot.instructorId === null;
+                              isAdmin && (slot.instructorId === null || slot.instructorId === undefined);
                             const isBlocked = slot.isBlocked === true;
                             const getMobileColorClasses = () => {
                               // Blocked entries get muted styling
@@ -876,16 +874,14 @@ export function WeeklyTimetable({
                                 return "bg-yellow-500/20 hover:bg-yellow-500/30 active:bg-yellow-500/35 border-yellow-500/50 hover:border-yellow-500/60 active:border-yellow-500/70 border-dashed";
                               }
                               // Events without instructorId get dashed borders (admin only)
-                              const borderDashed = hasNoInstructorId
-                                ? " border-dashed"
-                                : "";
+                              const borderStyle = hasNoInstructorId ? "border-dashed" : "border-solid";
                               if (!slot.isWorkshop) {
-                                return `bg-purple-500/15 hover:bg-purple-500/25 active:bg-purple-500/30 border-purple-500/40 hover:border-purple-500/50 active:border-purple-500/60${borderDashed}`;
+                                return `bg-purple-500/15 hover:bg-purple-500/25 active:bg-purple-500/30 ${borderStyle} border-purple-500/40 hover:border-purple-500/50 active:border-purple-500/60`;
                               }
                               const baseClasses = isParadiseRiver
-                                ? "bg-blue-500/15 hover:bg-blue-500/25 active:bg-blue-500/30 border-blue-500/40 hover:border-blue-500/50 active:border-blue-500/60"
-                                : "bg-red-500/15 hover:bg-red-500/25 active:bg-red-500/30 border-red-500/40 hover:border-red-500/50 active:border-red-500/60";
-                              return `${baseClasses}${borderDashed}`;
+                                ? `bg-blue-500/15 hover:bg-blue-500/25 active:bg-blue-500/30 ${borderStyle} border-blue-500/40 hover:border-blue-500/50 active:border-blue-500/60`
+                                : `bg-red-500/15 hover:bg-red-500/25 active:bg-red-500/30 ${borderStyle} border-red-500/40 hover:border-red-500/50 active:border-red-500/60`;
+                              return baseClasses;
                             };
                             const getArrowColor = () => {
                               if (isBlocked) {
