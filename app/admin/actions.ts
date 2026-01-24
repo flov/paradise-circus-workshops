@@ -1559,6 +1559,7 @@ export async function extendRecurringEvents() {
           isWorkshop: events.isWorkshop,
           isPublished: events.isPublished,
           propId: events.propId,
+          recapVideoId: events.recapVideoId,
         })
         .from(events)
         .where(
@@ -1597,6 +1598,7 @@ export async function extendRecurringEvents() {
           propId: number | null;
           recurringSeriesId: string;
           isRecurring: boolean;
+          recapVideoId: string | null;
         }> = [];
 
         let currentDate = new Date(latestEventDate);
@@ -1623,6 +1625,7 @@ export async function extendRecurringEvents() {
               propId: latestEvent.propId,
               recurringSeriesId: series.recurringSeriesId,
               isRecurring: true,
+              recapVideoId: latestEvent.recapVideoId,
             });
           }
 
@@ -1658,5 +1661,65 @@ export async function extendRecurringEvents() {
       eventsCreated: 0,
       seriesProcessed: 0,
     };
+  }
+}
+
+export async function updateEventRecapVideo(eventId: number, recapVideoId: string | null) {
+  // Check authentication
+  const { userId } = await auth();
+
+  if (!userId) {
+    return {
+      success: false,
+      error: "Unauthorized. You must be signed in to add recap videos.",
+    };
+  }
+
+  try {
+    // Verify event exists and is a workshop
+    const eventResult = await db
+      .select({
+        id: events.id,
+        isWorkshop: events.isWorkshop,
+        date: events.date,
+        endTime: events.endTime,
+      })
+      .from(events)
+      .where(eq(events.id, eventId))
+      .limit(1);
+
+    if (eventResult.length === 0) {
+      return { success: false, error: "Event not found" };
+    }
+
+    const event = eventResult[0];
+
+    if (!event.isWorkshop) {
+      return { success: false, error: "Recap videos can only be added to workshops" };
+    }
+
+    // Check if event has ended
+    const eventEndDateTime = new Date(`${event.date}T${event.endTime}`);
+    const now = new Date();
+    if (eventEndDateTime > now) {
+      return { success: false, error: "Recap videos can only be added after the workshop has ended" };
+    }
+
+    // Update the recap video ID
+    await db
+      .update(events)
+      .set({
+        recapVideoId: recapVideoId || null,
+        updatedAt: sql`CURRENT_TIMESTAMP`,
+      })
+      .where(eq(events.id, eventId));
+
+    revalidatePath(`/event`);
+    revalidatePath("/api/timetable");
+
+    return { success: true };
+  } catch (error) {
+    console.error("Error updating recap video:", error);
+    return { success: false, error: "Failed to update recap video" };
   }
 }

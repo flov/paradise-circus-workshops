@@ -46,6 +46,7 @@ export default async function EditEventPage({
       isPublished: events.isPublished,
       propId: events.propId,
       isRecurring: events.isRecurring,
+      recapVideoId: events.recapVideoId,
     })
     .from(events)
     .where(eq(events.id, eventId))

@@ -34,6 +34,7 @@ import { AvatarStack } from "@/components/avatar-stack";
 import ReactMarkdown from "react-markdown";
 import { EventCalendarButtons } from "@/components/event-calendar-buttons";
 import { EventComments } from "@/components/event-comments";
+import { AddRecapVideo } from "@/components/add-recap-video";
 
 export default async function BookEventPage({
   params,
@@ -65,6 +66,7 @@ export default async function BookEventPage({
       whatToBring: events.whatToBring,
       isWorkshop: events.isWorkshop,
       propId: events.propId,
+      recapVideoId: events.recapVideoId,
       createdAt: events.createdAt,
       updatedAt: events.updatedAt,
       instructorProfile: {
@@ -105,6 +107,7 @@ export default async function BookEventPage({
     whatToBring: eventResult.whatToBring,
     isWorkshop: eventResult.isWorkshop,
     propId: eventResult.propId,
+    recapVideoId: eventResult.recapVideoId,
     createdAt: eventResult.createdAt,
     updatedAt: eventResult.updatedAt,
   };
@@ -394,6 +397,46 @@ export default async function BookEventPage({
                   />
                 )}
               </div>
+
+              {/* Add Recap Video Section - Only for past workshops without recap */}
+              {isPast && event.isWorkshop && !event.recapVideoId && (
+                <div className="space-y-3 pt-4 border-t">
+                  <div className="space-y-2">
+                    <h3 className="text-lg font-semibold text-foreground">
+                      Workshop Recap
+                    </h3>
+                    <p className="text-sm text-muted-foreground">
+                      Did you make a recap of the workshop? Add a YouTube video ID here.
+                    </p>
+                    <AddRecapVideo eventId={event.id} currentRecapVideoId={event.recapVideoId} />
+                  </div>
+                </div>
+              )}
+
+              {/* Recap Video Section - Show video if it exists */}
+              {event.recapVideoId && (
+                <div className="space-y-2 pt-4 border-t">
+                  <h3 className="text-lg font-semibold text-foreground">
+                    Workshop Recap
+                  </h3>
+                  <div className="aspect-video w-full rounded-lg overflow-hidden">
+                    <iframe
+                      width="100%"
+                      height="100%"
+                      src={`https://www.youtube.com/embed/${event.recapVideoId}`}
+                      title="Workshop Recap Video"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      allowFullScreen
+                      className="w-full h-full"
+                    />
+                  </div>
+                  {isPast && event.isWorkshop && (
+                    <div className="mt-2">
+                      <AddRecapVideo eventId={event.id} currentRecapVideoId={event.recapVideoId} />
+                    </div>
+                  )}
+                </div>
+              )}
 
               {/* Conversation Section */}
               <EventComments

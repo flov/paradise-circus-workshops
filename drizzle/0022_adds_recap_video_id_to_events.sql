@@ -1,0 +1,1 @@
+ALTER TABLE "events" ADD COLUMN "recap_video_id" varchar(50);

@@ -155,6 +155,13 @@
       "when": 1768968902768,
       "tag": "0021_adds_website_to_profile",
       "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1769272879479,
+      "tag": "0022_adds_recap_video_id_to_events",
+      "breakpoints": true
     }
   ]
 }

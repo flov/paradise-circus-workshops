@@ -43,6 +43,7 @@ export async function PendingEventsList() {
       propId: events.propId,
       isRecurring: events.isRecurring,
       recurringSeriesId: events.recurringSeriesId,
+      recapVideoId: events.recapVideoId,
       instructorProfile: {
         id: users.id,
         displayName: users.displayName,

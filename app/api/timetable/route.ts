@@ -89,6 +89,7 @@ export async function GET(request: NextRequest) {
         isPublished: events.isPublished,
         isRecurring: events.isRecurring,
         recurringSeriesId: events.recurringSeriesId,
+        recapVideoId: events.recapVideoId,
         instructorProfile: {
           id: users.id,
           displayName: users.displayName,
@@ -126,6 +127,7 @@ export async function GET(request: NextRequest) {
       isPublished: event.isPublished,
       isRecurring: event.isRecurring,
       recurringSeriesId: event.recurringSeriesId,
+      recapVideoId: event.recapVideoId,
       instructorDisplayName: event.instructorProfile
         ? (event.instructorProfile.displayName || event.instructorProfile.username)
         : null,
