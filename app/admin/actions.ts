@@ -888,20 +888,20 @@ export async function updateEvent(formData: FormData) {
       updatedAt: sql`CURRENT_TIMESTAMP`,
     };
 
-      // Only update isPublished if user is admin
-      if (userIsAdmin) {
-        updateData.isPublished = isPublished;
-      }
-      // Both admins and instructors can update isRecurring
-      // Only update isRecurring if not converting to recurring (that's handled separately)
-      // For existing recurring events, preserve isRecurring: true
-      // For non-recurring events being updated, set based on form value
-      if (!isRecurringEvent) {
-        updateData.isRecurring = isRecurring;
-      } else {
-        // Preserve isRecurring for existing recurring events
-        updateData.isRecurring = true;
-      }
+    // Only update isPublished if user is admin
+    if (userIsAdmin) {
+      updateData.isPublished = isPublished;
+    }
+    // Both admins and instructors can update isRecurring
+    // Only update isRecurring if not converting to recurring (that's handled separately)
+    // For existing recurring events, preserve isRecurring: true
+    // For non-recurring events being updated, set based on form value
+    if (!isRecurringEvent) {
+      updateData.isRecurring = isRecurring;
+    } else {
+      // Preserve isRecurring for existing recurring events
+      updateData.isRecurring = true;
+    }
 
     // Handle converting recurring event to non-recurring (admins and instructors)
     // Note: This only converts the current event, not the entire series
@@ -1664,7 +1664,10 @@ export async function extendRecurringEvents() {
   }
 }
 
-export async function updateEventRecapVideo(eventId: number, recapVideoId: string | null) {
+export async function updateEventRecapVideo(
+  eventId: number,
+  recapVideoId: string | null,
+) {
   // Check authentication
   const { userId } = await auth();
 
@@ -1695,14 +1698,10 @@ export async function updateEventRecapVideo(eventId: number, recapVideoId: strin
     const event = eventResult[0];
 
     if (!event.isWorkshop) {
-      return { success: false, error: "Recap videos can only be added to workshops" };
-    }
-
-    // Check if event has ended
-    const eventEndDateTime = new Date(`${event.date}T${event.endTime}`);
-    const now = new Date();
-    if (eventEndDateTime > now) {
-      return { success: false, error: "Recap videos can only be added after the workshop has ended" };
+      return {
+        success: false,
+        error: "Recap videos can only be added to workshops",
+      };
     }
 
     // Update the recap video ID
