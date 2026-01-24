@@ -39,7 +39,6 @@ export type EventFormInitialValues = {
   isPublished?: boolean;
   propId?: number | null;
   isRecurring?: boolean;
-  recurUntil?: string;
 };
 
 type EventFormProps = {
@@ -92,9 +91,6 @@ export function EventForm({
   >(null);
   const [isRecurring, setIsRecurring] = useState<boolean>(
     initialValues?.isRecurring ?? false,
-  );
-  const [recurUntil, setRecurUntil] = useState<string>(
-    initialValues?.recurUntil || "",
   );
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -234,9 +230,6 @@ export function EventForm({
     // Add recurring fields - always send isRecurring value (true or false)
     // Note: Server-side validation will ensure only admins can create recurring events
     formData.append("isRecurring", isRecurring ? "true" : "false");
-    if (isRecurring && recurUntil) {
-      formData.append("recurUntil", recurUntil);
-    }
 
     await onSubmit(formData);
   }
@@ -291,33 +284,6 @@ export function EventForm({
   }
 
   const isEditMode = !!initialValues?.id;
-  const formattedDate = date;
-
-  // Calculate number of events that will be created
-  const calculateEventCount = (): number => {
-    if (!isRecurring || !formattedDate) return 0;
-
-    // If recurUntil is not provided, return 1 (for the 1 week ahead event)
-    if (!recurUntil) return 1;
-
-    const startDate = new Date(formattedDate);
-    const endDate = new Date(recurUntil);
-
-    if (endDate < startDate) return 0;
-
-    let count = 0;
-    let currentDate = new Date(startDate);
-
-    while (currentDate <= endDate) {
-      count++;
-      currentDate = new Date(currentDate);
-      currentDate.setDate(currentDate.getDate() + 7);
-    }
-
-    return count;
-  };
-
-  const eventCount = calculateEventCount();
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
@@ -581,12 +547,7 @@ export function EventForm({
                 id="isRecurring"
                 name="isRecurring"
                 checked={isRecurring}
-                onChange={(e) => {
-                  setIsRecurring(e.target.checked);
-                  if (!e.target.checked) {
-                    setRecurUntil("");
-                  }
-                }}
+                onChange={(e) => setIsRecurring(e.target.checked)}
                 disabled={isSubmitting}
                 className="h-4 w-4 rounded border-gray-300"
               />
@@ -595,48 +556,11 @@ export function EventForm({
               </Label>
             </label>
             <p className="text-xs text-muted-foreground">
-              Check this box to create this workshop weekly until the end date.
+              Check this box to create this workshop weekly. Events will be
+              automatically extended weekly, creating 1 event 1 week ahead.
               Only admins can create recurring workshops.
             </p>
           </div>
-
-          {isRecurring && (
-            <div className="space-y-2">
-              <Label htmlFor="recurUntil">Recur Until (optional)</Label>
-              <Input
-                id="recurUntil"
-                name="recurUntil"
-                type="date"
-                value={recurUntil}
-                onChange={(e) => setRecurUntil(e.target.value)}
-                disabled={isSubmitting}
-                min={formattedDate || undefined}
-              />
-              {recurUntil &&
-                formattedDate &&
-                new Date(recurUntil) < new Date(formattedDate) && (
-                  <p className="text-xs text-destructive">
-                    End date must be after the start date.
-                  </p>
-                )}
-              {eventCount > 0 && (
-                <p className="text-xs text-muted-foreground">
-                  {recurUntil ? (
-                    <>
-                      This will create {eventCount} event
-                      {eventCount !== 1 ? "s" : ""} weekly from {formattedDate}{" "}
-                      until {recurUntil}.
-                    </>
-                  ) : (
-                    <>
-                      This will create 1 event 1 week ahead. Events will be
-                      automatically extended weekly.
-                    </>
-                  )}
-                </p>
-              )}
-            </div>
-          )}
         </div>
       )}
 

@@ -47,7 +47,6 @@ export function createEventFormData(overrides: Partial<{
   propId: string
   isWorkshop: string
   isRecurring: string
-  recurUntil: string
 }> = {}): FormData {
   const tomorrow = new Date()
   tomorrow.setDate(tomorrow.getDate() + 1)
@@ -65,7 +64,6 @@ export function createEventFormData(overrides: Partial<{
     propId: '',
     isWorkshop: 'on',
     isRecurring: 'false',
-    recurUntil: '',
     ...overrides,
   })
 }
@@ -89,7 +87,6 @@ export function createEventUpdateFormData(
     isWorkshop: string
     isPublished: string
     isRecurring: string
-    recurUntil: string
   }> = {}
 ): FormData {
   const tomorrow = new Date()
@@ -110,7 +107,6 @@ export function createEventUpdateFormData(
     isWorkshop: 'on',
     isPublished: 'on',
     isRecurring: 'false',
-    recurUntil: '',
     ...overrides,
   })
 }

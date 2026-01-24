@@ -92,9 +92,6 @@ export default async function EditEventPage({
     isPublished: event.isPublished ?? true,
     propId: event.propId,
     isRecurring: event.isRecurring ?? false,
-    // recurUntil is not stored in the database - it's only used when creating/updating recurring events
-    // Users can set a new recurUntil if they want to modify recurring settings
-    recurUntil: "",
   };
 
   return (

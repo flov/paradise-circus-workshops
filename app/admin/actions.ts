@@ -53,7 +53,6 @@ export async function createEvent(formData: FormData) {
     formData.get("isWorkshop") === "true";
   const isRecurringInput = formData.get("isRecurring") as string;
   const isRecurring = isRecurringInput === "on" || isRecurringInput === "true";
-  const recurUntil = formData.get("recurUntil") as string;
 
   // Validate required fields
   if (
@@ -73,27 +72,6 @@ export async function createEvent(formData: FormData) {
       success: false,
       error: "Unauthorized. Only admins can create recurring events.",
     };
-  }
-
-  // Validate recurUntil if recurring is enabled and recurUntil is provided
-  if (isRecurring && recurUntil) {
-    const startDate = new Date(date);
-    const endDate = new Date(recurUntil);
-    if (endDate < startDate) {
-      return {
-        success: false,
-        error: "Recur Until date must be after the start date.",
-      };
-    }
-    // Limit recurring period to 1 year to prevent abuse
-    const maxDate = new Date(startDate);
-    maxDate.setFullYear(maxDate.getFullYear() + 1);
-    if (endDate > maxDate) {
-      return {
-        success: false,
-        error: "Recurring period cannot exceed 1 year.",
-      };
-    }
   }
 
   // Validate that either instructorId or instructor string is provided
@@ -174,22 +152,12 @@ export async function createEvent(formData: FormData) {
       const startDate = new Date(date);
       const eventDates: string[] = [];
 
-      if (recurUntil) {
-        // If recurUntil is provided, create events from start date until recurUntil
-        const endDate = new Date(recurUntil);
-        let currentDate = new Date(startDate);
-        while (currentDate <= endDate) {
-          eventDates.push(currentDate.toISOString().split("T")[0]);
-          currentDate = new Date(currentDate);
-          currentDate.setDate(currentDate.getDate() + 7);
-        }
-      } else {
-        // If recurUntil is NOT provided, create only 1 week ahead (initial event + next week = 2 events total)
-        eventDates.push(startDate.toISOString().split("T")[0]);
-        const nextWeekDate = new Date(startDate);
-        nextWeekDate.setDate(nextWeekDate.getDate() + 7);
-        eventDates.push(nextWeekDate.toISOString().split("T")[0]);
-      }
+      // Create only 1 week ahead (initial event + next week = 2 events total)
+      // Events will be automatically extended weekly
+      eventDates.push(startDate.toISOString().split("T")[0]);
+      const nextWeekDate = new Date(startDate);
+      nextWeekDate.setDate(nextWeekDate.getDate() + 7);
+      eventDates.push(nextWeekDate.toISOString().split("T")[0]);
 
       if (eventDates.length === 0) {
         return {
@@ -713,7 +681,6 @@ export async function updateEvent(formData: FormData) {
   const isPublished = isPublishedInput === "on" || isPublishedInput === "true";
   const isRecurringInput = formData.get("isRecurring") as string;
   const isRecurring = isRecurringInput === "on" || isRecurringInput === "true";
-  const recurUntil = formData.get("recurUntil") as string;
 
   if (
     !id ||
@@ -747,27 +714,6 @@ export async function updateEvent(formData: FormData) {
       success: false,
       error: "Unauthorized. Only admins can create recurring events.",
     };
-  }
-
-  // Validate recurUntil if recurring is enabled and recurUntil is provided
-  if (isRecurring && recurUntil) {
-    const startDate = new Date(date);
-    const endDate = new Date(recurUntil);
-    if (endDate < startDate) {
-      return {
-        success: false,
-        error: "Recur Until date must be after the start date.",
-      };
-    }
-    // Limit recurring period to 1 year to prevent abuse
-    const maxDate = new Date(startDate);
-    maxDate.setFullYear(maxDate.getFullYear() + 1);
-    if (endDate > maxDate) {
-      return {
-        success: false,
-        error: "Recurring period cannot exceed 1 year.",
-      };
-    }
   }
 
   // Fetch current event state to check if isPublished is changing and if it's recurring
@@ -1004,22 +950,12 @@ export async function updateEvent(formData: FormData) {
       const startDate = new Date(date);
       const eventDates: string[] = [];
 
-      if (recurUntil) {
-        // If recurUntil is provided, create events from start date until recurUntil
-        const endDate = new Date(recurUntil);
-        let currentDate = new Date(startDate);
-        while (currentDate <= endDate) {
-          eventDates.push(currentDate.toISOString().split("T")[0]);
-          currentDate = new Date(currentDate);
-          currentDate.setDate(currentDate.getDate() + 7);
-        }
-      } else {
-        // If recurUntil is NOT provided, create only 1 week ahead (initial event + next week = 2 events total)
-        eventDates.push(startDate.toISOString().split("T")[0]);
-        const nextWeekDate = new Date(startDate);
-        nextWeekDate.setDate(nextWeekDate.getDate() + 7);
-        eventDates.push(nextWeekDate.toISOString().split("T")[0]);
-      }
+      // Create only 1 week ahead (initial event + next week = 2 events total)
+      // Events will be automatically extended weekly
+      eventDates.push(startDate.toISOString().split("T")[0]);
+      const nextWeekDate = new Date(startDate);
+      nextWeekDate.setDate(nextWeekDate.getDate() + 7);
+      eventDates.push(nextWeekDate.toISOString().split("T")[0]);
 
       if (eventDates.length === 0) {
         return {
