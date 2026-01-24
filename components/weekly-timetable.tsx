@@ -195,7 +195,10 @@ export function WeeklyTimetable({
       const events = await response.json();
 
       // Helper function to calculate duration in hours
-      const calculateDurationHours = (startTime: string, endTime: string): number => {
+      const calculateDurationHours = (
+        startTime: string,
+        endTime: string,
+      ): number => {
         const [startHours, startMinutes] = startTime.split(":").map(Number);
         const [endHours, endMinutes] = endTime.split(":").map(Number);
         const startTotalMinutes = startHours * 60 + startMinutes;
@@ -231,11 +234,15 @@ export function WeeklyTimetable({
         const startTimeSlot = hourToTimeSlot(startHour);
 
         // Calculate duration in hours
-        const durationHours = calculateDurationHours(event.startTime, event.endTime);
+        const durationHours = calculateDurationHours(
+          event.startTime,
+          event.endTime,
+        );
 
         if (!organized[dayName]) organized[dayName] = {};
-        if (!organized[dayName][startTimeSlot]) organized[dayName][startTimeSlot] = [];
-        
+        if (!organized[dayName][startTimeSlot])
+          organized[dayName][startTimeSlot] = [];
+
         // Add the main event entry in the start time slot
         organized[dayName][startTimeSlot].push({
           id: event.id,
@@ -261,11 +268,12 @@ export function WeeklyTimetable({
         for (let i = 1; i < durationHours; i++) {
           const nextHour = startHour + i;
           const nextTimeSlot = hourToTimeSlot(nextHour);
-          
+
           // Only add blocked entries for time slots that exist in TIME_SLOTS
           if (getTimeSlotIndex(nextTimeSlot) !== -1) {
-            if (!organized[dayName][nextTimeSlot]) organized[dayName][nextTimeSlot] = [];
-            
+            if (!organized[dayName][nextTimeSlot])
+              organized[dayName][nextTimeSlot] = [];
+
             // Add blocked entry
             organized[dayName][nextTimeSlot].push({
               id: event.id,
@@ -273,7 +281,8 @@ export function WeeklyTimetable({
               description: event.description,
               instructor: event.instructor,
               instructorId: event.instructorId || null,
-              instructorDisplayName: (event as any).instructorDisplayName || null,
+              instructorDisplayName:
+                (event as any).instructorDisplayName || null,
               date: event.date,
               startTime: event.startTime,
               endTime: event.endTime,
@@ -377,13 +386,13 @@ export function WeeklyTimetable({
     setCurrentWeek(newWeek);
     updateWeekInUrl(newWeek);
   };
-  
+
   const goToNextWeek = () => {
     const newWeek = currentWeek + 1;
     setCurrentWeek(newWeek);
     updateWeekInUrl(newWeek);
   };
-  
+
   const goToCurrentWeek = () => {
     setCurrentWeek(0);
     updateWeekInUrl(0);
@@ -479,7 +488,7 @@ export function WeeklyTimetable({
     <div className="space-y-4">
       {/* Mobile landscape hint */}
       <MobileLandscapeHint />
-      
+
       {/* Header with navigation */}
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <div>
@@ -646,20 +655,15 @@ export function WeeklyTimetable({
                                 };
                                 return (
                                   <div
-                                    key={`${slot.id}-${slot.startTime}-${isBlocked ? 'blocked' : 'main'}`}
+                                    key={`${slot.id}-${slot.startTime}-${isBlocked ? "blocked" : "main"}`}
                                     className={`relative block rounded transition-colors h-full ${getColorClasses()}`}
                                   >
                                     <a
                                       href={`/event/${createEventSlug(slot.id, slot.title, slot.instructorDisplayName || slot.instructor || "")}`}
-                                      className={`block p-2 ${isBlocked ? 'opacity-60' : ''}`}
+                                      className={`block p-2 ${isBlocked ? "opacity-60" : ""}`}
                                     >
                                       <div className="text-sm font-medium text-foreground line-clamp-2 flex items-center gap-1.5">
                                         {slot.title}
-                                        {isBlocked && (
-                                          <span className="ml-1 text-xs font-normal text-muted-foreground">
-                                            (Blocked)
-                                          </span>
-                                        )}
                                         {isPending && (
                                           <span className="ml-1 text-xs font-normal text-yellow-600 dark:text-yellow-400">
                                             (Pending)
@@ -899,21 +903,16 @@ export function WeeklyTimetable({
                             };
                             return (
                               <div
-                                key={`${slot.id}-${slot.startTime}-${isBlocked ? 'blocked' : 'main'}`}
+                                key={`${slot.id}-${slot.startTime}-${isBlocked ? "blocked" : "main"}`}
                                 className={`relative block rounded-lg border-2 shadow-sm hover:shadow-md active:shadow-sm transition-all duration-150 ${getMobileColorClasses()}`}
                               >
                                 <a
                                   href={`/event/${createEventSlug(slot.id, slot.title, slot.instructorDisplayName || slot.instructor || "")}`}
-                                  className={`block p-4 pr-12 cursor-pointer ${isBlocked ? 'opacity-60' : ''}`}
+                                  className={`block p-4 cursor-pointer ${isBlocked ? "opacity-60" : ""}`}
                                 >
                                   <div className="flex justify-between items-start gap-2 mb-1">
                                     <div className="font-medium text-foreground flex-1 min-w-0 flex items-center gap-1.5">
                                       {slot.title}
-                                      {isBlocked && (
-                                        <span className="ml-2 text-xs font-normal text-muted-foreground">
-                                          (Blocked)
-                                        </span>
-                                      )}
                                       {isPending && (
                                         <span className="ml-2 text-xs font-normal text-yellow-600 dark:text-yellow-400">
                                           (Pending Approval)
