@@ -10,7 +10,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { createProfile, getAllProps } from "@/app/profile/actions";
 import { Loader2, Plus, X } from "lucide-react";
-import { validateInstagramHandle } from "@/lib/utils";
 import type { ProfileFormData, PropOption } from "@/lib/types";
 
 interface Prop {
@@ -72,7 +71,6 @@ export function ProfileForm({
   );
   const [props, setProps] = useState<Prop[]>(initialData?.props || []);
   const [availableProps, setAvailableProps] = useState<PropOption[]>([]);
-  const [instagramError, setInstagramError] = useState<string | null>(null);
 
   // Fetch available props for autocomplete
   useEffect(() => {
@@ -112,16 +110,6 @@ export function ProfileForm({
     [],
   );
 
-  // Validate Instagram handle on change
-  const handleInstagramChange = useCallback((value: string) => {
-    setInstagramHandle(value);
-    if (value.trim()) {
-      const validation = validateInstagramHandle(value);
-      setInstagramError(validation.isValid ? null : validation.error || null);
-    } else {
-      setInstagramError(null);
-    }
-  }, []);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -133,16 +121,6 @@ export function ProfileForm({
       setError("Display name is required");
       setIsSubmitting(false);
       return;
-    }
-
-    // Validate Instagram handle before submission
-    if (instagramHandle.trim()) {
-      const instagramValidation = validateInstagramHandle(instagramHandle);
-      if (!instagramValidation.isValid) {
-        setError(instagramValidation.error || "Invalid Instagram handle");
-        setIsSubmitting(false);
-        return;
-      }
     }
 
     const formData = new FormData();
@@ -254,17 +232,10 @@ export function ProfileForm({
               <Input
                 id="instagramHandle"
                 value={instagramHandle}
-                onChange={(e) => handleInstagramChange(e.target.value)}
+                onChange={(e) => setInstagramHandle(e.target.value)}
                 placeholder="@username"
                 aria-describedby="instagram-help"
-                aria-invalid={instagramError ? "true" : "false"}
-                className={instagramError ? "border-destructive" : ""}
               />
-              {instagramError && (
-                <p className="text-sm text-destructive" role="alert">
-                  {instagramError}
-                </p>
-              )}
               <p id="instagram-help" className="text-xs text-muted-foreground">
                 Your Instagram username (with or without @)
               </p>
