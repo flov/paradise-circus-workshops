@@ -4,7 +4,7 @@ import { extendRecurringEvents } from "@/app/admin/actions"
 /**
  * Cron job endpoint to extend recurring events.
  * This endpoint is called by Vercel Cron to ensure recurring events
- * always have at least 1 week of future events.
+ * always have at least 10 days of future events.
  * 
  * Schedule: Daily at 2 AM UTC (configured in vercel.json)
  */

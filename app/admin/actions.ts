@@ -1521,7 +1521,7 @@ export async function deleteBooking(participationId: number, eventId: number) {
 }
 
 /**
- * Extends recurring events to ensure there's always at least 1 week of future events.
+ * Extends recurring events to ensure there's always at least 10 days of future events.
  * This function is called by the cron job to automatically extend recurring event series.
  */
 export async function extendRecurringEvents() {
@@ -1537,7 +1537,7 @@ export async function extendRecurringEvents() {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const targetDate = new Date(today);
-    targetDate.setDate(targetDate.getDate() + 7); // 1 week ahead
+    targetDate.setDate(targetDate.getDate() + 10); // 10 days ahead
 
     let totalEventsCreated = 0;
 
@@ -1583,7 +1583,7 @@ export async function extendRecurringEvents() {
         // Get all existing dates in the series to avoid duplicates
         const existingDates = new Set(seriesEvents.map((e) => e.date));
 
-        // Create events until at least 1 week ahead is covered
+        // Create events until at least 10 days ahead is covered
         const eventsToCreate: Array<{
           title: string;
           description: string | null;
@@ -1605,7 +1605,7 @@ export async function extendRecurringEvents() {
         let currentDate = new Date(latestEventDate);
         currentDate.setDate(currentDate.getDate() + 7); // Start from next week
 
-        // Create events until we're at least 1 week ahead
+        // Create events until we're at least 10 days ahead
         while (currentDate <= targetDate) {
           const dateStr = currentDate.toISOString().split("T")[0];
 
