@@ -15,6 +15,7 @@ import {
   sendInstructorAssignedEmail,
   sendRecapAddedEmail,
   sendRecurringWorkshopInfoEmail,
+  sendAdminPromotedEmail,
 } from "@/lib/email";
 import { randomUUID } from "crypto";
 
@@ -1971,7 +1972,13 @@ export async function promoteUserToAdmin(userId: number) {
 
     // Check if user exists
     const userResult = await db
-      .select({ id: users.id, username: users.username, isAdmin: users.isAdmin })
+      .select({
+        id: users.id,
+        username: users.username,
+        displayName: users.displayName,
+        email: users.email,
+        isAdmin: users.isAdmin,
+      })
       .from(users)
       .where(eq(users.id, userId))
       .limit(1);
@@ -1994,6 +2001,28 @@ export async function promoteUserToAdmin(userId: number) {
       .where(eq(users.id, userId));
 
     revalidatePath("/admin/users");
+
+    // Send admin promotion email
+    if (user.email) {
+      try {
+        const adminName = user.displayName || user.username;
+        await sendAdminPromotedEmail({
+          adminName,
+          adminEmail: user.email,
+        });
+        console.log(`Admin promotion email sent to: ${user.email}`);
+      } catch (emailError) {
+        console.error(
+          `Failed to send admin promotion email to ${user.email}:`,
+          emailError,
+        );
+        // Don't fail the promotion if email fails
+      }
+    } else {
+      console.warn(
+        `User ${user.username} (ID: ${userId}) does not have an email address. Cannot send admin promotion email.`,
+      );
+    }
 
     return { success: true };
   } catch (error) {

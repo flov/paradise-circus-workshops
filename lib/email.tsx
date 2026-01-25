@@ -11,6 +11,7 @@ import { EventCancelledEmail } from "@/emails/event-cancelled";
 import { InstructorAssignedEmail } from "@/emails/instructor-assigned";
 import { RecapAddedEmail } from "@/emails/recap-added";
 import { RecurringWorkshopInfoEmail } from "@/emails/recurring-workshop-info";
+import { AdminPromotedEmail } from "@/emails/admin-promoted";
 
 type BookingConfirmationEmailProps = {
   participantName: string;
@@ -802,6 +803,97 @@ The Paradise Circus Team
     console.log("Recurring workshop info email sent to:", instructorEmail);
   } catch (error) {
     console.error("Failed to send recurring workshop info email:", error);
+    throw error;
+  }
+
+  return { success: true };
+}
+
+type AdminPromotedEmailProps = {
+  adminName: string;
+  adminEmail: string;
+};
+
+export async function sendAdminPromotedEmail(
+  props: AdminPromotedEmailProps,
+) {
+  const { adminEmail, adminName } = props;
+
+  // Render React Email component to HTML
+  const emailHtml = await render(<AdminPromotedEmail adminName={adminName} />);
+
+  // Generate plain text version
+  const appUrl =
+    process.env.NEXT_PUBLIC_APP_URL || "https://paradise-circus.app";
+  const timetableUrl = `${appUrl}/timetable`;
+  const pendingApprovalUrl = `${appUrl}/admin/pending-approval`;
+
+  const emailText = `
+Paradise Circus - Welcome to the Admin Team!
+
+Dear ${adminName},
+
+Congratulations! You have been promoted to an admin role for the Paradise Circus workshop platform. We're excited to have you join our team and help manage our community's workshop timetable.
+
+Your Role: Community Management
+As an admin, your primary responsibility is community management of the workshop timetable. This means you play a crucial role in ensuring our platform runs smoothly and maintains high-quality workshops that align with our community values.
+
+Your Key Responsibilities
+
+1. Review Pending Workshops
+From time to time, please check the timetable in an authenticated state to review workshops that have been submitted by instructors. When someone submits a workshop, you should:
+
+• Review the content - Check that the workshop description, title, and details are suitable and coherent with Thai culture
+• Check space availability - Verify whether the requested time slot is already taken by another workshop
+• Approve or request changes - If everything looks good, approve the workshop. If there are issues, you can reach out to the instructor to discuss modifications
+
+2. Manage Timetable Capacity
+When the timetable is full and there's limited space available:
+
+• Consider whether instructors who are giving many workshops should reduce their frequency to allow space for others
+• Encourage sharing of time slots when appropriate
+• Help maintain a balanced and diverse workshop schedule
+
+3. Regular Monitoring
+Make it a habit to check the pending approval page regularly to ensure workshops are reviewed in a timely manner. This helps instructors plan ahead and keeps the community engaged.
+
+Review Pending Workshops: ${pendingApprovalUrl}
+View Timetable: ${timetableUrl}
+
+Important Notes
+
+Cultural Sensitivity: When reviewing workshops, please ensure that the content is respectful and appropriate for the Thai cultural context. This includes checking language, imagery, and themes.
+
+Fairness: Strive to maintain fairness in workshop approvals and space allocation. Consider the needs of both new and established instructors.
+
+Communication: If you need to request changes or have questions about a workshop, reach out to the instructor directly through the platform or via their contact information.
+
+Thank you for taking on this important role in our community. Your efforts help ensure that Paradise Circus continues to be a vibrant and welcoming space for circus arts in Thailand.
+
+The Paradise Circus Team
+  `.trim();
+
+  // Send email via Resend
+  if (!process.env.RESEND_API_KEY) {
+    console.error("RESEND_API_KEY is not set. Email will not be sent.");
+    return { success: false, error: "Email service not configured" };
+  }
+
+  try {
+    const resend = new Resend(process.env.RESEND_API_KEY);
+    const fromEmail = process.env.RESEND_FROM_EMAIL || "onboarding@resend.dev";
+
+    await resend.emails.send({
+      from: fromEmail,
+      to: adminEmail,
+      subject: "Welcome to the Admin Team - Paradise Circus",
+      html: emailHtml,
+      text: emailText,
+    });
+
+    console.log("Admin promotion email sent to:", adminEmail);
+  } catch (error) {
+    console.error("Failed to send admin promotion email:", error);
     throw error;
   }
 
