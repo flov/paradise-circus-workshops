@@ -10,6 +10,7 @@ import { EventCommentNotificationEmail } from "@/emails/event-comment-notificati
 import { EventCancelledEmail } from "@/emails/event-cancelled";
 import { InstructorAssignedEmail } from "@/emails/instructor-assigned";
 import { RecapAddedEmail } from "@/emails/recap-added";
+import { RecurringWorkshopInfoEmail } from "@/emails/recurring-workshop-info";
 
 type BookingConfirmationEmailProps = {
   participantName: string;
@@ -727,6 +728,80 @@ The Paradise Circus Team
     console.log("Recap notification email sent to:", recipientEmail);
   } catch (error) {
     console.error("Failed to send recap notification email:", error);
+    throw error;
+  }
+
+  return { success: true };
+}
+
+type RecurringWorkshopInfoEmailProps = {
+  instructorName: string;
+  instructorEmail: string;
+};
+
+export async function sendRecurringWorkshopInfoEmail(
+  props: RecurringWorkshopInfoEmailProps,
+) {
+  const { instructorEmail, instructorName } = props;
+
+  // Render React Email component to HTML
+  const emailHtml = await render(
+    <RecurringWorkshopInfoEmail instructorName={instructorName} />
+  );
+
+  // Generate plain text version
+  const appUrl =
+    process.env.NEXT_PUBLIC_APP_URL || "https://paradise-circus.app";
+  const usersUrl = `${appUrl}/admin/users`;
+
+  const emailText = `
+Paradise Circus - Important Information About Recurring Workshops
+
+Hi ${instructorName},
+
+Thank you for setting up your workshop as recurring! I wanted to share some important information about how recurring workshops work so you know what to expect.
+
+How Recurring Workshops Work
+When you mark a workshop as "recurring," our system automatically publishes it to future weeks on the calendar. Each week, the system copies your recurring workshop to the following week, ensuring it continues to appear on the schedule.
+
+Important: Once a workshop is marked as recurring, it will continue appearing on the calendar indefinitely—unless you or an admin manually removes the recurring status.
+
+Your Responsibility
+Since recurring workshops continue automatically, it's important to remember:
+
+• When you're leaving: If you're no longer able to teach your recurring workshop, please uncheck the "recurring" option on your workshop before you leave. This will prevent it from appearing on future calendars.
+
+• If you can't access your account: If you're unable to update your workshop yourself (for example, if you've already left or lost access), please notify an admin as soon as possible. You can find a list of admins in the Users section of the platform: ${usersUrl}
+
+Need Help?
+If you have any questions about managing your recurring workshops or need assistance updating your workshop settings, please don't hesitate to reach out to an admin.
+
+Thank you for your understanding, and we appreciate you sharing your expertise with our community!
+
+The Paradise Circus Team
+  `.trim();
+
+  // Send email via Resend
+  if (!process.env.RESEND_API_KEY) {
+    console.error("RESEND_API_KEY is not set. Email will not be sent.");
+    return { success: false, error: "Email service not configured" };
+  }
+
+  try {
+    const resend = new Resend(process.env.RESEND_API_KEY);
+    const fromEmail = process.env.RESEND_FROM_EMAIL || "onboarding@resend.dev";
+
+    await resend.emails.send({
+      from: fromEmail,
+      to: instructorEmail,
+      subject: "Important Information About Recurring Workshops",
+      html: emailHtml,
+      text: emailText,
+    });
+
+    console.log("Recurring workshop info email sent to:", instructorEmail);
+  } catch (error) {
+    console.error("Failed to send recurring workshop info email:", error);
     throw error;
   }
 

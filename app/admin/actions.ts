@@ -14,6 +14,7 @@ import {
   sendEventCancelledEmail,
   sendInstructorAssignedEmail,
   sendRecapAddedEmail,
+  sendRecurringWorkshopInfoEmail,
 } from "@/lib/email";
 import { randomUUID } from "crypto";
 
@@ -183,6 +184,52 @@ export async function createEvent(formData: FormData) {
         .insert(events)
         .values(eventValues)
         .returning({ id: events.id });
+
+      // Send recurring workshop info email to instructor when they set up a recurring event
+      if (instructorId && newEvents.length > 0) {
+        try {
+          // Fetch instructor details for email
+          const instructorResult = await db
+            .select({
+              email: users.email,
+              displayName: users.displayName,
+              username: users.username,
+            })
+            .from(users)
+            .where(eq(users.id, instructorId))
+            .limit(1);
+
+          if (instructorResult.length > 0) {
+            const instructorEmail = instructorResult[0].email;
+            const instructorDisplayName =
+              instructorResult[0].displayName || instructorResult[0].username;
+
+            if (instructorEmail) {
+              try {
+                await sendRecurringWorkshopInfoEmail({
+                  instructorName: instructorDisplayName,
+                  instructorEmail,
+                });
+                console.log(
+                  `Recurring workshop info email sent to: ${instructorEmail}`,
+                );
+              } catch (emailError) {
+                console.error(
+                  `Failed to send recurring workshop info email to ${instructorEmail}:`,
+                  emailError,
+                );
+                // Don't fail the event creation if email fails
+              }
+            }
+          }
+        } catch (error) {
+          console.error(
+            "Error sending recurring workshop info email:",
+            error,
+          );
+          // Don't fail the event creation if email fails
+        }
+      }
 
       // Send instructor assignment email if admin assigned an instructorId (for recurring events, send for first event)
       if (userIsAdmin && instructorId && newEvents.length > 0) {
@@ -984,6 +1031,52 @@ export async function updateEvent(formData: FormData) {
         }));
 
         await db.insert(events).values(additionalEventValues);
+      }
+
+      // Send recurring workshop info email to instructor when converting to recurring
+      if (instructorId) {
+        try {
+          // Fetch instructor details for email
+          const instructorResult = await db
+            .select({
+              email: users.email,
+              displayName: users.displayName,
+              username: users.username,
+            })
+            .from(users)
+            .where(eq(users.id, instructorId))
+            .limit(1);
+
+          if (instructorResult.length > 0) {
+            const instructorEmail = instructorResult[0].email;
+            const instructorDisplayName =
+              instructorResult[0].displayName || instructorResult[0].username;
+
+            if (instructorEmail) {
+              try {
+                await sendRecurringWorkshopInfoEmail({
+                  instructorName: instructorDisplayName,
+                  instructorEmail,
+                });
+                console.log(
+                  `Recurring workshop info email sent to: ${instructorEmail}`,
+                );
+              } catch (emailError) {
+                console.error(
+                  `Failed to send recurring workshop info email to ${instructorEmail}:`,
+                  emailError,
+                );
+                // Don't fail the update if email fails
+              }
+            }
+          }
+        } catch (error) {
+          console.error(
+            "Error sending recurring workshop info email:",
+            error,
+          );
+          // Don't fail the update if email fails
+        }
       }
 
       revalidatePath("/admin");
