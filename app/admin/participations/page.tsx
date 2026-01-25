@@ -5,8 +5,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { EventsList } from "@/components/admin/events-list";
-import { AddEventButton } from "@/components/admin/add-event-button";
+import { BookingsList } from "@/components/admin/bookings-list";
 import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import { isAdmin } from "@/app/profile/actions";
@@ -14,7 +13,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Clock, Users, Calendar, UserCheck } from "lucide-react";
 
-export default async function AdminEventsPage() {
+export default async function AdminParticipationsPage() {
   // Check authentication
   const { userId } = await auth();
 
@@ -35,10 +34,10 @@ export default async function AdminEventsPage() {
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-3xl font-bold text-foreground">
-                Event Management
+                Participations
               </h1>
               <p className="text-sm text-muted-foreground mt-1">
-                Create, edit, and delete events
+                View and manage participant participations
               </p>
             </div>
             <div className="flex items-center gap-2">
@@ -48,10 +47,10 @@ export default async function AdminEventsPage() {
                   Dashboard
                 </Button>
               </Link>
-              <Link href="/admin/participations">
+              <Link href="/admin/events">
                 <Button variant="outline">
-                  <UserCheck className="h-4 w-4 mr-2" />
-                  Participations
+                  <Calendar className="h-4 w-4 mr-2" />
+                  Events
                 </Button>
               </Link>
               <Link href="/admin/pending-approval">
@@ -66,7 +65,6 @@ export default async function AdminEventsPage() {
                   Users
                 </Button>
               </Link>
-              <AddEventButton />
             </div>
           </div>
         </div>
@@ -75,13 +73,13 @@ export default async function AdminEventsPage() {
       <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
         <Card>
           <CardHeader>
-            <CardTitle>Manage Events</CardTitle>
+            <CardTitle>Manage Participations</CardTitle>
             <CardDescription>
-              Create, edit, and delete events
+              View and manage participant participations
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <EventsList />
+            <BookingsList />
           </CardContent>
         </Card>
       </main>

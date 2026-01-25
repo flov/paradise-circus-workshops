@@ -8,8 +8,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { BookingsList } from "@/components/admin/bookings-list";
 import { Calendar, Users, TrendingUp, UserCheck, Clock } from "lucide-react";
 import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
@@ -106,6 +104,12 @@ export default async function AdminPage() {
                   Events
                 </Button>
               </Link>
+              <Link href="/admin/participations">
+                <Button variant="outline">
+                  <UserCheck className="h-4 w-4 mr-2" />
+                  Participations
+                </Button>
+              </Link>
               <Link href="/admin/pending-approval">
                 <Button variant="outline">
                   <Clock className="h-4 w-4 mr-2" />
@@ -125,27 +129,6 @@ export default async function AdminPage() {
 
       <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
         {/* Main Content */}
-        <Tabs defaultValue="statistics" className="space-y-4">
-          <TabsList>
-            <TabsTrigger value="bookings">Participations</TabsTrigger>
-            <TabsTrigger value="statistics">Statistics</TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="bookings" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>Manage Participations</CardTitle>
-                <CardDescription>
-                  View and manage participant participations
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <BookingsList />
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="statistics" className="space-y-4">
             <Card>
               <CardHeader>
                 <CardTitle>Dashboard Statistics</CardTitle>
@@ -227,8 +210,6 @@ export default async function AdminPage() {
                 </div>
               </CardContent>
             </Card>
-          </TabsContent>
-        </Tabs>
       </main>
     </div>
   );
