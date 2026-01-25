@@ -9,9 +9,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { EventsList } from "@/components/admin/events-list";
 import { BookingsList } from "@/components/admin/bookings-list";
-import { AddEventButton } from "@/components/admin/add-event-button";
 import { Calendar, Users, TrendingUp, UserCheck, Clock } from "lucide-react";
 import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
@@ -102,6 +100,12 @@ export default async function AdminPage() {
               </p>
             </div>
             <div className="flex items-center gap-2">
+              <Link href="/admin/events">
+                <Button variant="outline">
+                  <Calendar className="h-4 w-4 mr-2" />
+                  Events
+                </Button>
+              </Link>
               <Link href="/admin/pending-approval">
                 <Button variant="outline">
                   <Clock className="h-4 w-4 mr-2" />
@@ -114,7 +118,6 @@ export default async function AdminPage() {
                   Users
                 </Button>
               </Link>
-              <AddEventButton />
             </div>
           </div>
         </div>
@@ -122,26 +125,11 @@ export default async function AdminPage() {
 
       <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
         {/* Main Content */}
-        <Tabs defaultValue="events" className="space-y-4">
+        <Tabs defaultValue="statistics" className="space-y-4">
           <TabsList>
-            <TabsTrigger value="events">Events</TabsTrigger>
             <TabsTrigger value="bookings">Participations</TabsTrigger>
             <TabsTrigger value="statistics">Statistics</TabsTrigger>
           </TabsList>
-
-          <TabsContent value="events" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>Manage Events</CardTitle>
-                <CardDescription>
-                  Create, edit, and delete events
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <EventsList />
-              </CardContent>
-            </Card>
-          </TabsContent>
 
           <TabsContent value="bookings" className="space-y-4">
             <Card>
