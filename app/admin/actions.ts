@@ -1842,3 +1842,218 @@ export async function updateEventRecapVideo(
     return { success: false, error: "Failed to update recap video" };
   }
 }
+
+export async function promoteUserToAdmin(userId: number) {
+  // Check authentication
+  const { userId: currentUserId } = await auth();
+
+  if (!currentUserId) {
+    return {
+      success: false,
+      error: "Unauthorized. You must be signed in to promote users.",
+    };
+  }
+
+  // Check authorization: must be admin
+  const userIsAdmin = await isAdmin();
+
+  if (!userIsAdmin) {
+    return {
+      success: false,
+      error: "Unauthorized. Only admins can promote users to admin.",
+    };
+  }
+
+  try {
+    // Prevent self-demotion (though this is promotion, not demotion)
+    const currentUserResult = await db
+      .select({ id: users.id })
+      .from(users)
+      .where(eq(users.clerkUserId, currentUserId))
+      .limit(1);
+
+    if (currentUserResult.length === 0) {
+      return { success: false, error: "Current user not found." };
+    }
+
+    // Check if user exists
+    const userResult = await db
+      .select({ id: users.id, username: users.username, isAdmin: users.isAdmin })
+      .from(users)
+      .where(eq(users.id, userId))
+      .limit(1);
+
+    if (userResult.length === 0) {
+      return { success: false, error: "User not found." };
+    }
+
+    const user = userResult[0];
+
+    // If already admin, return success
+    if (user.isAdmin) {
+      return { success: true, message: "User is already an admin." };
+    }
+
+    // Promote user to admin
+    await db
+      .update(users)
+      .set({ isAdmin: true, updatedAt: sql`CURRENT_TIMESTAMP` })
+      .where(eq(users.id, userId));
+
+    revalidatePath("/admin/users");
+
+    return { success: true };
+  } catch (error) {
+    console.error("Error promoting user to admin:", error);
+    return { success: false, error: "Failed to promote user to admin" };
+  }
+}
+
+export async function demoteUserFromAdmin(userId: number) {
+  // Check authentication
+  const { userId: currentUserId } = await auth();
+
+  if (!currentUserId) {
+    return {
+      success: false,
+      error: "Unauthorized. You must be signed in to demote users.",
+    };
+  }
+
+  // Check authorization: must be admin
+  const userIsAdmin = await isAdmin();
+
+  if (!userIsAdmin) {
+    return {
+      success: false,
+      error: "Unauthorized. Only admins can demote users from admin.",
+    };
+  }
+
+  try {
+    // Get current user's database ID
+    const currentUserResult = await db
+      .select({ id: users.id })
+      .from(users)
+      .where(eq(users.clerkUserId, currentUserId))
+      .limit(1);
+
+    if (currentUserResult.length === 0) {
+      return { success: false, error: "Current user not found." };
+    }
+
+    const currentUserId_db = currentUserResult[0].id;
+
+    // Prevent self-demotion
+    if (userId === currentUserId_db) {
+      return {
+        success: false,
+        error: "You cannot demote yourself from admin.",
+      };
+    }
+
+    // Check if user exists
+    const userResult = await db
+      .select({ id: users.id, username: users.username, isAdmin: users.isAdmin })
+      .from(users)
+      .where(eq(users.id, userId))
+      .limit(1);
+
+    if (userResult.length === 0) {
+      return { success: false, error: "User not found." };
+    }
+
+    const user = userResult[0];
+
+    // If not admin, return success
+    if (!user.isAdmin) {
+      return { success: true, message: "User is not an admin." };
+    }
+
+    // Demote user from admin
+    await db
+      .update(users)
+      .set({ isAdmin: false, updatedAt: sql`CURRENT_TIMESTAMP` })
+      .where(eq(users.id, userId));
+
+    revalidatePath("/admin/users");
+
+    return { success: true };
+  } catch (error) {
+    console.error("Error demoting user from admin:", error);
+    return { success: false, error: "Failed to demote user from admin" };
+  }
+}
+
+export async function deleteUser(userId: number) {
+  // Check authentication
+  const { userId: currentUserId } = await auth();
+
+  if (!currentUserId) {
+    return {
+      success: false,
+      error: "Unauthorized. You must be signed in to delete users.",
+    };
+  }
+
+  // Check authorization: must be admin
+  const userIsAdmin = await isAdmin();
+
+  if (!userIsAdmin) {
+    return {
+      success: false,
+      error: "Unauthorized. Only admins can delete users.",
+    };
+  }
+
+  try {
+    // Get current user's database ID
+    const currentUserResult = await db
+      .select({ id: users.id })
+      .from(users)
+      .where(eq(users.clerkUserId, currentUserId))
+      .limit(1);
+
+    if (currentUserResult.length === 0) {
+      return { success: false, error: "Current user not found." };
+    }
+
+    const currentUserId_db = currentUserResult[0].id;
+
+    // Prevent self-deletion
+    if (userId === currentUserId_db) {
+      return {
+        success: false,
+        error: "You cannot delete yourself.",
+      };
+    }
+
+    // Check if user exists
+    const userResult = await db
+      .select({
+        id: users.id,
+        username: users.username,
+        clerkUserId: users.clerkUserId,
+        isAdmin: users.isAdmin,
+      })
+      .from(users)
+      .where(eq(users.id, userId))
+      .limit(1);
+
+    if (userResult.length === 0) {
+      return { success: false, error: "User not found." };
+    }
+
+    const user = userResult[0];
+
+    // Delete user (cascade will handle user_props, and events.instructorId will be set to null)
+    await db.delete(users).where(eq(users.id, userId));
+
+    revalidatePath("/admin/users");
+
+    return { success: true };
+  } catch (error) {
+    console.error("Error deleting user:", error);
+    return { success: false, error: "Failed to delete user" };
+  }
+}

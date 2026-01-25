@@ -108,6 +108,12 @@ export default async function AdminPage() {
                   Pending Approval
                 </Button>
               </Link>
+              <Link href="/admin/users">
+                <Button variant="outline">
+                  <Users className="h-4 w-4 mr-2" />
+                  Users
+                </Button>
+              </Link>
               <AddEventButton />
             </div>
           </div>
