@@ -25,6 +25,7 @@ import {
   Shield,
   ArrowUpDown,
   Orbit,
+  Code,
 } from "lucide-react";
 import Link from "next/link";
 import { getInitials } from "@/lib/utils";
@@ -53,18 +54,26 @@ interface ArtistListProps {
 type SortOption = "date-newest" | "name" | "props-most";
 
 function ArtistCard({ artist }: { artist: Artist }) {
+  const isFlowWizard = artist.name === "The Flow Wizard";
+  
   return (
     <Link
       href={`/artists/${artist.username}`}
       className="group flex items-start gap-3 p-3 rounded-lg hover:bg-muted/50 transition-colors border border-transparent hover:border-border"
     >
       <Avatar className="size-10 shrink-0">
-        <AvatarImage
-          src={artist.avatar || "/placeholder.svg"}
-          alt={artist.name}
-        />
+        {isFlowWizard ? null : (
+          <AvatarImage
+            src={artist.avatar || "/placeholder.svg"}
+            alt={artist.name}
+          />
+        )}
         <AvatarFallback className="bg-primary/10 text-primary text-base font-medium">
-          {getInitials(artist.name)}
+          {isFlowWizard ? (
+            <Code className="size-5" />
+          ) : (
+            getInitials(artist.name)
+          )}
         </AvatarFallback>
       </Avatar>
 
@@ -72,6 +81,12 @@ function ArtistCard({ artist }: { artist: Artist }) {
         {/* Name and badges row */}
         <div className="flex flex-wrap items-center gap-1.5">
           <span className="font-medium text-base truncate">{artist.name}</span>
+          {isFlowWizard && (
+            <Badge variant="default" className="h-5 text-xs px-1.5 gap-0.5">
+              <Code className="size-2.5" />
+              Developer
+            </Badge>
+          )}
           {artist.isAdmin && (
             <Badge variant="default" className="h-5 text-xs px-1.5 gap-0.5">
               <Shield className="size-2.5" />

@@ -17,6 +17,7 @@ import {
   Sparkles,
   Calendar,
   Shield,
+  Code,
 } from "lucide-react";
 
 export default async function ArtistProfilePage({
@@ -39,6 +40,7 @@ export default async function ArtistProfilePage({
 
   // Get profile image from database
   const profileImageUrl = user.avatarImageUrl || null;
+  const isFlowWizard = (user.displayName || user.username) === "The Flow Wizard";
 
   return (
     <div className="container mx-auto max-w-4xl py-4 px-4">
@@ -46,7 +48,11 @@ export default async function ArtistProfilePage({
         {/* Header */}
         <div className="flex flex-col md:flex-row gap-6 items-start">
           <div className="flex-shrink-0">
-            {profileImageUrl ? (
+            {isFlowWizard ? (
+              <div className="w-32 h-32 rounded-full bg-primary/10 flex items-center justify-center border-4 border-primary">
+                <Code className="w-16 h-16 text-primary" />
+              </div>
+            ) : profileImageUrl ? (
               <img
                 src={profileImageUrl}
                 alt={user.displayName || user.username}
@@ -66,6 +72,12 @@ export default async function ArtistProfilePage({
               <h1 className="text-4xl font-bold">
                 {user.displayName || user.username}
               </h1>
+              {isFlowWizard && (
+                <Badge variant="default" className="text-sm">
+                  <Code className="h-3 w-3 mr-1" />
+                  Developer
+                </Badge>
+              )}
               {user.isAdmin && (
                 <Badge variant="default" className="text-sm">
                   <Shield className="h-3 w-3 mr-1" />
