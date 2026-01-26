@@ -519,7 +519,7 @@ export function WeeklyTimetable({
             Weekly Workshop Timetable
           </h2>
           <p className="text-muted-foreground mt-1">
-            {formatDateRange()} • All of our workshops are hosted at no cost.
+            {formatDateRange()} • All of our workshops are donation driven.
           </p>
         </div>
 
@@ -647,7 +647,9 @@ export function WeeklyTimetable({
                                     "paradise river";
                                 const isPending = !slot.isPublished;
                                 const hasNoInstructorId =
-                                  isAdmin && (slot.instructorId === null || slot.instructorId === undefined);
+                                  isAdmin &&
+                                  (slot.instructorId === null ||
+                                    slot.instructorId === undefined);
                                 const isBlocked = slot.isBlocked === true;
                                 const getColorClasses = () => {
                                   // Blocked entries get muted styling
@@ -665,7 +667,9 @@ export function WeeklyTimetable({
                                     return "bg-yellow-500/20 hover:bg-yellow-500/30 border border-yellow-500/50 border-dashed";
                                   }
                                   // Events without instructorId get dashed borders (admin only)
-                                  const borderStyle = hasNoInstructorId ? "border-dashed" : "border-solid";
+                                  const borderStyle = hasNoInstructorId
+                                    ? "border-dashed"
+                                    : "border-solid";
                                   if (!slot.isWorkshop) {
                                     return `bg-purple-500/20 hover:bg-purple-500/30 border ${borderStyle} border-purple-500/40`;
                                   }
@@ -884,7 +888,9 @@ export function WeeklyTimetable({
                               slot.location?.toLowerCase() === "paradise river";
                             const isPending = !slot.isPublished;
                             const hasNoInstructorId =
-                              isAdmin && (slot.instructorId === null || slot.instructorId === undefined);
+                              isAdmin &&
+                              (slot.instructorId === null ||
+                                slot.instructorId === undefined);
                             const isBlocked = slot.isBlocked === true;
                             const getMobileColorClasses = () => {
                               // Blocked entries get muted styling
@@ -902,7 +908,9 @@ export function WeeklyTimetable({
                                 return "bg-yellow-500/20 hover:bg-yellow-500/30 active:bg-yellow-500/35 border-yellow-500/50 hover:border-yellow-500/60 active:border-yellow-500/70 border-dashed";
                               }
                               // Events without instructorId get dashed borders (admin only)
-                              const borderStyle = hasNoInstructorId ? "border-dashed" : "border-solid";
+                              const borderStyle = hasNoInstructorId
+                                ? "border-dashed"
+                                : "border-solid";
                               if (!slot.isWorkshop) {
                                 return `bg-purple-500/15 hover:bg-purple-500/25 active:bg-purple-500/30 ${borderStyle} border-purple-500/40 hover:border-purple-500/50 active:border-purple-500/60`;
                               }
