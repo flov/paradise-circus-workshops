@@ -20,9 +20,9 @@ async function getAllArtists() {
       patreonPage: users.patreonPage,
       instagramHandle: users.instagramHandle,
       availableForPerformances: users.availableForPerformances,
+      createdAt: users.createdAt,
     })
-    .from(users)
-    .orderBy(asc(users.displayName), asc(users.username));
+    .from(users);
 
   // Get props for each artist
   const artistIds = artistsData.map((a) => a.id);
@@ -103,6 +103,7 @@ async function getAllArtists() {
       patreonPage: artist.patreonPage || undefined,
       instagramHandle: artist.instagramHandle || undefined,
       availableForPerformances: artist.availableForPerformances || false,
+      createdAt: artist.createdAt,
     };
   });
 

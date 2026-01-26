@@ -30,6 +30,7 @@ interface Artist {
   patreonPage?: string;
   instagramHandle?: string;
   availableForPerformances?: boolean;
+  createdAt: Date;
 }
 
 interface ArtistListProps {
@@ -151,31 +152,38 @@ export function ArtistList({ artists }: ArtistListProps) {
   );
 
   const filteredArtists = useMemo(() => {
-    return artists.filter((artist) => {
-      // Name search
-      const matchesSearch = artist.name
-        .toLowerCase()
-        .includes(searchQuery.toLowerCase());
+    return artists
+      .filter((artist) => {
+        // Name search
+        const matchesSearch = artist.name
+          .toLowerCase()
+          .includes(searchQuery.toLowerCase());
 
-      // Instructor filter
-      const matchesInstructor = !instructorOnly || artist.isInstructor;
+        // Instructor filter
+        const matchesInstructor = !instructorOnly || artist.isInstructor;
 
-      // Admin filter
-      const matchesAdmin = !adminOnly || artist.isAdmin;
+        // Admin filter
+        const matchesAdmin = !adminOnly || artist.isAdmin;
 
-      // Videos filter
-      const matchesVideos = !videosOnly || (artist.videoCount ?? 0) > 0;
+        // Videos filter
+        const matchesVideos = !videosOnly || (artist.videoCount ?? 0) > 0;
 
-      // Bio filter
-      const matchesBio = !bioOnly || Boolean(artist.bio?.trim());
+        // Bio filter
+        const matchesBio = !bioOnly || Boolean(artist.bio?.trim());
 
-      // Prop filter
-      const matchesProp =
-        selectedProp === "all" ||
-        artist.props.some((p) => p.name === selectedProp);
+        // Prop filter
+        const matchesProp =
+          selectedProp === "all" ||
+          artist.props.some((p) => p.name === selectedProp);
 
-      return matchesSearch && matchesInstructor && matchesAdmin && matchesVideos && matchesBio && matchesProp;
-    });
+        return matchesSearch && matchesInstructor && matchesAdmin && matchesVideos && matchesBio && matchesProp;
+      })
+      .sort((a, b) => {
+        // Sort by created_at descending (newest first)
+        const dateA = a.createdAt instanceof Date ? a.createdAt : new Date(a.createdAt);
+        const dateB = b.createdAt instanceof Date ? b.createdAt : new Date(b.createdAt);
+        return dateB.getTime() - dateA.getTime();
+      });
   }, [artists, searchQuery, instructorOnly, adminOnly, videosOnly, bioOnly, selectedProp]);
 
   const hasActiveFilters =
