@@ -25,7 +25,7 @@ export function HeroSection() {
         {/* Badge */}
         <div className="inline-flex items-center gap-2 px-4 py-2 mb-8 rounded-full bg-white/10 text-white border border-white/20 backdrop-blur-sm">
           <Sparkles className="w-4 h-4" />
-          <span className="text-sm font-medium">All workshops are free!</span>
+          <span className="text-sm font-medium">Open to all skill levels</span>
         </div>
 
         {/* Main headline */}

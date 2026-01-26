@@ -14,7 +14,7 @@ export function Footer() {
               Paradise Circus
             </h3>
             <p className="text-muted-foreground text-sm">
-              A flow arts community in Pai, Thailand. Free workshops, weekly
+              A flow arts community in Pai, Thailand. Donation-driven workshops, weekly
               shows, and endless creativity.
             </p>
           </div>
@@ -63,7 +63,7 @@ export function Footer() {
             © {new Date().getFullYear()} Paradise Circus. Made with ❤️ in Pai.
           </p>
           <p className="text-sm text-muted-foreground">
-            All workshops are free. Everyone is welcome.
+            All workshops are donation-driven. Everyone is welcome.
           </p>
         </div>
       </div>

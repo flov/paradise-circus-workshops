@@ -90,6 +90,19 @@ export default function FAQPage() {
                   environment.
                 </AccordionContent>
               </AccordionItem>
+
+              <AccordionItem value="workshop-cost">
+                <AccordionTrigger value="workshop-cost">
+                  How much do workshops cost?
+                </AccordionTrigger>
+                <AccordionContent value="workshop-cost">
+                  All workshops at Paradise Circus are donation-driven with a
+                  minimum recommended donation of 100 Baht. Our instructors
+                  volunteer their time and knowledge to share with the
+                  community. Donations are welcome and help support the artists
+                  and keep Paradise running. Give what feels right for you.
+                </AccordionContent>
+              </AccordionItem>
             </Accordion>
           </CardContent>
         </Card>
