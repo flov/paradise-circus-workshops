@@ -24,6 +24,7 @@ import {
   FileText,
   Shield,
   ArrowUpDown,
+  Orbit,
 } from "lucide-react";
 import Link from "next/link";
 import { getInitials } from "@/lib/utils";
@@ -281,6 +282,7 @@ export function ArtistList({ artists }: ArtistListProps) {
               <div className="flex-1">
                 <Select value={selectedProp} onValueChange={setSelectedProp}>
                   <SelectTrigger className="h-9 w-full text-sm">
+                    <Orbit className="size-3.5 mr-1.5" />
                     <SelectValue placeholder="Filter by prop" />
                   </SelectTrigger>
                   <SelectContent>
