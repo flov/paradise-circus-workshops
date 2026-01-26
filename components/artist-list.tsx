@@ -12,7 +12,18 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { User, Eye, Search, X, Video, Instagram, Heart, Sparkles, FileText, Shield } from "lucide-react";
+import {
+  User,
+  Eye,
+  Search,
+  X,
+  Video,
+  Instagram,
+  Heart,
+  Sparkles,
+  FileText,
+  Shield,
+} from "lucide-react";
 import Link from "next/link";
 import { getInitials } from "@/lib/utils";
 
@@ -71,10 +82,7 @@ function ArtistCard({ artist }: { artist: Artist }) {
           )}
           {/* @ts-expect-error - undefined > 0 evaluates to false, preventing 0 from being displayed */}
           {artist?.workshopCount > 0 && (
-            <Badge
-              variant="purple"
-              className="h-5 text-xs px-1.5 gap-0.5"
-            >
+            <Badge variant="purple" className="h-5 text-xs px-1.5 gap-0.5">
               <Eye className="size-2.5" />
               {artist.workshopCount!} Workshop
               {artist.workshopCount! > 1 ? "s" : ""}
@@ -82,10 +90,7 @@ function ArtistCard({ artist }: { artist: Artist }) {
           )}
           {/* @ts-expect-error - undefined > 0 evaluates to false, preventing 0 from being displayed */}
           {artist?.videoCount > 0 && (
-            <Badge
-              variant="purple"
-              className="h-5 text-xs px-1.5 gap-0.5"
-            >
+            <Badge variant="purple" className="h-5 text-xs px-1.5 gap-0.5">
               <Video className="size-2.5" />
               {artist.videoCount!} Video
               {artist.videoCount! > 1 ? "s" : ""}
@@ -176,18 +181,40 @@ export function ArtistList({ artists }: ArtistListProps) {
           selectedProp === "all" ||
           artist.props.some((p) => p.name === selectedProp);
 
-        return matchesSearch && matchesInstructor && matchesAdmin && matchesVideos && matchesBio && matchesProp;
+        return (
+          matchesSearch &&
+          matchesInstructor &&
+          matchesAdmin &&
+          matchesVideos &&
+          matchesBio &&
+          matchesProp
+        );
       })
       .sort((a, b) => {
         // Sort by created_at descending (newest first)
-        const dateA = a.createdAt instanceof Date ? a.createdAt : new Date(a.createdAt);
-        const dateB = b.createdAt instanceof Date ? b.createdAt : new Date(b.createdAt);
+        const dateA =
+          a.createdAt instanceof Date ? a.createdAt : new Date(a.createdAt);
+        const dateB =
+          b.createdAt instanceof Date ? b.createdAt : new Date(b.createdAt);
         return dateB.getTime() - dateA.getTime();
       });
-  }, [artists, searchQuery, instructorOnly, adminOnly, videosOnly, bioOnly, selectedProp]);
+  }, [
+    artists,
+    searchQuery,
+    instructorOnly,
+    adminOnly,
+    videosOnly,
+    bioOnly,
+    selectedProp,
+  ]);
 
   const hasActiveFilters =
-    searchQuery || instructorOnly || adminOnly || videosOnly || bioOnly || selectedProp !== "all";
+    searchQuery ||
+    instructorOnly ||
+    adminOnly ||
+    videosOnly ||
+    bioOnly ||
+    selectedProp !== "all";
 
   const clearFilters = () => {
     setSearchQuery("");
@@ -235,6 +262,22 @@ export function ArtistList({ artists }: ArtistListProps) {
               />
             </div>
 
+            <div className="w-full">
+              <Select value={selectedProp} onValueChange={setSelectedProp}>
+                <SelectTrigger className="h-9 w-full text-sm">
+                  <SelectValue placeholder="Filter by prop" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All props</SelectItem>
+                  {allProps.map((prop) => (
+                    <SelectItem key={prop} value={prop} className="text-sm">
+                      {prop}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
             <div className="flex flex-col sm:flex-row gap-2">
               <div className="flex gap-2 flex-wrap">
                 <Button
@@ -245,16 +288,6 @@ export function ArtistList({ artists }: ArtistListProps) {
                 >
                   <User className="size-3.5 mr-1.5" />
                   Instructors
-                </Button>
-
-                <Button
-                  variant={adminOnly ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => setAdminOnly(!adminOnly)}
-                  className="h-9 text-sm"
-                >
-                  <Shield className="size-3.5 mr-1.5" />
-                  Admin
                 </Button>
 
                 <Button
@@ -276,22 +309,16 @@ export function ArtistList({ artists }: ArtistListProps) {
                   <FileText className="size-3.5 mr-1.5" />
                   Bio
                 </Button>
-              </div>
 
-              <div className="w-full sm:w-auto">
-                <Select value={selectedProp} onValueChange={setSelectedProp}>
-                  <SelectTrigger className="h-9 w-full sm:w-[140px] text-sm">
-                    <SelectValue placeholder="Filter by prop" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All props</SelectItem>
-                    {allProps.map((prop) => (
-                      <SelectItem key={prop} value={prop} className="text-sm">
-                        {prop}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Button
+                  variant={adminOnly ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setAdminOnly(!adminOnly)}
+                  className="h-9 text-sm"
+                >
+                  <Shield className="size-3.5 mr-1.5" />
+                  Admin
+                </Button>
               </div>
             </div>
           </div>
