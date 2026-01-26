@@ -12,7 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { User, Eye, Search, X, Video, Instagram, Heart, Sparkles, FileText } from "lucide-react";
+import { User, Eye, Search, X, Video, Instagram, Heart, Sparkles, FileText, Shield } from "lucide-react";
 import Link from "next/link";
 import { getInitials } from "@/lib/utils";
 
@@ -21,6 +21,7 @@ interface Artist {
   name: string;
   avatar?: string;
   isInstructor: boolean;
+  isAdmin?: boolean;
   workshopCount?: number;
   props: Array<{ name: string; skillLevel: number }>;
   username: string;
@@ -55,6 +56,12 @@ function ArtistCard({ artist }: { artist: Artist }) {
         {/* Name and badges row */}
         <div className="flex flex-wrap items-center gap-1.5">
           <span className="font-medium text-base truncate">{artist.name}</span>
+          {artist.isAdmin && (
+            <Badge variant="default" className="h-5 text-xs px-1.5 gap-0.5">
+              <Shield className="size-2.5" />
+              Admin
+            </Badge>
+          )}
           {artist.isInstructor && (
             <Badge variant="default" className="h-5 text-xs px-1.5 gap-0.5">
               <User className="size-2.5" />
@@ -129,6 +136,7 @@ function ArtistCard({ artist }: { artist: Artist }) {
 export function ArtistList({ artists }: ArtistListProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [instructorOnly, setInstructorOnly] = useState(false);
+  const [adminOnly, setAdminOnly] = useState(false);
   const [videosOnly, setVideosOnly] = useState(false);
   const [bioOnly, setBioOnly] = useState(false);
   const [selectedProp, setSelectedProp] = useState<string>("all");
@@ -152,6 +160,9 @@ export function ArtistList({ artists }: ArtistListProps) {
       // Instructor filter
       const matchesInstructor = !instructorOnly || artist.isInstructor;
 
+      // Admin filter
+      const matchesAdmin = !adminOnly || artist.isAdmin;
+
       // Videos filter
       const matchesVideos = !videosOnly || (artist.videoCount ?? 0) > 0;
 
@@ -163,16 +174,17 @@ export function ArtistList({ artists }: ArtistListProps) {
         selectedProp === "all" ||
         artist.props.some((p) => p.name === selectedProp);
 
-      return matchesSearch && matchesInstructor && matchesVideos && matchesBio && matchesProp;
+      return matchesSearch && matchesInstructor && matchesAdmin && matchesVideos && matchesBio && matchesProp;
     });
-  }, [artists, searchQuery, instructorOnly, videosOnly, bioOnly, selectedProp]);
+  }, [artists, searchQuery, instructorOnly, adminOnly, videosOnly, bioOnly, selectedProp]);
 
   const hasActiveFilters =
-    searchQuery || instructorOnly || videosOnly || bioOnly || selectedProp !== "all";
+    searchQuery || instructorOnly || adminOnly || videosOnly || bioOnly || selectedProp !== "all";
 
   const clearFilters = () => {
     setSearchQuery("");
     setInstructorOnly(false);
+    setAdminOnly(false);
     setVideosOnly(false);
     setBioOnly(false);
     setSelectedProp("all");
@@ -225,6 +237,16 @@ export function ArtistList({ artists }: ArtistListProps) {
                 >
                   <User className="size-3.5 mr-1.5" />
                   Instructors
+                </Button>
+
+                <Button
+                  variant={adminOnly ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setAdminOnly(!adminOnly)}
+                  className="h-9 text-sm"
+                >
+                  <Shield className="size-3.5 mr-1.5" />
+                  Admin
                 </Button>
 
                 <Button

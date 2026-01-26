@@ -16,6 +16,7 @@ import {
   ExternalLink,
   Sparkles,
   Calendar,
+  Shield,
 } from "lucide-react";
 
 export default async function ArtistProfilePage({
@@ -65,6 +66,12 @@ export default async function ArtistProfilePage({
               <h1 className="text-4xl font-bold">
                 {user.displayName || user.username}
               </h1>
+              {user.isAdmin && (
+                <Badge variant="default" className="text-sm">
+                  <Shield className="h-3 w-3 mr-1" />
+                  Admin
+                </Badge>
+              )}
               {user.isInstructor && (
                 <Badge variant="default" className="text-sm">
                   <Award className="h-3 w-3 mr-1" />
