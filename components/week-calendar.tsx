@@ -125,6 +125,12 @@ export function WeekCalendar({ events }: WeekCalendarProps) {
     });
   };
 
+  // Helper function to check if time is not on the full hour
+  const isNotFullHour = (time: string): boolean => {
+    const [, minutes] = time.split(":");
+    return Number.parseInt(minutes) !== 0;
+  };
+
   return (
     <div className="space-y-6">
       {/* Legend */}
@@ -235,17 +241,19 @@ export function WeekCalendar({ events }: WeekCalendarProps) {
                                     : "bg-red-600 hover:bg-red-500 border-red-500"
                                 }`}
                               >
-                                <div className="text-sm font-semibold text-balance leading-tight mb-1">
+                                <div className="text-sm font-semibold text-balance leading-tight mb-1 flex items-center gap-1.5">
                                   {event.title}
+                                  {isNotFullHour(event.startTime) && (
+                                    <span className="text-xs font-normal text-slate-300 whitespace-nowrap">
+                                      {event.startTime.slice(0, 5)}
+                                    </span>
+                                  )}
                                 </div>
                                 {event.instructor && (
                                   <div className="text-xs text-slate-300">
                                     {event.instructor}
                                   </div>
                                 )}
-                                <div className="text-xs text-slate-400 mt-1">
-                                  {event.startTime.slice(0, 5)}
-                                </div>
                               </Link>
                             );
                           })}

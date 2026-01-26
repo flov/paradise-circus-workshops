@@ -354,6 +354,29 @@ export function WeeklyTimetable({
     setAddEventOpen(true);
   };
 
+  // Helper function to format time from HH:MM to 12-hour format
+  const formatTime = (time: string) => {
+    const [hours, minutes] = time.split(":");
+    const hour = Number.parseInt(hours);
+    const ampm = hour >= 12 ? "PM" : "AM";
+    const displayHour = hour % 12 || 12;
+    return `${displayHour}:${minutes} ${ampm}`;
+  };
+
+  // Helper function to check if time is not on the full hour
+  const isNotFullHour = (time: string): boolean => {
+    const [, minutes] = time.split(":");
+    return Number.parseInt(minutes) !== 0;
+  };
+
+  // Helper function to format time for display next to title (HH:MM format)
+  const formatTimeShort = (time: string): string => {
+    const [hours, minutes] = time.split(":");
+    const hour = Number.parseInt(hours);
+    const displayHour = hour % 12 || 12;
+    return `${displayHour}:${minutes}`;
+  };
+
   const formatDateRange = () => {
     if (weekDates.length === 0) return "";
     const start = weekDates[0];
@@ -662,6 +685,11 @@ export function WeeklyTimetable({
                                     >
                                       <div className="text-sm font-medium text-foreground line-clamp-2 flex items-center gap-1.5">
                                         {slot.title}
+                                        {isNotFullHour(slot.startTime) && (
+                                          <span className="text-xs font-normal text-muted-foreground whitespace-nowrap">
+                                            {formatTimeShort(slot.startTime)}
+                                          </span>
+                                        )}
                                         {isPending && (
                                           <span className="ml-1 text-xs font-normal text-yellow-600 dark:text-yellow-400">
                                             (Pending)
@@ -909,6 +937,11 @@ export function WeeklyTimetable({
                                   <div className="flex justify-between items-start gap-2 mb-1">
                                     <div className="font-medium text-foreground flex-1 min-w-0 flex items-center gap-1.5">
                                       {slot.title}
+                                      {isNotFullHour(slot.startTime) && (
+                                        <span className="text-xs font-normal text-muted-foreground whitespace-nowrap">
+                                          {formatTimeShort(slot.startTime)}
+                                        </span>
+                                      )}
                                       {isPending && (
                                         <span className="ml-2 text-xs font-normal text-yellow-600 dark:text-yellow-400">
                                           (Pending Approval)
@@ -927,7 +960,7 @@ export function WeeklyTimetable({
                                       )}
                                     </div>
                                     <div className="text-sm text-muted-foreground whitespace-nowrap flex-shrink-0 flex items-center gap-1">
-                                      {time}
+                                      {formatTime(slot.startTime)}
                                       <span className={getArrowColor()}>→</span>
                                     </div>
                                   </div>
