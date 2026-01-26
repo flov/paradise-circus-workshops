@@ -23,6 +23,7 @@ import {
   Sparkles,
   FileText,
   Shield,
+  ArrowUpDown,
 } from "lucide-react";
 import Link from "next/link";
 import { getInitials } from "@/lib/utils";
@@ -47,6 +48,8 @@ interface Artist {
 interface ArtistListProps {
   artists: Artist[];
 }
+
+type SortOption = "date-newest" | "name" | "props-most";
 
 function ArtistCard({ artist }: { artist: Artist }) {
   return (
@@ -146,6 +149,7 @@ export function ArtistList({ artists }: ArtistListProps) {
   const [videosOnly, setVideosOnly] = useState(false);
   const [bioOnly, setBioOnly] = useState(false);
   const [selectedProp, setSelectedProp] = useState<string>("all");
+  const [sortBy, setSortBy] = useState<SortOption>("date-newest");
 
   // Get all unique props from all artists
   const allProps = useMemo(
@@ -191,12 +195,20 @@ export function ArtistList({ artists }: ArtistListProps) {
         );
       })
       .sort((a, b) => {
-        // Sort by created_at descending (newest first)
-        const dateA =
-          a.createdAt instanceof Date ? a.createdAt : new Date(a.createdAt);
-        const dateB =
-          b.createdAt instanceof Date ? b.createdAt : new Date(b.createdAt);
-        return dateB.getTime() - dateA.getTime();
+        switch (sortBy) {
+          case "name":
+            return a.name.localeCompare(b.name);
+          case "date-newest":
+            const dateA =
+              a.createdAt instanceof Date ? a.createdAt : new Date(a.createdAt);
+            const dateB =
+              b.createdAt instanceof Date ? b.createdAt : new Date(b.createdAt);
+            return dateB.getTime() - dateA.getTime();
+          case "props-most":
+            return b.props.length - a.props.length;
+          default:
+            return 0;
+        }
       });
   }, [
     artists,
@@ -206,6 +218,7 @@ export function ArtistList({ artists }: ArtistListProps) {
     videosOnly,
     bioOnly,
     selectedProp,
+    sortBy,
   ]);
 
   const hasActiveFilters =
@@ -214,7 +227,8 @@ export function ArtistList({ artists }: ArtistListProps) {
     adminOnly ||
     videosOnly ||
     bioOnly ||
-    selectedProp !== "all";
+    selectedProp !== "all" ||
+    sortBy !== "date-newest";
 
   const clearFilters = () => {
     setSearchQuery("");
@@ -223,6 +237,7 @@ export function ArtistList({ artists }: ArtistListProps) {
     setVideosOnly(false);
     setBioOnly(false);
     setSelectedProp("all");
+    setSortBy("date-newest");
   };
 
   return (
@@ -262,20 +277,39 @@ export function ArtistList({ artists }: ArtistListProps) {
               />
             </div>
 
-            <div className="w-full">
-              <Select value={selectedProp} onValueChange={setSelectedProp}>
-                <SelectTrigger className="h-9 w-full text-sm">
-                  <SelectValue placeholder="Filter by prop" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All props</SelectItem>
-                  {allProps.map((prop) => (
-                    <SelectItem key={prop} value={prop} className="text-sm">
-                      {prop}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+            <div className="flex flex-col sm:flex-row gap-2">
+              <div className="flex-1">
+                <Select value={selectedProp} onValueChange={setSelectedProp}>
+                  <SelectTrigger className="h-9 w-full text-sm">
+                    <SelectValue placeholder="Filter by prop" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All props</SelectItem>
+                    {allProps.map((prop) => (
+                      <SelectItem key={prop} value={prop} className="text-sm">
+                        {prop}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="flex-1">
+                <Select
+                  value={sortBy}
+                  onValueChange={(v) => setSortBy(v as SortOption)}
+                >
+                  <SelectTrigger className="h-9 w-full text-sm">
+                    <ArrowUpDown className="size-3.5 mr-1.5" />
+                    <SelectValue placeholder="Sort by" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="date-newest">Newest artist first</SelectItem>
+                    <SelectItem value="name">Name</SelectItem>
+                    <SelectItem value="props-most">Most props</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
 
             <div className="flex flex-col sm:flex-row gap-2">
