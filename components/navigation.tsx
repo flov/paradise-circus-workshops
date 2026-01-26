@@ -9,7 +9,6 @@ import { CustomUserButton } from "@/components/custom-user-button";
 
 const navItems = [
   { href: "/", label: "Home" },
-  { href: "/timetable", label: "Timetable" },
   { href: "/artists", label: "Artists" },
   { href: "/about", label: "About" },
   { href: "/faq", label: "FAQ" },
@@ -45,7 +44,7 @@ export function Navigation() {
               </Link>
             ))}
             <Button asChild size="sm" className="rounded-full">
-              <Link href="/timetable">View Workshops</Link>
+              <Link href="/timetable">View timetable</Link>
             </Button>
             {/* Auth Buttons */}
             <div className="flex items-center gap-2">
