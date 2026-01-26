@@ -48,11 +48,7 @@ export default async function ArtistProfilePage({
         {/* Header */}
         <div className="flex flex-col md:flex-row gap-6 items-start">
           <div className="flex-shrink-0">
-            {isFlowWizard ? (
-              <div className="w-32 h-32 rounded-full bg-primary/10 flex items-center justify-center border-4 border-primary">
-                <Code className="w-16 h-16 text-primary" />
-              </div>
-            ) : profileImageUrl ? (
+            {profileImageUrl ? (
               <img
                 src={profileImageUrl}
                 alt={user.displayName || user.username}

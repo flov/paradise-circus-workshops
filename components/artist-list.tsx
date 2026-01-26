@@ -55,25 +55,19 @@ type SortOption = "date-newest" | "name" | "props-most";
 
 function ArtistCard({ artist }: { artist: Artist }) {
   const isFlowWizard = artist.name === "The Flow Wizard";
-  
+
   return (
     <Link
       href={`/artists/${artist.username}`}
       className="group flex items-start gap-3 p-3 rounded-lg hover:bg-muted/50 transition-colors border border-transparent hover:border-border"
     >
       <Avatar className="size-10 shrink-0">
-        {isFlowWizard ? null : (
-          <AvatarImage
-            src={artist.avatar || "/placeholder.svg"}
-            alt={artist.name}
-          />
-        )}
+        <AvatarImage
+          src={artist.avatar || "/placeholder.svg"}
+          alt={artist.name}
+        />
         <AvatarFallback className="bg-primary/10 text-primary text-base font-medium">
-          {isFlowWizard ? (
-            <Code className="size-5" />
-          ) : (
-            getInitials(artist.name)
-          )}
+          {getInitials(artist.name)}
         </AvatarFallback>
       </Avatar>
 
@@ -321,7 +315,9 @@ export function ArtistList({ artists }: ArtistListProps) {
                     <SelectValue placeholder="Sort by" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="date-newest">Newest artist first</SelectItem>
+                    <SelectItem value="date-newest">
+                      Newest artist first
+                    </SelectItem>
                     <SelectItem value="name">Name</SelectItem>
                     <SelectItem value="props-most">Most props</SelectItem>
                   </SelectContent>
