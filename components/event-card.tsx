@@ -42,16 +42,16 @@ export function EventCard({ event, instructorDisplayName }: { event: Pick<Event,
             <Badge variant="outline">
               {event.currentBookings} {event.currentBookings === 1 ? 'participant' : 'participants'}
             </Badge>
+            {event.isRecurring && (
+              <Badge variant="outline" className="text-xs">
+                <Repeat className="h-3 w-3 mr-1" />
+                Recurring
+              </Badge>
+            )}
           </div>
         </div>
         <CardDescription className="text-pretty">
           <div className="prose prose-sm dark:prose-invert max-w-none">
-            {event.isRecurring && (
-              <div className="flex items-center gap-1.5 mb-2 text-muted-foreground">
-                <Repeat className="h-3.5 w-3.5" />
-                <span className="text-xs font-medium">Recurring Event</span>
-              </div>
-            )}
             <ReactMarkdown>{event.description}</ReactMarkdown>
           </div>
         </CardDescription>

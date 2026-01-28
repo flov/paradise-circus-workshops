@@ -18,6 +18,7 @@ import {
   Users,
   ArrowLeft,
   UserCheck,
+  Repeat,
 } from "lucide-react";
 import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
@@ -67,6 +68,7 @@ export default async function BookEventPage({
       isWorkshop: events.isWorkshop,
       propId: events.propId,
       recapVideoId: events.recapVideoId,
+      isRecurring: events.isRecurring,
       createdAt: events.createdAt,
       updatedAt: events.updatedAt,
       instructorProfile: {
@@ -108,6 +110,7 @@ export default async function BookEventPage({
     isWorkshop: eventResult.isWorkshop,
     propId: eventResult.propId,
     recapVideoId: eventResult.recapVideoId,
+    isRecurring: eventResult.isRecurring,
     createdAt: eventResult.createdAt,
     updatedAt: eventResult.updatedAt,
   };
@@ -356,6 +359,14 @@ export default async function BookEventPage({
                     </div>
                   )}
                 </div>
+                {event.isRecurring && (
+                  <div className="flex items-center gap-3 text-sm">
+                    <Repeat className="h-5 w-5 text-primary" />
+                    <div className="text-muted-foreground">
+                      Recurring Event
+                    </div>
+                  </div>
+                )}
                 <div className="flex items-center gap-3 text-sm">
                   <EventCalendarButtons
                     eventData={{
