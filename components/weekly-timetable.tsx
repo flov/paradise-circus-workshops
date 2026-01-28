@@ -946,7 +946,7 @@ export function WeeklyTimetable({
                                     <div className="font-medium text-foreground flex-1 min-w-0 flex items-center gap-1.5">
                                       {slot.title}
                                       {isNotFullHour(slot.startTime) && (
-                                        <span className="text-xs font-normal text-muted-foreground whitespace-nowrap">
+                                        <span className="hidden md:inline text-xs font-normal text-muted-foreground whitespace-nowrap">
                                           {formatTimeShort(slot.startTime)}
                                         </span>
                                       )}
