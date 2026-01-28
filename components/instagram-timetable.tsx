@@ -35,6 +35,90 @@ export function InstagramTimetable({
     landscape: "aspect-[4/3] max-w-[1200px]",
   };
 
+  // Pre-calculate spans and occupied status for all cells
+  const cellData: Record<string, { span: number; shouldRender: boolean }> = {};
+  
+  data.days.forEach((day) => {
+    data.timeSlots.forEach((time, timeIndex) => {
+      const key = `${time}-${day}`;
+      const event = data.events[key];
+      
+      // Helper to check if a slot is occupied by an earlier event span
+      const isOccupiedByEventSpan = (slotIndex: number): boolean => {
+        for (let i = 0; i < slotIndex; i++) {
+          const earlierTime = data.timeSlots[i];
+          const earlierEvent = data.events[`${earlierTime}-${day}`];
+          if (earlierEvent?.span && earlierEvent.span > 1) {
+            const spanEndIndex = i + earlierEvent.span - 1;
+            if (slotIndex <= spanEndIndex && slotIndex > i) {
+              return true;
+            }
+          }
+        }
+        return false;
+      };
+
+      const isOccupiedByEarlier = isOccupiedByEventSpan(timeIndex);
+      
+      let span = 1;
+      let shouldRender = true;
+
+      if (event) {
+        // Event with explicit span
+        if (event.span && event.span > 1) {
+          span = event.span;
+        }
+        // If occupied by earlier event span, don't render
+        if (isOccupiedByEarlier) {
+          shouldRender = false;
+        }
+      } else {
+        // FREE FLOW slot
+        if (isOccupiedByEarlier) {
+          shouldRender = false;
+        } else {
+          // Check if this is part of an earlier FREE FLOW group
+          for (let i = 0; i < timeIndex; i++) {
+            const earlierTime = data.timeSlots[i];
+            const earlierEvent = data.events[`${earlierTime}-${day}`];
+            
+            if (!earlierEvent && !isOccupiedByEventSpan(i)) {
+              // Count consecutive FREE FLOW slots from this earlier slot
+              let freeFlowSpan = 1;
+              for (let j = i + 1; j < data.timeSlots.length; j++) {
+                const checkTime = data.timeSlots[j];
+                const checkEvent = data.events[`${checkTime}-${day}`];
+                if (checkEvent || isOccupiedByEventSpan(j)) {
+                  break;
+                }
+                freeFlowSpan++;
+              }
+              // If this slot is within the span
+              if (timeIndex < i + freeFlowSpan && timeIndex > i) {
+                shouldRender = false;
+                break;
+              }
+            }
+          }
+          
+          // If we should render, calculate span
+          if (shouldRender) {
+            for (let i = timeIndex + 1; i < data.timeSlots.length; i++) {
+              const nextTime = data.timeSlots[i];
+              const nextEvent = data.events[`${nextTime}-${day}`];
+              if (nextEvent || isOccupiedByEventSpan(i)) {
+                break;
+              }
+              span++;
+            }
+          }
+        }
+      }
+
+      cellData[key] = { span, shouldRender };
+    });
+  });
+
   return (
     <div
       className={`relative w-full ${aspectClasses[aspectRatio]} overflow-hidden`}
@@ -79,37 +163,19 @@ export function InstagramTimetable({
               <React.Fragment key={time}>
                 <TimeCell>{time}</TimeCell>
                 {data.days.map((day) => {
-                  const event = data.events[`${time}-${day}`];
+                  const key = `${time}-${day}`;
+                  const event = data.events[key];
+                  const { span, shouldRender } = cellData[key];
 
-                  // Check if this cell is occupied by a spanning event starting in an earlier time slot
-                  let isOccupiedByEarlier = false;
-                  for (let i = 0; i < timeIndex; i++) {
-                    const earlierTime = data.timeSlots[i];
-                    const earlierEvent = data.events[`${earlierTime}-${day}`];
-                    if (earlierEvent?.span && earlierEvent.span > 1) {
-                      const spanEndIndex = i + earlierEvent.span - 1;
-                      // This cell is occupied if it's within the span range (but not the start)
-                      if (timeIndex <= spanEndIndex && timeIndex > i) {
-                        isOccupiedByEarlier = true;
-                        break;
-                      }
-                    }
-                  }
-
-                  // Don't render anything for occupied cells - CSS Grid handles spanning
-                  if (isOccupiedByEarlier) {
+                  if (!shouldRender) {
                     return null;
                   }
 
-                  // Get the row span for this event (default to 1 if not specified)
-                  const rowSpan =
-                    event?.span && event.span > 1 ? event.span : 1;
-
                   return (
                     <EventCell
-                      key={`${time}-${day}`}
+                      key={key}
                       event={event}
-                      rowSpan={rowSpan}
+                      rowSpan={span}
                     />
                   );
                 })}
@@ -196,10 +262,6 @@ function EventCell({
   event: ScheduleEvent | null;
   rowSpan?: number;
 }) {
-  if (!event) {
-    return <div className="rounded-md sm:rounded-lg" />;
-  }
-
   // Apply grid-row-span style if this event spans multiple rows
   const gridRowStyle =
     rowSpan > 1
@@ -207,6 +269,26 @@ function EventCell({
           gridRow: `span ${rowSpan}`,
         }
       : {};
+
+  if (!event) {
+    return (
+      <div
+        className="bg-[#4a4a4a] rounded-md sm:rounded-lg flex items-center justify-center p-0.5 sm:p-1 overflow-hidden"
+        style={{ ...gridRowStyle, opacity: 0.85 }}
+      >
+        <div className="text-center w-full">
+          <p
+            className="text-white font-bold text-[10px] sm:text-[13px] md:text-[14px] lg:text-base leading-tight"
+            style={{
+              fontFamily: "'Arial Black', 'Arial Bold', Arial, sans-serif",
+            }}
+          >
+            FREE FLOW
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   if (event.isLogo) {
     return (
