@@ -23,6 +23,22 @@ const getEventColor = (event: ScheduleEvent | null): string => {
   return "from-indigo-700 to-indigo-900";
 };
 
+// Get rgba gradient string for semi-transparent backgrounds
+const getEventColorRgba = (event: ScheduleEvent | null): string => {
+  if (!event) {
+    // slate-700 to slate-800
+    return "linear-gradient(to bottom right, rgba(51, 65, 85, 0.9), rgba(30, 41, 59, 0.9))";
+  }
+
+  if (event.isSpecial) {
+    // orange-600 to red-600
+    return "linear-gradient(to bottom right, rgba(234, 88, 12, 0.9), rgba(220, 38, 38, 0.9))";
+  }
+
+  // indigo-700 to indigo-900
+  return "linear-gradient(to bottom right, rgba(67, 56, 202, 0.9), rgba(49, 46, 129, 0.9))";
+};
+
 interface ScheduleData {
   title: string;
   days: string[];
@@ -201,15 +217,16 @@ function SunburstBackground({
 }) {
   const rays = 24;
   const rayElements = [];
-  const stripeColor = location === "paradise-river" ? "#16a34a" : "#dc2626"; // green-600 for river, red-600 for stage
-  const baseColor = location === "paradise-river" ? "#15803d" : "#b91c1c"; // darker shade for base
+  // Use brighter, more saturated colors
+  const stripeColor = location === "paradise-river" ? "#22c55e" : "#ef4444"; // green-500 for river, red-500 for stage (brighter)
+  const baseColor = location === "paradise-river" ? "#16a34a" : "#dc2626"; // green-600 for river, red-600 for stage
 
   for (let i = 0; i < rays; i++) {
     const rotation = (360 / rays) * i;
     rayElements.push(
       <div
         key={i}
-        className="absolute origin-center opacity-80"
+        className="absolute origin-center"
         style={{
           top: "50%",
           left: "50%",
@@ -231,19 +248,22 @@ function SunburstBackground({
       className={`absolute inset-0 overflow-hidden`}
       style={{
         backgroundColor: stripeColor,
-        backgroundImage: `radial-gradient(circle at center, ${stripeColor} 0%, ${baseColor} 100%)`,
+        backgroundImage: `radial-gradient(circle at center, ${stripeColor} 0%, ${baseColor} 50%)`,
       }}
     >
       {rayElements}
-      {/* Add a subtle overlay for depth */}
-      <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-transparent to-black/20" />
     </div>
   );
 }
 
 function HeaderCell({ children }: { children: React.ReactNode }) {
   return (
-    <div className="bg-gradient-to-br from-gray-800 via-gray-700 to-gray-800 rounded-lg sm:rounded-xl flex items-center justify-center px-1 py-0.5 sm:px-2 sm:py-1 shadow-lg border border-gray-600/50 backdrop-blur-sm">
+    <div 
+      className="rounded-lg sm:rounded-xl flex items-center justify-center px-1 py-0.5 sm:px-2 sm:py-1 shadow-lg border border-gray-600/50 backdrop-blur-[1px]"
+      style={{
+        background: 'linear-gradient(to bottom right, rgba(31, 41, 55, 0.9), rgba(55, 65, 81, 0.9), rgba(31, 41, 55, 0.9))'
+      }}
+    >
       <span
         className="text-white font-black text-[10px] sm:text-sm md:text-base lg:text-lg tracking-wide text-center drop-shadow-lg"
         style={{ fontFamily: "'Arial Black', 'Arial Bold', Arial, sans-serif" }}
@@ -256,7 +276,12 @@ function HeaderCell({ children }: { children: React.ReactNode }) {
 
 function TimeCell({ children }: { children: React.ReactNode }) {
   return (
-    <div className="bg-gradient-to-r from-gray-800 via-gray-700 to-gray-800 rounded-lg sm:rounded-xl flex items-center justify-center px-1 py-0.5 sm:px-2 sm:py-1 shadow-md border border-gray-600/40 backdrop-blur-sm">
+    <div 
+      className="rounded-lg sm:rounded-xl flex items-center justify-center px-1 py-0.5 sm:px-2 sm:py-1 shadow-md border border-gray-600/40 backdrop-blur-[1px]"
+      style={{
+        background: 'linear-gradient(to right, rgba(31, 41, 55, 0.9), rgba(55, 65, 81, 0.9), rgba(31, 41, 55, 0.9))'
+      }}
+    >
       <span
         className="text-white font-black text-[8px] sm:text-xs md:text-sm lg:text-base tracking-wide drop-shadow-md"
         style={{ fontFamily: "'Arial Black', 'Arial Bold', Arial, sans-serif" }}
@@ -289,8 +314,11 @@ function EventCell({
   if (!event) {
     return (
       <div
-        className={`bg-gradient-to-br ${colorClass} rounded-lg sm:rounded-xl flex items-center justify-center p-0.5 sm:p-1 overflow-hidden shadow-md border border-gray-600/30 backdrop-blur-sm transition-all duration-200 hover:shadow-lg hover:scale-[1.02]`}
-        style={gridRowStyle}
+        className="rounded-lg sm:rounded-xl flex items-center justify-center p-0.5 sm:p-1 overflow-hidden shadow-md border border-gray-600/30 backdrop-blur-[1px] transition-all duration-200 hover:shadow-lg hover:scale-[1.02]"
+        style={{
+          ...gridRowStyle,
+          background: getEventColorRgba(event),
+        }}
       >
         <div className="text-center w-full">
           <p
@@ -309,8 +337,11 @@ function EventCell({
   if (event.isLogo) {
     return (
       <div
-        className="bg-gradient-to-br from-black via-gray-900 to-black rounded-lg sm:rounded-xl flex items-center justify-center p-1 shadow-xl border-2 border-white/20 backdrop-blur-sm"
-        style={gridRowStyle}
+        className="rounded-lg sm:rounded-xl flex items-center justify-center p-1 shadow-xl border-2 border-white/20 backdrop-blur-[1px]"
+        style={{
+          ...gridRowStyle,
+          background: "linear-gradient(to bottom right, rgba(0, 0, 0, 0.9), rgba(17, 24, 39, 0.9), rgba(0, 0, 0, 0.9))",
+        }}
       >
         <div className="text-white text-center">
           <div className="text-[6px] sm:text-[8px] italic opacity-80">The</div>
@@ -327,12 +358,15 @@ function EventCell({
 
   return (
     <div
-      className={`bg-gradient-to-br ${colorClass} rounded-lg sm:rounded-xl flex items-center justify-center p-0.5 sm:p-1 overflow-hidden shadow-lg border-2 ${
+      className={`rounded-lg sm:rounded-xl flex items-center justify-center p-0.5 sm:p-1 overflow-hidden shadow-lg border-2 ${
         isSpecial
           ? "border-orange-400/60 shadow-orange-500/30"
           : "border-white/20"
-      } backdrop-blur-sm transition-all duration-200 hover:shadow-xl hover:scale-[1.02] hover:brightness-110`}
-      style={gridRowStyle}
+      } backdrop-blur-[1px] transition-all duration-200 hover:shadow-xl hover:scale-[1.02] hover:brightness-110`}
+      style={{
+        ...gridRowStyle,
+        background: getEventColorRgba(event),
+      }}
     >
       <div className="text-center w-full px-0.5">
         <p
