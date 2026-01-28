@@ -593,14 +593,6 @@ export async function getInstagramTimetableData(
     const startDateStr = monday.toISOString().split("T")[0];
     const endDateStr = sunday.toISOString().split("T")[0];
 
-    console.log("Instagram timetable query:", {
-      startDateStr,
-      endDateStr,
-      location,
-      monday: monday.toISOString(),
-      sunday: sunday.toISOString(),
-    });
-
     // First, check if there are any events in the date range (for debugging)
     const allEventsInRange = await db
       .select({
@@ -613,17 +605,6 @@ export async function getInstagramTimetableData(
       .from(events)
       .where(and(gte(events.date, startDateStr), lte(events.date, endDateStr)))
       .limit(10);
-
-    console.log(
-      "All events in date range:",
-      allEventsInRange.length,
-      allEventsInRange.map((e) => ({
-        title: e.title,
-        location: e.location,
-        date: e.date,
-        isPublished: e.isPublished,
-      })),
-    );
 
     // Build location filter based on location parameter
     const locationFilter =
@@ -666,16 +647,6 @@ export async function getInstagramTimetableData(
         ),
       )
       .orderBy(asc(events.date), asc(events.startTime));
-
-    console.log(
-      `Found ${location} events:`,
-      eventsData.length,
-      eventsData.map((e) => ({
-        title: e.title,
-        location: e.location,
-        date: e.date,
-      })),
-    );
 
     // Helper function to format time to "12pm" format
     const formatTimeSlot = (time: string): string => {
