@@ -1628,10 +1628,10 @@ export async function extendRecurringEvents() {
         and(eq(events.isRecurring, true), isNotNull(events.recurringSeriesId)),
       );
 
+    // Use UTC dates to avoid timezone issues
     const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const targetDate = new Date(today);
-    targetDate.setDate(targetDate.getDate() + 10); // 10 days ahead
+    const todayUTC = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate()));
+    const targetDate = new Date(Date.UTC(todayUTC.getUTCFullYear(), todayUTC.getUTCMonth(), todayUTC.getUTCDate() + 10)); // 10 days ahead
 
     let totalEventsCreated = 0;
 
@@ -1669,13 +1669,22 @@ export async function extendRecurringEvents() {
 
       // Get the latest event (first in descending order)
       const latestEvent = seriesEvents[0];
-      const latestEventDate = new Date(latestEvent.date);
-      latestEventDate.setHours(0, 0, 0, 0);
-
+      
+      // Parse date string (YYYY-MM-DD) and work with UTC to avoid timezone issues
+      // Date strings from database are in YYYY-MM-DD format
+      const latestEventDateStr = latestEvent.date;
+      const [year, month, day] = latestEventDateStr.split("-").map(Number);
+      const latestEventDate = new Date(Date.UTC(year, month - 1, day));
+      
       // Check if we need to extend (latest event date is before target date)
       if (latestEventDate < targetDate) {
-        // Get all existing dates in the series to avoid duplicates
-        const existingDates = new Set(seriesEvents.map((e) => e.date));
+        // Get ALL existing dates in the series (including non-recurring events) to avoid duplicates
+        // This prevents creating duplicates when events were manually converted to non-recurring
+        const allSeriesEvents = await db
+          .select({ date: events.date })
+          .from(events)
+          .where(eq(events.recurringSeriesId, series.recurringSeriesId));
+        const existingDates = new Set(allSeriesEvents.map((e) => e.date));
 
         // Create events until at least 10 days ahead is covered
         const eventsToCreate: Array<{
@@ -1696,12 +1705,14 @@ export async function extendRecurringEvents() {
           recapVideoId: string | null;
         }> = [];
 
-        let currentDate = new Date(latestEventDate);
-        currentDate.setDate(currentDate.getDate() + 7); // Start from next week
+        // Start from 7 days after the latest event date
+        // Use UTC date arithmetic to avoid timezone issues
+        let currentDate = new Date(Date.UTC(year, month - 1, day + 7));
 
         // Create events until we're at least 10 days ahead
         while (currentDate <= targetDate) {
-          const dateStr = currentDate.toISOString().split("T")[0];
+          // Format as YYYY-MM-DD using UTC methods to avoid timezone shifts
+          const dateStr = `${currentDate.getUTCFullYear()}-${String(currentDate.getUTCMonth() + 1).padStart(2, "0")}-${String(currentDate.getUTCDate()).padStart(2, "0")}`;
 
           // Only create if it doesn't already exist
           if (!existingDates.has(dateStr)) {
@@ -1724,7 +1735,12 @@ export async function extendRecurringEvents() {
             });
           }
 
-          currentDate.setDate(currentDate.getDate() + 7);
+          // Add 7 days using UTC date arithmetic
+          currentDate = new Date(Date.UTC(
+            currentDate.getUTCFullYear(),
+            currentDate.getUTCMonth(),
+            currentDate.getUTCDate() + 7
+          ));
         }
 
         // Insert new events if any
