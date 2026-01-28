@@ -98,7 +98,8 @@ export const InstructorAssignedEmail = ({
                 As the assigned instructor, you now have the rights to edit this
                 event's description, time, and date. Please check the
                 description and make sure the information is accurate and
-                complete.
+                complete. In case this workshop is already in the past, it will
+                be added to your profile history.
               </Text>
               <Text style={text}>
                 <strong>Important:</strong> When changing the time or date, be
