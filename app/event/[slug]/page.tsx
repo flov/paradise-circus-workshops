@@ -242,7 +242,7 @@ export default async function BookEventPage({
       <div className="border-b border-border bg-card">
         <div className="mx-auto max-w-7xl px-4 py-3 sm:px-6 lg:px-8">
           <div className="flex items-center gap-4">
-            <Link href="/">
+            <Link href="/timetable">
               <Button variant="ghost" size="sm">
                 <ArrowLeft className="h-4 w-4 mr-2" />
                 Back to Timetable

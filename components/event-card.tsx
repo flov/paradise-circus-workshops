@@ -1,13 +1,13 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Calendar, Clock, MapPin, Users } from "lucide-react"
+import { Calendar, Clock, MapPin, Users, Repeat } from "lucide-react"
 import Link from "next/link"
 import { isEventPast, createEventSlug } from "@/lib/utils"
 import ReactMarkdown from "react-markdown"
 import type { Event } from "@/db/schema"
 
-export function EventCard({ event, instructorDisplayName }: { event: Pick<Event, "id" | "title" | "description" | "instructor" | "date" | "startTime" | "endTime" | "currentBookings" | "location">, instructorDisplayName?: string | null }) {
+export function EventCard({ event, instructorDisplayName }: { event: Pick<Event, "id" | "title" | "description" | "instructor" | "date" | "startTime" | "endTime" | "currentBookings" | "location" | "isRecurring">, instructorDisplayName?: string | null }) {
   const isPast = isEventPast(event.date, event.endTime)
 
   // Format date
@@ -46,6 +46,12 @@ export function EventCard({ event, instructorDisplayName }: { event: Pick<Event,
         </div>
         <CardDescription className="text-pretty">
           <div className="prose prose-sm dark:prose-invert max-w-none">
+            {event.isRecurring && (
+              <div className="flex items-center gap-1.5 mb-2 text-muted-foreground">
+                <Repeat className="h-3.5 w-3.5" />
+                <span className="text-xs font-medium">Recurring Event</span>
+              </div>
+            )}
             <ReactMarkdown>{event.description}</ReactMarkdown>
           </div>
         </CardDescription>
