@@ -1,61 +1,72 @@
-"use server"
+"use server";
 
-import { randomUUID } from "crypto"
-import { db } from "@/db"
-import { events, participations } from "@/db/schema"
-import { eq, sql, and } from "drizzle-orm"
-import { revalidatePath } from "next/cache"
-import { sendBookingConfirmationEmail, sendAdminNotificationEmail, sendCommentNotificationEmail } from "@/lib/email"
-import { auth, currentUser } from "@clerk/nextjs/server"
-import { getUserName, getUserEmail, createEventSlug } from "@/lib/utils"
+import { randomUUID } from "crypto";
+import { db } from "@/db";
+import { events, participations } from "@/db/schema";
+import { eq, sql, and } from "drizzle-orm";
+import { revalidatePath } from "next/cache";
+import {
+  sendBookingConfirmationEmail,
+  sendAdminNotificationEmail,
+  sendCommentNotificationEmail,
+} from "@/lib/email";
+import { auth, currentUser } from "@clerk/nextjs/server";
+import { getUserName, getUserEmail, createEventSlug } from "@/lib/utils";
 
 export async function createBooking(formData: FormData) {
   // Get authenticated user
-  const { userId } = await auth()
-  
+  const { userId } = await auth();
+
   if (!userId) {
-    return { success: false, error: "You must be signed in to participate in an event" }
+    return {
+      success: false,
+      error: "You must be signed in to participate in an event",
+    };
   }
 
-  const user = await currentUser()
+  const user = await currentUser();
   if (!user) {
-    return { success: false, error: "Unable to retrieve user information" }
+    return { success: false, error: "Unable to retrieve user information" };
   }
 
   // Get user's name and email from Clerk, fallback to form data
-  let clerkName = getUserName(user)
-  const clerkEmail = getUserEmail(user)
+  let clerkName = getUserName(user);
+  const clerkEmail = getUserEmail(user);
 
   // Try to get displayName from database, fallback to Clerk firstName/username
   try {
-    const { users } = await import("@/db/schema")
+    const { users } = await import("@/db/schema");
     const userRecord = await db
       .select({ displayName: users.displayName })
       .from(users)
       .where(eq(users.clerkUserId, userId))
-      .limit(1)
-    
+      .limit(1);
+
     if (userRecord.length > 0 && userRecord[0].displayName) {
-      clerkName = userRecord[0].displayName
+      clerkName = userRecord[0].displayName;
     }
   } catch (error) {
     // If database lookup fails, fall back to Clerk name
-    console.error("Failed to fetch user displayName:", error)
+    console.error("Failed to fetch user displayName:", error);
   }
 
-  const eventId = formData.get("eventId") as string
-  const formName = formData.get("name") as string
-  const formEmail = formData.get("email") as string
-  const phone = formData.get("phone") as string
-  const notes = formData.get("notes") as string
+  const eventId = formData.get("eventId") as string;
+  const formName = formData.get("name") as string;
+  const formEmail = formData.get("email") as string;
+  const phone = formData.get("phone") as string;
+  const notes = formData.get("notes") as string;
 
   // Use Clerk data if available, otherwise fallback to form data
-  const name = clerkName || formName
-  const email = clerkEmail || formEmail
+  const name = clerkName || formName;
+  const email = clerkEmail || formEmail;
 
   // Validate required fields
   if (!eventId || !name || !email) {
-    return { success: false, error: "Missing required fields. Please ensure you have a name and email." }
+    return {
+      success: false,
+      error:
+        "Missing required fields. Please ensure you have a name and email.",
+    };
   }
 
   try {
@@ -73,16 +84,16 @@ export async function createBooking(formData: FormData) {
         whatToBring: events.whatToBring,
       })
       .from(events)
-      .where(eq(events.id, parseInt(eventId)))
+      .where(eq(events.id, parseInt(eventId)));
 
     if (eventResults.length === 0) {
-      return { success: false, error: "Event not found" }
+      return { success: false, error: "Event not found" };
     }
 
-    const event = eventResults[0]
+    const event = eventResults[0];
 
     // Generate confirmation token
-    const confirmationToken = randomUUID()
+    const confirmationToken = randomUUID();
 
     // Create participation
     const participationResults = await db
@@ -96,16 +107,19 @@ export async function createBooking(formData: FormData) {
         notes: notes || null,
         confirmationToken,
       })
-      .returning({ id: participations.id, confirmationToken: participations.confirmationToken })
+      .returning({
+        id: participations.id,
+        confirmationToken: participations.confirmationToken,
+      });
 
-    const participationId = participationResults[0].id
-    const token = participationResults[0].confirmationToken
+    const participationId = participationResults[0].id;
+    const token = participationResults[0].confirmationToken;
 
     // Update event booking count
     await db
       .update(events)
       .set({ currentBookings: sql`${events.currentBookings} + 1` })
-      .where(eq(events.id, parseInt(eventId)))
+      .where(eq(events.id, parseInt(eventId)));
 
     try {
       await sendBookingConfirmationEmail({
@@ -120,9 +134,9 @@ export async function createBooking(formData: FormData) {
         participationId,
         confirmationToken: token,
         whatToBring: event.whatToBring,
-      })
+      });
     } catch (emailError) {
-      console.error("Failed to send confirmation email:", emailError)
+      console.error("Failed to send confirmation email:", emailError);
       // Continue even if email fails
     }
 
@@ -135,28 +149,33 @@ export async function createBooking(formData: FormData) {
         eventDate: event.date,
         eventStartTime: event.startTime,
         participationId,
-      })
+      });
     } catch (emailError) {
-      console.error("Failed to send admin notification:", emailError)
+      console.error("Failed to send admin notification:", emailError);
       // Continue even if email fails
     }
 
     // Revalidate relevant pages
-    revalidatePath("/")
-    revalidatePath(`/event/${createEventSlug(parseInt(eventId), event.title, event.instructor)}`)
+    revalidatePath("/");
+    revalidatePath(
+      `/event/${createEventSlug(parseInt(eventId), event.title, event.instructor)}`,
+    );
 
-    return { success: true, participationId, confirmationToken: token }
+    return { success: true, participationId, confirmationToken: token };
   } catch (error) {
-    console.error("Participation error:", error)
-    return { success: false, error: "Failed to create participation" }
+    console.error("Participation error:", error);
+    return { success: false, error: "Failed to create participation" };
   }
 }
 
 export async function cancelBooking(participationId: number) {
-  const { userId } = await auth()
-  
+  const { userId } = await auth();
+
   if (!userId) {
-    return { success: false, error: "You must be signed in to cancel a participation" }
+    return {
+      success: false,
+      error: "You must be signed in to cancel a participation",
+    };
   }
 
   try {
@@ -168,17 +187,20 @@ export async function cancelBooking(participationId: number) {
         clerkUserId: participations.clerkUserId,
       })
       .from(participations)
-      .where(eq(participations.id, participationId))
+      .where(eq(participations.id, participationId));
 
     if (participationResults.length === 0) {
-      return { success: false, error: "Participation not found" }
+      return { success: false, error: "Participation not found" };
     }
 
-    const participation = participationResults[0]
+    const participation = participationResults[0];
 
     // Verify ownership via clerkUserId
     if (!participation.clerkUserId || participation.clerkUserId !== userId) {
-      return { success: false, error: "Unauthorized. You can only cancel your own participations." }
+      return {
+        success: false,
+        error: "Unauthorized. You can only cancel your own participations.",
+      };
     }
 
     // Fetch event details for revalidation
@@ -188,35 +210,42 @@ export async function cancelBooking(participationId: number) {
         instructor: events.instructor,
       })
       .from(events)
-      .where(eq(events.id, participation.eventId))
+      .where(eq(events.id, participation.eventId));
 
     // Delete the participation
-    await db.delete(participations).where(eq(participations.id, participationId))
+    await db
+      .delete(participations)
+      .where(eq(participations.id, participationId));
 
     // Update event participation count
     await db
       .update(events)
       .set({ currentBookings: sql`${events.currentBookings} - 1` })
-      .where(eq(events.id, participation.eventId))
+      .where(eq(events.id, participation.eventId));
 
     // Revalidate relevant pages
-    revalidatePath("/")
+    revalidatePath("/");
     if (eventResults.length > 0) {
-      revalidatePath(`/event/${createEventSlug(participation.eventId, eventResults[0].title, eventResults[0].instructor)}`)
+      revalidatePath(
+        `/event/${createEventSlug(participation.eventId, eventResults[0].title, eventResults[0].instructor)}`,
+      );
     }
 
-    return { success: true }
+    return { success: true };
   } catch (error) {
-    console.error("Cancel participation error:", error)
-    return { success: false, error: "Failed to cancel participation" }
+    console.error("Cancel participation error:", error);
+    return { success: false, error: "Failed to cancel participation" };
   }
 }
 
 export async function cancelBookingByEvent(eventId: number) {
-  const { userId } = await auth()
-  
+  const { userId } = await auth();
+
   if (!userId) {
-    return { success: false, error: "You must be signed in to cancel a participation" }
+    return {
+      success: false,
+      error: "You must be signed in to cancel a participation",
+    };
   }
 
   try {
@@ -230,15 +259,15 @@ export async function cancelBookingByEvent(eventId: number) {
       .where(
         and(
           eq(participations.eventId, eventId),
-          eq(participations.clerkUserId, userId)
-        )
-      )
+          eq(participations.clerkUserId, userId),
+        ),
+      );
 
     if (participationResults.length === 0) {
-      return { success: false, error: "Participation not found" }
+      return { success: false, error: "Participation not found" };
     }
 
-    const participation = participationResults[0]
+    const participation = participationResults[0];
 
     // Fetch event details for revalidation
     const eventResults = await db
@@ -247,70 +276,74 @@ export async function cancelBookingByEvent(eventId: number) {
         instructor: events.instructor,
       })
       .from(events)
-      .where(eq(events.id, eventId))
+      .where(eq(events.id, eventId));
 
     // Delete the participation
-    await db.delete(participations).where(eq(participations.id, participation.id))
+    await db
+      .delete(participations)
+      .where(eq(participations.id, participation.id));
 
     // Update event participation count
     await db
       .update(events)
       .set({ currentBookings: sql`${events.currentBookings} - 1` })
-      .where(eq(events.id, eventId))
+      .where(eq(events.id, eventId));
 
     // Revalidate relevant pages
-    revalidatePath("/")
+    revalidatePath("/");
     if (eventResults.length > 0) {
-      revalidatePath(`/event/${createEventSlug(eventId, eventResults[0].title, eventResults[0].instructor)}`)
+      revalidatePath(
+        `/event/${createEventSlug(eventId, eventResults[0].title, eventResults[0].instructor)}`,
+      );
     }
 
-    return { success: true }
+    return { success: true };
   } catch (error) {
-    console.error("Cancel participation error:", error)
-    return { success: false, error: "Failed to cancel participation" }
+    console.error("Cancel participation error:", error);
+    return { success: false, error: "Failed to cancel participation" };
   }
 }
 
 export async function addComment(eventId: number, content: string) {
-  const { userId } = await auth()
-  
+  const { userId } = await auth();
+
   if (!userId) {
-    return { success: false, error: "You must be signed in to comment" }
+    return { success: false, error: "You must be signed in to comment" };
   }
 
-  const user = await currentUser()
+  const user = await currentUser();
   if (!user) {
-    return { success: false, error: "Unable to retrieve user information" }
+    return { success: false, error: "Unable to retrieve user information" };
   }
 
   // Try to get displayName and avatarImageUrl from database, fallback to Clerk firstName/username
-  let authorName = getUserName(user)
-  let authorImageUrl: string | null = null
-  
+  let authorName = getUserName(user);
+  let authorImageUrl: string | null = null;
+
   try {
-    const { users } = await import("@/db/schema")
+    const { users } = await import("@/db/schema");
     const userRecord = await db
-      .select({ 
+      .select({
         displayName: users.displayName,
         avatarImageUrl: users.avatarImageUrl,
       })
       .from(users)
       .where(eq(users.clerkUserId, userId))
-      .limit(1)
-    
+      .limit(1);
+
     if (userRecord.length > 0) {
       if (userRecord[0].displayName) {
-        authorName = userRecord[0].displayName
+        authorName = userRecord[0].displayName;
       }
-      authorImageUrl = userRecord[0].avatarImageUrl || null
+      authorImageUrl = userRecord[0].avatarImageUrl || null;
     }
   } catch (error) {
     // If database lookup fails, fall back to Clerk name
-    console.error("Failed to fetch user profile:", error)
+    console.error("Failed to fetch user profile:", error);
   }
 
   if (!content.trim()) {
-    return { success: false, error: "Comment cannot be empty" }
+    return { success: false, error: "Comment cannot be empty" };
   }
 
   try {
@@ -327,16 +360,16 @@ export async function addComment(eventId: number, content: string) {
         location: events.location,
       })
       .from(events)
-      .where(eq(events.id, eventId))
+      .where(eq(events.id, eventId));
 
     if (eventResults.length === 0) {
-      return { success: false, error: "Event not found" }
+      return { success: false, error: "Event not found" };
     }
 
-    const event = eventResults[0]
+    const event = eventResults[0];
 
     // Import comments here to avoid circular import issues
-    const { comments, participations, users } = await import("@/db/schema")
+    const { comments, participations, users } = await import("@/db/schema");
 
     // Create comment
     const commentResults = await db
@@ -348,16 +381,17 @@ export async function addComment(eventId: number, content: string) {
         authorImageUrl,
         content: content.trim(),
       })
-      .returning({ id: comments.id })
+      .returning({ id: comments.id });
 
     // Revalidate event page
-    const eventSlug = createEventSlug(eventId, event.title, event.instructor)
-    revalidatePath(`/event/${eventSlug}`)
+    const eventSlug = createEventSlug(eventId, event.title, event.instructor);
+    revalidatePath(`/event/${eventSlug}`);
 
     // Send notification emails to participants and instructor
     try {
-      const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://paradise-circus.app"
-      const eventUrl = `${appUrl}/event/${eventSlug}`
+      const appUrl =
+        process.env.NEXT_PUBLIC_APP_URL || "https://paradise-circus.app";
+      const eventUrl = `${appUrl}/event/${eventSlug}`;
 
       // Get all participant emails from participations (excluding the comment author)
       const participantParticipations = await db
@@ -367,13 +401,13 @@ export async function addComment(eventId: number, content: string) {
           clerkUserId: participations.clerkUserId,
         })
         .from(participations)
-        .where(eq(participations.eventId, eventId))
+        .where(eq(participations.eventId, eventId));
 
       // Get instructor email if instructorId exists
-      let instructorEmail: string | null = null
-      let instructorName: string | null = event.instructor
-      let instructorClerkUserId: string | null = null
-      
+      let instructorEmail: string | null = null;
+      let instructorName: string | null = event.instructor;
+      let instructorClerkUserId: string | null = null;
+
       if (event.instructorId) {
         const instructorResult = await db
           .select({
@@ -384,34 +418,48 @@ export async function addComment(eventId: number, content: string) {
           })
           .from(users)
           .where(eq(users.id, event.instructorId))
-          .limit(1)
+          .limit(1);
 
         if (instructorResult.length > 0) {
-          instructorEmail = instructorResult[0].email || null
-          instructorName = instructorResult[0].displayName || instructorResult[0].username || event.instructor
-          instructorClerkUserId = instructorResult[0].clerkUserId || null
+          instructorEmail = instructorResult[0].email || null;
+          instructorName =
+            instructorResult[0].displayName ||
+            instructorResult[0].username ||
+            event.instructor;
+          instructorClerkUserId = instructorResult[0].clerkUserId || null;
         }
       }
 
       // Collect all unique recipient emails (excluding the comment author)
-      const recipientEmails = new Map<string, { name: string; isInstructor: boolean }>()
+      const recipientEmails = new Map<
+        string,
+        { name: string; isInstructor: boolean }
+      >();
 
       // Add participants
       for (const participation of participantParticipations) {
         // Skip if this participation belongs to the comment author
         if (participation.clerkUserId === userId) {
-          continue
+          continue;
         }
         // Use participant name from participation, or email if name not available
-        const name = participation.participantName || participation.participantEmail.split("@")[0]
-        recipientEmails.set(participation.participantEmail, { name, isInstructor: false })
+        const name =
+          participation.participantName ||
+          participation.participantEmail.split("@")[0];
+        recipientEmails.set(participation.participantEmail, {
+          name,
+          isInstructor: false,
+        });
       }
 
       // Add instructor if they exist and are not the comment author
       if (instructorEmail && instructorName) {
         // Skip if instructor is the comment author
         if (instructorClerkUserId !== userId) {
-          recipientEmails.set(instructorEmail, { name: instructorName, isInstructor: true })
+          recipientEmails.set(instructorEmail, {
+            name: instructorName,
+            isInstructor: true,
+          });
         }
       }
 
@@ -431,38 +479,44 @@ export async function addComment(eventId: number, content: string) {
               instructorName,
               commentContent: content.trim(),
               eventUrl,
-            })
+            });
           } catch (error) {
-            console.error(`Failed to send comment notification to ${email}:`, error)
+            console.error(
+              `Failed to send comment notification to ${email}:`,
+              error,
+            );
             // Don't throw - continue sending to other recipients
           }
-        }
-      )
+        },
+      );
 
       // Wait for all emails to be sent (but don't fail if some fail)
-      await Promise.allSettled(emailPromises)
+      await Promise.allSettled(emailPromises);
     } catch (emailError) {
       // Log error but don't fail the comment creation
-      console.error("Error sending comment notification emails:", emailError)
+      console.error("Error sending comment notification emails:", emailError);
     }
 
-    return { success: true, commentId: commentResults[0].id }
+    return { success: true, commentId: commentResults[0].id };
   } catch (error) {
-    console.error("Add comment error:", error)
-    return { success: false, error: "Failed to add comment" }
+    console.error("Add comment error:", error);
+    return { success: false, error: "Failed to add comment" };
   }
 }
 
 export async function deleteComment(commentId: number) {
-  const { userId } = await auth()
-  
+  const { userId } = await auth();
+
   if (!userId) {
-    return { success: false, error: "You must be signed in to delete a comment" }
+    return {
+      success: false,
+      error: "You must be signed in to delete a comment",
+    };
   }
 
   try {
     // Import comments here to avoid circular import issues
-    const { comments } = await import("@/db/schema")
+    const { comments } = await import("@/db/schema");
 
     // Find the comment and verify ownership
     const commentResults = await db
@@ -472,17 +526,20 @@ export async function deleteComment(commentId: number) {
         clerkUserId: comments.clerkUserId,
       })
       .from(comments)
-      .where(eq(comments.id, commentId))
+      .where(eq(comments.id, commentId));
 
     if (commentResults.length === 0) {
-      return { success: false, error: "Comment not found" }
+      return { success: false, error: "Comment not found" };
     }
 
-    const comment = commentResults[0]
+    const comment = commentResults[0];
 
     // Verify ownership
     if (comment.clerkUserId !== userId) {
-      return { success: false, error: "Unauthorized. You can only delete your own comments." }
+      return {
+        success: false,
+        error: "Unauthorized. You can only delete your own comments.",
+      };
     }
 
     // Get event details for revalidation
@@ -492,53 +549,58 @@ export async function deleteComment(commentId: number) {
         instructor: events.instructor,
       })
       .from(events)
-      .where(eq(events.id, comment.eventId))
+      .where(eq(events.id, comment.eventId));
 
     // Delete the comment
-    await db.delete(comments).where(eq(comments.id, commentId))
+    await db.delete(comments).where(eq(comments.id, commentId));
 
     // Revalidate event page
     if (eventResults.length > 0) {
-      revalidatePath(`/event/${createEventSlug(comment.eventId, eventResults[0].title, eventResults[0].instructor)}`)
+      revalidatePath(
+        `/event/${createEventSlug(comment.eventId, eventResults[0].title, eventResults[0].instructor)}`,
+      );
     }
 
-    return { success: true }
+    return { success: true };
   } catch (error) {
-    console.error("Delete comment error:", error)
-    return { success: false, error: "Failed to delete comment" }
+    console.error("Delete comment error:", error);
+    return { success: false, error: "Failed to delete comment" };
   }
 }
 
-export async function getInstagramTimetableData(startDate?: string, location: string = "paradise-stage") {
-  "use server"
-  
+export async function getInstagramTimetableData(
+  startDate?: string,
+  location: string = "paradise-stage",
+) {
+  "use server";
+
   try {
-    const { events } = await import("@/db/schema")
-    const { and, gte, lte, eq, asc, or, sql } = await import("drizzle-orm")
-    
+    const { events } = await import("@/db/schema");
+    const { and, gte, lte, eq, asc, or, sql } = await import("drizzle-orm");
+
     // Calculate week start (Monday) and end (Sunday)
-    const today = startDate ? new Date(startDate) : new Date()
-    const dayOfWeek = today.getDay() // 0 = Sunday, 1 = Monday, etc.
-    const daysFromMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1 // Convert Sunday (0) to 6 days from Monday
-    const monday = new Date(today)
-    monday.setDate(today.getDate() - daysFromMonday)
-    monday.setHours(0, 0, 0, 0)
-    
-    const sunday = new Date(monday)
-    sunday.setDate(monday.getDate() + 6)
-    sunday.setHours(23, 59, 59, 999)
-    
-    const startDateStr = monday.toISOString().split("T")[0]
-    const endDateStr = sunday.toISOString().split("T")[0]
-    
+    const today = startDate ? new Date(startDate) : new Date();
+    const dayOfWeek = today.getDay(); // 0 = Sunday, 1 = Monday, etc.
+    const daysFromMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1; // Convert Sunday (0) to 6 days from Monday
+    const monday = new Date(today);
+    monday.setDate(today.getDate() - daysFromMonday);
+    monday.setHours(0, 0, 0, 0);
+
+    const sunday = new Date(monday);
+    sunday.setDate(monday.getDate() + 6);
+    sunday.setHours(23, 59, 59, 999);
+
+    const startDateStr = monday.toISOString().split("T")[0];
+    const endDateStr = sunday.toISOString().split("T")[0];
+
     console.log("Instagram timetable query:", {
       startDateStr,
       endDateStr,
       location,
       monday: monday.toISOString(),
       sunday: sunday.toISOString(),
-    })
-    
+    });
+
     // First, check if there are any events in the date range (for debugging)
     const allEventsInRange = await db
       .select({
@@ -549,33 +611,38 @@ export async function getInstagramTimetableData(startDate?: string, location: st
         isPublished: events.isPublished,
       })
       .from(events)
-      .where(
-        and(
-          gte(events.date, startDateStr),
-          lte(events.date, endDateStr)
-        )
-      )
-      .limit(10)
-    
-    console.log("All events in date range:", allEventsInRange.length, allEventsInRange.map(e => ({ title: e.title, location: e.location, date: e.date, isPublished: e.isPublished })))
-    
+      .where(and(gte(events.date, startDateStr), lte(events.date, endDateStr)))
+      .limit(10);
+
+    console.log(
+      "All events in date range:",
+      allEventsInRange.length,
+      allEventsInRange.map((e) => ({
+        title: e.title,
+        location: e.location,
+        date: e.date,
+        isPublished: e.isPublished,
+      })),
+    );
+
     // Build location filter based on location parameter
-    const locationFilter = location === "paradise-river"
-      ? or(
-          sql`LOWER(COALESCE(${events.location}, '')) LIKE '%paradise-river%'`,
-          sql`LOWER(COALESCE(${events.location}, '')) LIKE '%paradise river%'`,
-          eq(events.location, "paradise-river"),
-          eq(events.location, "Paradise River"),
-          eq(events.location, "PARADISE RIVER")
-        )
-      : or(
-          sql`LOWER(COALESCE(${events.location}, '')) LIKE '%paradise-stage%'`,
-          sql`LOWER(COALESCE(${events.location}, '')) LIKE '%paradise stage%'`,
-          eq(events.location, "paradise-stage"),
-          eq(events.location, "Paradise Stage"),
-          eq(events.location, "PARADISE STAGE")
-        )
-    
+    const locationFilter =
+      location === "paradise-river"
+        ? or(
+            sql`LOWER(COALESCE(${events.location}, '')) LIKE '%paradise-river%'`,
+            sql`LOWER(COALESCE(${events.location}, '')) LIKE '%paradise river%'`,
+            eq(events.location, "paradise-river"),
+            eq(events.location, "Paradise River"),
+            eq(events.location, "PARADISE RIVER"),
+          )
+        : or(
+            sql`LOWER(COALESCE(${events.location}, '')) LIKE '%paradise-stage%'`,
+            sql`LOWER(COALESCE(${events.location}, '')) LIKE '%paradise stage%'`,
+            eq(events.location, "paradise-stage"),
+            eq(events.location, "Paradise Stage"),
+            eq(events.location, "PARADISE STAGE"),
+          );
+
     // Fetch events for the selected location
     // Use case-insensitive matching with SQL template to handle variations
     // Handle null locations by checking if location is not null first
@@ -595,153 +662,207 @@ export async function getInstagramTimetableData(startDate?: string, location: st
           gte(events.date, startDateStr),
           lte(events.date, endDateStr),
           locationFilter,
-          eq(events.isPublished, true)
-        )
+          eq(events.isPublished, true),
+        ),
       )
-      .orderBy(asc(events.date), asc(events.startTime))
-    
-    console.log(`Found ${location} events:`, eventsData.length, eventsData.map(e => ({ title: e.title, location: e.location, date: e.date })))
-    
+      .orderBy(asc(events.date), asc(events.startTime));
+
+    console.log(
+      `Found ${location} events:`,
+      eventsData.length,
+      eventsData.map((e) => ({
+        title: e.title,
+        location: e.location,
+        date: e.date,
+      })),
+    );
+
     // Helper function to format time to "12pm" format
     const formatTimeSlot = (time: string): string => {
-      const [hours, minutes] = time.split(":")
-      const hour = Number.parseInt(hours)
-      const ampm = hour >= 12 ? "pm" : "am"
-      const displayHour = hour % 12 || 12
+      const [hours, minutes] = time.split(":");
+      const hour = Number.parseInt(hours);
+      const ampm = hour >= 12 ? "pm" : "am";
+      const displayHour = hour % 12 || 12;
       // Round to nearest hour for time slots (or use specific logic)
-      return `${displayHour}${ampm}`
-    }
-    
+      return `${displayHour}${ampm}`;
+    };
+
     // Helper function to get day abbreviation
     const getDayAbbr = (dateStr: string): string => {
-      const date = new Date(dateStr + "T00:00:00")
-      const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
-      return days[date.getDay()]
-    }
-    
+      const date = new Date(dateStr + "T00:00:00");
+      const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+      return days[date.getDay()];
+    };
+
     // Generate days array (Mon-Sun) - always in this order
-    const days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
-    
+    const days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+
     // Create a mapping from day abbreviation to index in the days array
     const dayIndexMap: Record<string, number> = {
-      "Mon": 0,
-      "Tue": 1,
-      "Wed": 2,
-      "Thu": 3,
-      "Fri": 4,
-      "Sat": 5,
-      "Sun": 6,
-    }
-    
+      Mon: 0,
+      Tue: 1,
+      Wed: 2,
+      Thu: 3,
+      Fri: 4,
+      Sat: 5,
+      Sun: 6,
+    };
+
     // Collect all unique time slots from events
-    const timeSlotSet = new Set<string>()
-    eventsData.forEach(event => {
-      timeSlotSet.add(formatTimeSlot(event.startTime))
-    })
-    
+    const timeSlotSet = new Set<string>();
+    eventsData.forEach((event) => {
+      timeSlotSet.add(formatTimeSlot(event.startTime));
+    });
+
     // Sort time slots
     const timeSlots = Array.from(timeSlotSet).sort((a, b) => {
       const getHour = (slot: string) => {
-        const match = slot.match(/(\d+)(am|pm)/)
-        if (!match) return 0
-        let hour = Number.parseInt(match[1])
-        if (match[2] === "pm" && hour !== 12) hour += 12
-        if (match[2] === "am" && hour === 12) hour = 0
-        return hour
-      }
-      return getHour(a) - getHour(b)
-    })
-    
+        const match = slot.match(/(\d+)(am|pm)/);
+        if (!match) return 0;
+        let hour = Number.parseInt(match[1]);
+        if (match[2] === "pm" && hour !== 12) hour += 12;
+        if (match[2] === "am" && hour === 12) hour = 0;
+        return hour;
+      };
+      return getHour(a) - getHour(b);
+    });
+
     // If no events, use default time slots
     if (timeSlots.length === 0) {
-      timeSlots.push("12pm", "1pm", "2pm", "3pm", "4pm", "5pm", "6pm", "7pm", "8pm", "10pm")
+      timeSlots.push(
+        "12pm",
+        "1pm",
+        "2pm",
+        "3pm",
+        "4pm",
+        "5pm",
+        "6pm",
+        "7pm",
+        "8pm",
+        "10pm",
+      );
     }
-    
+
     // Build events map
-    const eventsMap: Record<string, { name: string; instructor: string; isLogo?: boolean; isSpecial?: boolean; span?: number; isOccupied?: boolean } | null> = {}
-    
+    const eventsMap: Record<
+      string,
+      {
+        name: string;
+        instructor: string;
+        isLogo?: boolean;
+        isSpecial?: boolean;
+        span?: number;
+        isOccupied?: boolean;
+      } | null
+    > = {};
+
     // Initialize all slots to null
-    timeSlots.forEach(time => {
-      days.forEach(day => {
-        eventsMap[`${time}-${day}`] = null
-      })
-    })
-    
+    timeSlots.forEach((time) => {
+      days.forEach((day) => {
+        eventsMap[`${time}-${day}`] = null;
+      });
+    });
+
     // Helper function to calculate duration in hours (rounded up)
-    const calculateDurationHours = (startTime: string, endTime: string): number => {
-      const [startHours, startMinutes] = startTime.split(":").map(Number)
-      const [endHours, endMinutes] = endTime.split(":").map(Number)
-      const startTotalMinutes = startHours * 60 + startMinutes
-      const endTotalMinutes = endHours * 60 + endMinutes
-      const durationMinutes = endTotalMinutes - startTotalMinutes
+    const calculateDurationHours = (
+      startTime: string,
+      endTime: string,
+    ): number => {
+      const [startHours, startMinutes] = startTime.split(":").map(Number);
+      const [endHours, endMinutes] = endTime.split(":").map(Number);
+      const startTotalMinutes = startHours * 60 + startMinutes;
+      const endTotalMinutes = endHours * 60 + endMinutes;
+      const durationMinutes = endTotalMinutes - startTotalMinutes;
       // Round up to nearest hour for display purposes
-      return Math.max(1, Math.ceil(durationMinutes / 60))
-    }
-    
+      return Math.max(1, Math.ceil(durationMinutes / 60));
+    };
+
     // Fill in events
-    eventsData.forEach(event => {
-      const dayAbbr = getDayAbbr(event.date)
+    eventsData.forEach((event) => {
+      const dayAbbr = getDayAbbr(event.date);
       // Only process events that fall within our week (Mon-Sun)
       if (dayIndexMap[dayAbbr] !== undefined) {
-        const startTimeSlot = formatTimeSlot(event.startTime)
-        const durationHours = calculateDurationHours(event.startTime, event.endTime)
-        
+        const startTimeSlot = formatTimeSlot(event.startTime);
+        const durationHours = calculateDurationHours(
+          event.startTime,
+          event.endTime,
+        );
+
         // Find the index of the start time slot
-        const startSlotIndex = timeSlots.indexOf(startTimeSlot)
-        
+        const startSlotIndex = timeSlots.indexOf(startTimeSlot);
+
         // Calculate how many consecutive slots this event spans
         // Make sure we don't exceed available slots
-        const span = startSlotIndex !== -1 
-          ? Math.min(durationHours, timeSlots.length - startSlotIndex)
-          : 1
-        
-        const key = `${startTimeSlot}-${dayAbbr}`
-        
+        const span =
+          startSlotIndex !== -1
+            ? Math.min(durationHours, timeSlots.length - startSlotIndex)
+            : 1;
+
+        const key = `${startTimeSlot}-${dayAbbr}`;
+
         // Check if event title contains special keywords
-        const titleUpper = event.title.toUpperCase()
-        const isSpecial = titleUpper.includes("FIRESHOW") || 
-                         titleUpper.includes("OPEN MIC") || 
-                         titleUpper.includes("OPEN STAGE") ||
-                         titleUpper.includes("JAM")
-        
+        const titleUpper = event.title.toUpperCase();
+        const isSpecial =
+          titleUpper.includes("FIRESHOW") ||
+          titleUpper.includes("OPEN MIC") ||
+          titleUpper.includes("OPEN STAGE");
+
         eventsMap[key] = {
           name: event.title,
           instructor: event.instructor || "",
           isSpecial,
           span, // Store span for CSS grid row spanning
-        }
+        };
       }
-    })
-    
+    });
+
     // Generate title
     const formatDate = (date: Date): string => {
-      const months = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"]
-      const month = months[date.getMonth()]
-      const day = date.getDate()
-      return `${month} ${day}${getOrdinalSuffix(day)}`
-    }
-    
+      const months = [
+        "JAN",
+        "FEB",
+        "MAR",
+        "APR",
+        "MAY",
+        "JUN",
+        "JUL",
+        "AUG",
+        "SEP",
+        "OCT",
+        "NOV",
+        "DEC",
+      ];
+      const month = months[date.getMonth()];
+      const day = date.getDate();
+      return `${month} ${day}${getOrdinalSuffix(day)}`;
+    };
+
     const getOrdinalSuffix = (day: number): string => {
-      if (day > 3 && day < 21) return "TH"
+      if (day > 3 && day < 21) return "TH";
       switch (day % 10) {
-        case 1: return "ST"
-        case 2: return "ND"
-        case 3: return "RD"
-        default: return "TH"
+        case 1:
+          return "ST";
+        case 2:
+          return "ND";
+        case 3:
+          return "RD";
+        default:
+          return "TH";
       }
-    }
-    
-    const locationName = location === "paradise-river" ? "PARADISE RIVER" : "PARADISE STAGE"
-    const title = `${locationName} SCHEDULE ${formatDate(monday)} - ${formatDate(sunday)}`
-    
+    };
+
+    const locationName =
+      location === "paradise-river" ? "PARADISE RIVER" : "PARADISE STAGE";
+    const title = `${locationName} SCHEDULE ${formatDate(monday)} - ${formatDate(sunday)}`;
+
     return {
       title,
       days,
       timeSlots,
       events: eventsMap,
-    }
+    };
   } catch (error) {
-    console.error("Error fetching Instagram timetable data:", error)
-    throw error
+    console.error("Error fetching Instagram timetable data:", error);
+    throw error;
   }
 }
