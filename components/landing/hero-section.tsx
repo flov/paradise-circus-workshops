@@ -2,10 +2,26 @@
 
 import Link from "next/link";
 import Image from "next/image";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Sparkles } from "lucide-react";
 
+const phrases = [
+  "The stage awaits — come as you are",
+  "Unleash your inner performer",
+  "Where passion meets performance",
+  "Join the circus of dreams",
+  "Elevate your artistry",
+  "Where ordinary becomes extraordinary",
+  "All levels, all welcome, all magic",
+  "Come curious, leave confident",
+];
+
 export function HeroSection() {
+  const [randomPhrase] = useState(
+    () => phrases[Math.floor(Math.random() * phrases.length)]
+  );
+  
   return (
     <section className="relative min-h-[95vh] flex flex-col items-center justify-center px-4 py-16 overflow-hidden">
       {/* Background Image */}
@@ -25,7 +41,9 @@ export function HeroSection() {
         {/* Badge */}
         <div className="inline-flex items-center gap-2 px-4 py-2 mb-8 rounded-full bg-white/10 text-white border border-white/20 backdrop-blur-sm">
           <Sparkles className="w-4 h-4" />
-          <span className="text-sm font-medium">Open to all skill levels</span>
+          <span className="text-sm font-medium">
+            {randomPhrase}
+          </span>
         </div>
 
         {/* Main headline */}
