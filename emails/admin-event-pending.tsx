@@ -100,16 +100,21 @@ export const AdminEventPendingEmail = ({
             <Section style={infoBox}>
               <Heading style={infoBoxTitle}>Action Required</Heading>
               <Text style={text}>
-                Please review this workshop and approve it to make it visible to participants.
+                Please review this workshop by looking quickly at the timetable
+                and check the details of the workshop. If everything looks good,
+                approve it to make it visible to participants.
               </Text>
             </Section>
 
             <Section style={buttonContainer}>
               <Link
-                href={`${appUrl}/admin`}
+                href={`${appUrl}/timetable`}
                 style={button}
               >
-                Review in Admin Dashboard
+                Review in timetable. Authenticate to see the admin timetable.
+              </Link>
+              <Link href={`${appUrl}/event/${eventId}`} style={button}>
+                View Workshop Details
               </Link>
             </Section>
 
