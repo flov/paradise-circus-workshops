@@ -1,5 +1,5 @@
 import { db } from "@/db";
-import { events, users } from "@/db/schema";
+import { events, users, props } from "@/db/schema";
 import { desc, eq } from "drizzle-orm";
 import {
   Table,
@@ -75,9 +75,14 @@ export async function EventsList() {
         availableForPerformances: users.availableForPerformances,
         location: users.location,
       },
+      prop: {
+        id: props.id,
+        name: props.name,
+      },
     })
     .from(events)
     .leftJoin(users, eq(events.instructorId, users.id))
+    .leftJoin(props, eq(events.propId, props.id))
     .orderBy(desc(events.date), desc(events.startTime));
 
   if (eventsList.length === 0) {
@@ -115,6 +120,7 @@ export async function EventsList() {
             <TableHead>Date & Time</TableHead>
             <TableHead>Location</TableHead>
             <TableHead>Instructor</TableHead>
+            <TableHead>Prop</TableHead>
             <TableHead>Status</TableHead>
             <TableHead>Participants</TableHead>
             <TableHead className="text-right">Actions</TableHead>
@@ -165,6 +171,11 @@ export async function EventsList() {
                     </Link>
                   ) : (
                     event.instructor || ""
+                  )}
+                </TableCell>
+                <TableCell className="text-sm">
+                  {event.prop?.name || (
+                    <span className="text-muted-foreground">None</span>
                   )}
                 </TableCell>
                 <TableCell>
