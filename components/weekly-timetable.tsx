@@ -544,7 +544,7 @@ export function WeeklyTimetable({
             <Button
               variant="outline"
               onClick={scrollToNow}
-              className="md:hidden"
+              className="sm:hidden"
               aria-label="Scroll to now"
             >
               Now
@@ -581,7 +581,7 @@ export function WeeklyTimetable({
       {/* Timetable Grid */}
       <div className="rounded-lg border border-border bg-card overflow-hidden">
         {/* Desktop View */}
-        <div className="hidden md:block overflow-x-auto">
+        <div className="hidden sm:block overflow-x-auto">
           <div className="min-w-[800px]">
             <table className="w-full border-collapse">
               <thead>
@@ -801,7 +801,7 @@ export function WeeklyTimetable({
         </div>
 
         {/* Mobile View - Daily Cards */}
-        <div className="md:hidden p-4 space-y-4">
+        <div className="sm:hidden p-4 space-y-4">
           {DAYS.map((day, dayIndex) => {
             const daySlots = timetableData[day] || {};
             const hasSlots = Object.keys(daySlots).length > 0;
@@ -946,7 +946,7 @@ export function WeeklyTimetable({
                                     <div className="font-medium text-foreground flex-1 min-w-0 flex items-center gap-1.5">
                                       {slot.title}
                                       {isNotFullHour(slot.startTime) && (
-                                        <span className="hidden md:inline text-xs font-normal text-muted-foreground whitespace-nowrap">
+                                        <span className="hidden sm:inline text-xs font-normal text-muted-foreground whitespace-nowrap">
                                           {formatTimeShort(slot.startTime)}
                                         </span>
                                       )}

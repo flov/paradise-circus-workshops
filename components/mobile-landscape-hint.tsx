@@ -26,8 +26,8 @@ export function MobileLandscapeHint() {
       // Check if window is available (client-side only)
       if (typeof window === "undefined") return;
 
-      // Check if it's a mobile device (width < 768px which is md breakpoint)
-      const isMobile = window.innerWidth < 768;
+      // Check if it's a mobile device (width < 640px which is sm breakpoint)
+      const isMobile = window.innerWidth < 640;
 
       // Check if in portrait mode (height > width)
       const portrait = window.innerHeight > window.innerWidth;
@@ -93,7 +93,7 @@ export function MobileLandscapeHint() {
         `,
         }}
       />
-      <div className="md:hidden fixed bottom-4 left-4 right-4 z-50 animate-in slide-in-from-bottom-4 duration-300">
+      <div className="sm:hidden fixed bottom-4 left-4 right-4 z-50 animate-in slide-in-from-bottom-4 duration-300">
         <div className="bg-secondary/95 backdrop-blur-sm text-secondary-foreground rounded-lg border border-secondary/20 shadow-lg p-4 flex items-center gap-3">
           <div className="flex-shrink-0">
             <Smartphone className="h-5 w-5 phone-rotate-animation" />
