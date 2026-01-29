@@ -515,12 +515,13 @@ export function WeeklyTimetable({
       {/* Header with navigation */}
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <div>
-          <h2 className="text-3xl font-bold text-foreground text-balance">
+          <h2
+            className="text-3xl "
+            style={{ fontFamily: "var(--font-rye), 'Rye', serif" }}
+          >
             Weekly Workshop Timetable
           </h2>
-          <p className="text-muted-foreground mt-1">
-            {formatDateRange()} • All of our workshops are donation driven.
-          </p>
+          <p className="text-muted-foreground mt-1">{formatDateRange()}</p>
         </div>
 
         <div className="flex items-center gap-2">

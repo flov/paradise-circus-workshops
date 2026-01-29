@@ -23,9 +23,9 @@ export function Navigation() {
         <div className="flex items-center justify-between">
           {/* Logo */}
           <Link href="/" className="flex items-center gap-2">
-            <span className="text-2xl">🎪</span>
+            <span className="text-xl">🎪</span>
             <span
-              className="text-lg font-bold text-foreground text-sh"
+              className="text-xl text-foreground"
               style={{ fontFamily: "var(--font-rye)" }}
             >
               Paradise Circus
@@ -43,9 +43,6 @@ export function Navigation() {
                 {item.label}
               </Link>
             ))}
-            <Button asChild size="sm" className="rounded-full">
-              <Link href="/timetable">View timetable</Link>
-            </Button>
             {/* Auth Buttons */}
             <div className="flex items-center gap-2">
               <SignedIn>
@@ -96,6 +93,15 @@ export function Navigation() {
         {mobileMenuOpen && (
           <div className="md:hidden pt-4 pb-2 border-border/50">
             <div className="flex flex-col gap-4">
+              <Button
+                asChild
+                size="sm"
+                onClick={() => setMobileMenuOpen(false)}
+                className="rounded-full"
+              >
+                <Link href="/timetable">View timetable</Link>
+              </Button>
+
               {navItems.map((item) => (
                 <Link
                   key={item.href}
