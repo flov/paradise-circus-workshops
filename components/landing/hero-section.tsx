@@ -19,11 +19,11 @@ const phrases = [
 
 export function HeroSection() {
   const [randomPhrase] = useState(
-    () => phrases[Math.floor(Math.random() * phrases.length)]
+    () => phrases[Math.floor(Math.random() * phrases.length)],
   );
-  
+
   return (
-    <section className="relative min-h-[95vh] flex flex-col items-center justify-center px-4 py-16 overflow-hidden">
+    <section className="relative min-h-[95vh] flex flex-col items-center justify-center px-4 py-4 overflow-hidden">
       {/* Background Image */}
       <div className="absolute inset-0">
         <Image
@@ -41,9 +41,7 @@ export function HeroSection() {
         {/* Badge */}
         <div className="inline-flex items-center gap-2 px-4 py-2 mb-8 rounded-full bg-white/10 text-white border border-white/20 backdrop-blur-sm">
           <Sparkles className="w-4 h-4" />
-          <span className="text-sm font-medium">
-            {randomPhrase}
-          </span>
+          <span className="text-sm font-medium">{randomPhrase}</span>
         </div>
 
         {/* Main headline */}
