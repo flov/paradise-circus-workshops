@@ -13,7 +13,7 @@ const phrases = [
   "Join the circus of dreams",
   "Elevate your artistry",
   "Where ordinary becomes extraordinary",
-  "All levels, all welcome, all magic",
+  "All levels are welcome",
   "Come curious, leave confident",
 ];
 

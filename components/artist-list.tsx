@@ -120,6 +120,11 @@ function ArtistCard({ artist }: { artist: Artist }) {
               <Instagram className="size-2.5" />
             </Badge>
           )}
+          {artist.bio && (
+            <Badge variant="purple" className="h-5 text-xs px-1.5 gap-0.5">
+              <FileText className="size-2.5" />
+            </Badge>
+          )}
           {artist.availableForPerformances && (
             <Badge variant="amber" className="h-5 text-xs px-1.5 gap-0.5">
               <Sparkles className="size-2.5" />
@@ -129,7 +134,7 @@ function ArtistCard({ artist }: { artist: Artist }) {
         </div>
 
         {/* Props row */}
-        {artist.props.length > 0 ? (
+        {artist.props.length > 0 && (
           <div className="flex flex-wrap gap-1">
             {artist.props.map((prop) => (
               <Badge
@@ -144,8 +149,6 @@ function ArtistCard({ artist }: { artist: Artist }) {
               </Badge>
             ))}
           </div>
-        ) : (
-          <span className="text-sm text-muted-foreground">—</span>
         )}
       </div>
     </Link>
