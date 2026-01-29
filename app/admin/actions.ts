@@ -1,7 +1,7 @@
 "use server";
 
 import { db } from "@/db";
-import { events, participations, props, users } from "@/db/schema";
+import { events, participations, props, users, userProps } from "@/db/schema";
 import { eq, sql, inArray, asc, desc, isNotNull, and, gte } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { createEventSlug, getUserEmail } from "@/lib/utils";
@@ -2193,5 +2193,270 @@ export async function deleteUser(userId: number) {
   } catch (error) {
     console.error("Error deleting user:", error);
     return { success: false, error: "Failed to delete user" };
+  }
+}
+
+/**
+ * Normalize prop names by finding and merging duplicates.
+ * Duplicates are identified by normalizing names (removing spaces, lowercasing).
+ * The canonical name is chosen as the one with spaces (e.g., "contact staff" over "contactstaff").
+ * 
+ * @returns Object with success status, merged count, and details of merged props
+ */
+export async function normalizeProps() {
+  // Check authentication
+  const { userId } = await auth();
+
+  if (!userId) {
+    return {
+      success: false,
+      error: "Unauthorized. You must be signed in to normalize props.",
+    };
+  }
+
+  // Check authorization: must be admin
+  const userIsAdmin = await isAdmin();
+
+  if (!userIsAdmin) {
+    return {
+      success: false,
+      error: "Unauthorized. Only admins can normalize props.",
+    };
+  }
+
+  try {
+    // Helper function to normalize a prop name for comparison
+    const normalizeName = (name: string): string => {
+      return name.trim().toLowerCase().replace(/\s+/g, "");
+    };
+
+    // Get all props
+    const allProps = await db
+      .select({
+        id: props.id,
+        name: props.name,
+      })
+      .from(props)
+      .orderBy(asc(props.name));
+
+    // Group props by normalized name
+    const propsByNormalized: Map<string, Array<{ id: number; name: string }>> = new Map();
+
+    for (const prop of allProps) {
+      const normalized = normalizeName(prop.name);
+      if (!propsByNormalized.has(normalized)) {
+        propsByNormalized.set(normalized, []);
+      }
+      propsByNormalized.get(normalized)!.push(prop);
+    }
+
+    // Find duplicates (groups with more than one prop)
+    const duplicates: Array<{
+      normalized: string;
+      props: Array<{ id: number; name: string }>;
+      canonical: { id: number; name: string };
+    }> = [];
+
+    for (const [normalized, propGroup] of propsByNormalized.entries()) {
+      if (propGroup.length > 1) {
+        // Choose canonical name: prefer one with spaces, otherwise the first alphabetically
+        const canonical = propGroup.reduce((best, current) => {
+          const bestHasSpaces = best.name.includes(" ");
+          const currentHasSpaces = current.name.includes(" ");
+          
+          if (currentHasSpaces && !bestHasSpaces) {
+            return current;
+          }
+          if (bestHasSpaces && !currentHasSpaces) {
+            return best;
+          }
+          // If both have spaces or neither has spaces, prefer alphabetically first
+          return current.name.localeCompare(best.name) < 0 ? current : best;
+        });
+
+        duplicates.push({
+          normalized,
+          props: propGroup,
+          canonical,
+        });
+      }
+    }
+
+    if (duplicates.length === 0) {
+      return {
+        success: true,
+        merged: 0,
+        message: "No duplicate props found.",
+        details: [],
+      };
+    }
+
+    // Merge duplicates
+    const mergeDetails: Array<{
+      canonical: string;
+      merged: string[];
+      canonicalId: number;
+    }> = [];
+    let totalMerged = 0;
+
+    for (const duplicate of duplicates) {
+      const canonicalId = duplicate.canonical.id;
+      const canonicalName = duplicate.canonical.name;
+      const duplicateIds = duplicate.props
+        .filter((p) => p.id !== canonicalId)
+        .map((p) => p.id);
+      const duplicateNames = duplicate.props
+        .filter((p) => p.id !== canonicalId)
+        .map((p) => p.name);
+
+      if (duplicateIds.length === 0) {
+        continue;
+      }
+
+      // Update user_props references
+      await db
+        .update(userProps)
+        .set({ propId: canonicalId })
+        .where(inArray(userProps.propId, duplicateIds));
+
+      // Update events references
+      await db
+        .update(events)
+        .set({ propId: canonicalId })
+        .where(inArray(events.propId, duplicateIds));
+
+      // Delete duplicate props
+      await db.delete(props).where(inArray(props.id, duplicateIds));
+
+      mergeDetails.push({
+        canonical: canonicalName,
+        merged: duplicateNames,
+        canonicalId,
+      });
+      totalMerged += duplicateIds.length;
+    }
+
+    // Revalidate paths
+    revalidatePath("/admin");
+    revalidatePath("/artists");
+    revalidatePath("/profile/edit");
+
+    return {
+      success: true,
+      merged: totalMerged,
+      message: `Successfully merged ${totalMerged} duplicate prop(s) into ${duplicates.length} canonical prop(s).`,
+      details: mergeDetails,
+    };
+  } catch (error) {
+    console.error("Error normalizing props:", error);
+    return {
+      success: false,
+      error: "Failed to normalize props",
+      merged: 0,
+      details: [],
+    };
+  }
+}
+
+/**
+ * Find duplicate props without merging them.
+ * Useful for previewing what would be merged.
+ * 
+ * @returns Object with duplicate groups
+ */
+export async function findDuplicateProps() {
+  // Check authentication
+  const { userId } = await auth();
+
+  if (!userId) {
+    return {
+      success: false,
+      error: "Unauthorized. You must be signed in to find duplicate props.",
+    };
+  }
+
+  // Check authorization: must be admin
+  const userIsAdmin = await isAdmin();
+
+  if (!userIsAdmin) {
+    return {
+      success: false,
+      error: "Unauthorized. Only admins can find duplicate props.",
+    };
+  }
+
+  try {
+    // Helper function to normalize a prop name for comparison
+    const normalizeName = (name: string): string => {
+      return name.trim().toLowerCase().replace(/\s+/g, "");
+    };
+
+    // Get all props
+    const allProps = await db
+      .select({
+        id: props.id,
+        name: props.name,
+      })
+      .from(props)
+      .orderBy(asc(props.name));
+
+    // Group props by normalized name
+    const propsByNormalized: Map<string, Array<{ id: number; name: string }>> = new Map();
+
+    for (const prop of allProps) {
+      const normalized = normalizeName(prop.name);
+      if (!propsByNormalized.has(normalized)) {
+        propsByNormalized.set(normalized, []);
+      }
+      propsByNormalized.get(normalized)!.push(prop);
+    }
+
+    // Find duplicates (groups with more than one prop)
+    const duplicates: Array<{
+      normalized: string;
+      props: Array<{ id: number; name: string }>;
+      suggestedCanonical: { id: number; name: string };
+    }> = [];
+
+    for (const [normalized, propGroup] of propsByNormalized.entries()) {
+      if (propGroup.length > 1) {
+        // Choose suggested canonical name: prefer one with spaces, otherwise the first alphabetically
+        const suggestedCanonical = propGroup.reduce((best, current) => {
+          const bestHasSpaces = best.name.includes(" ");
+          const currentHasSpaces = current.name.includes(" ");
+          
+          if (currentHasSpaces && !bestHasSpaces) {
+            return current;
+          }
+          if (bestHasSpaces && !currentHasSpaces) {
+            return best;
+          }
+          // If both have spaces or neither has spaces, prefer alphabetically first
+          return current.name.localeCompare(best.name) < 0 ? current : best;
+        });
+
+        duplicates.push({
+          normalized,
+          props: propGroup,
+          suggestedCanonical,
+        });
+      }
+    }
+
+    return {
+      success: true,
+      duplicates,
+      count: duplicates.length,
+      totalDuplicateProps: duplicates.reduce((sum, d) => sum + d.props.length, 0),
+    };
+  } catch (error) {
+    console.error("Error finding duplicate props:", error);
+    return {
+      success: false,
+      error: "Failed to find duplicate props",
+      duplicates: [],
+      count: 0,
+      totalDuplicateProps: 0,
+    };
   }
 }

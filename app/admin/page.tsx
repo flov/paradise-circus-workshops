@@ -14,6 +14,7 @@ import { redirect } from "next/navigation";
 import { getCurrentUserProfile, isAdmin } from "@/app/profile/actions";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { NormalizeProps } from "@/components/admin/normalize-props";
 
 // Helper function to calculate current week date range (Monday-Sunday)
 function getCurrentWeekRange(): { startDate: string; endDate: string } {
@@ -210,6 +211,8 @@ export default async function AdminPage() {
                 </div>
               </CardContent>
             </Card>
+
+            <NormalizeProps />
       </main>
     </div>
   );
