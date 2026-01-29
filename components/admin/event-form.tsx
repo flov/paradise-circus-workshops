@@ -551,15 +551,15 @@ export function EventForm({
                 className="h-4 w-4 rounded border-gray-300"
               />
               <Label htmlFor="isRecurring" className="cursor-pointer">
-                Recurring Workshop
+                Recurring event (weekly)
               </Label>
             </label>
             <p className="text-xs text-muted-foreground">
-              Check this box to create this workshop weekly. Events will be
+              Check this box to create this event weekly. Events will be
               automatically extended weekly, creating 1 event 1 week ahead.
               {userProfile.isInstructor && !userProfile.isAdmin && (
                 <span className="block mt-1">
-                  Your recurring workshop will be submitted for admin approval.
+                  Your recurring events will be submitted for admin approval.
                 </span>
               )}
             </p>
