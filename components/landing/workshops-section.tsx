@@ -100,7 +100,10 @@ export function WorkshopsSection({
           <CardHeader>
             <div className="flex items-start justify-between gap-4">
               <div>
-                <CardTitle className="text-xl md:text-2xl font-serif font-bold text-foreground">
+                <CardTitle
+                  className="text-xl md:text-2xl"
+                  style={{ fontFamily: "var(--font-rye)", fontWeight: 300 }}
+                >
                   Type of Workshops
                 </CardTitle>
                 <CardDescription className="text-sm md:text-base mt-1">
