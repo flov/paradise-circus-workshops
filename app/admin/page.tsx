@@ -8,13 +8,11 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Calendar, Users, TrendingUp, UserCheck, Clock } from "lucide-react";
+import { Calendar, Users, TrendingUp, UserCheck } from "lucide-react";
 import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import { getCurrentUserProfile, isAdmin } from "@/app/profile/actions";
-import Link from "next/link";
-import { Button } from "@/components/ui/button";
-import { NormalizeProps } from "@/components/admin/normalize-props";
+import { AdminNav } from "@/components/admin/admin-nav";
 
 // Helper function to calculate current week date range (Monday-Sunday)
 function getCurrentWeekRange(): { startDate: string; endDate: string } {
@@ -87,46 +85,10 @@ export default async function AdminPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="border-b border-border bg-card">
-        <div className="mx-auto max-w-7xl px-4 py-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold text-foreground">
-                Admin Dashboard
-              </h1>
-              <p className="text-sm text-muted-foreground mt-1">
-                Manage events and bookings
-              </p>
-            </div>
-            <div className="flex items-center gap-2">
-              <Link href="/admin/events">
-                <Button variant="outline">
-                  <Calendar className="h-4 w-4 mr-2" />
-                  Events
-                </Button>
-              </Link>
-              <Link href="/admin/participations">
-                <Button variant="outline">
-                  <UserCheck className="h-4 w-4 mr-2" />
-                  Participations
-                </Button>
-              </Link>
-              <Link href="/admin/pending-approval">
-                <Button variant="outline">
-                  <Clock className="h-4 w-4 mr-2" />
-                  Pending Approval
-                </Button>
-              </Link>
-              <Link href="/admin/users">
-                <Button variant="outline">
-                  <Users className="h-4 w-4 mr-2" />
-                  Users
-                </Button>
-              </Link>
-            </div>
-          </div>
-        </div>
-      </div>
+      <AdminNav
+        title="Admin Dashboard"
+        description="Manage events and bookings"
+      />
 
       <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
         {/* Main Content */}
@@ -211,8 +173,6 @@ export default async function AdminPage() {
                 </div>
               </CardContent>
             </Card>
-
-            <NormalizeProps />
       </main>
     </div>
   );

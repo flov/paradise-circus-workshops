@@ -2460,3 +2460,203 @@ export async function findDuplicateProps() {
     };
   }
 }
+
+/**
+ * Create a new prop
+ */
+export async function createProp(formData: FormData) {
+  // Check authentication
+  const { userId } = await auth();
+
+  if (!userId) {
+    return {
+      success: false,
+      error: "Unauthorized. You must be signed in to create props.",
+    };
+  }
+
+  // Check authorization: must be admin
+  const userIsAdmin = await isAdmin();
+
+  if (!userIsAdmin) {
+    return {
+      success: false,
+      error: "Unauthorized. Only admins can create props.",
+    };
+  }
+
+  const name = formData.get("name") as string;
+
+  // Validate required fields
+  if (!name || !name.trim()) {
+    return { success: false, error: "Prop name is required" };
+  }
+
+  try {
+    const newProp = await db
+      .insert(props)
+      .values({ name: name.trim() })
+      .returning({ id: props.id, name: props.name });
+
+    revalidatePath("/admin/props");
+    return {
+      success: true,
+      prop: newProp[0],
+    };
+  } catch (error) {
+    console.error("Error creating prop:", error);
+    if (error instanceof Error && error.message.includes("unique")) {
+      return {
+        success: false,
+        error: `A prop with the name "${name.trim()}" already exists.`,
+      };
+    }
+    return {
+      success: false,
+      error: "Failed to create prop",
+    };
+  }
+}
+
+/**
+ * Update an existing prop
+ */
+export async function updateProp(formData: FormData) {
+  // Check authentication
+  const { userId } = await auth();
+
+  if (!userId) {
+    return {
+      success: false,
+      error: "Unauthorized. You must be signed in to update props.",
+    };
+  }
+
+  // Check authorization: must be admin
+  const userIsAdmin = await isAdmin();
+
+  if (!userIsAdmin) {
+    return {
+      success: false,
+      error: "Unauthorized. Only admins can update props.",
+    };
+  }
+
+  const idInput = formData.get("id") as string;
+  const name = formData.get("name") as string;
+
+  // Validate required fields
+  if (!idInput || !name || !name.trim()) {
+    return { success: false, error: "Prop ID and name are required" };
+  }
+
+  const id = parseInt(idInput, 10);
+  if (isNaN(id)) {
+    return { success: false, error: "Invalid prop ID" };
+  }
+
+  try {
+    const updatedProp = await db
+      .update(props)
+      .set({ name: name.trim() })
+      .where(eq(props.id, id))
+      .returning({ id: props.id, name: props.name });
+
+    if (updatedProp.length === 0) {
+      return {
+        success: false,
+        error: "Prop not found",
+      };
+    }
+
+    revalidatePath("/admin/props");
+    return {
+      success: true,
+      prop: updatedProp[0],
+    };
+  } catch (error) {
+    console.error("Error updating prop:", error);
+    if (error instanceof Error && error.message.includes("unique")) {
+      return {
+        success: false,
+        error: `A prop with the name "${name.trim()}" already exists.`,
+      };
+    }
+    return {
+      success: false,
+      error: "Failed to update prop",
+    };
+  }
+}
+
+/**
+ * Delete a prop
+ */
+export async function deleteProp(formData: FormData) {
+  // Check authentication
+  const { userId } = await auth();
+
+  if (!userId) {
+    return {
+      success: false,
+      error: "Unauthorized. You must be signed in to delete props.",
+    };
+  }
+
+  // Check authorization: must be admin
+  const userIsAdmin = await isAdmin();
+
+  if (!userIsAdmin) {
+    return {
+      success: false,
+      error: "Unauthorized. Only admins can delete props.",
+    };
+  }
+
+  const idInput = formData.get("id") as string;
+
+  if (!idInput) {
+    return { success: false, error: "Prop ID is required" };
+  }
+
+  const id = parseInt(idInput, 10);
+  if (isNaN(id)) {
+    return { success: false, error: "Invalid prop ID" };
+  }
+
+  try {
+    // Check if prop is referenced by events or user_props
+    const eventsUsingProp = await db
+      .select({ count: sql<number>`COUNT(*)` })
+      .from(events)
+      .where(eq(events.propId, id));
+
+    const userPropsUsingProp = await db
+      .select({ count: sql<number>`COUNT(*)` })
+      .from(userProps)
+      .where(eq(userProps.propId, id));
+
+    const eventsCount = Number(eventsUsingProp[0]?.count || 0);
+    const userPropsCount = Number(userPropsUsingProp[0]?.count || 0);
+
+    if (eventsCount > 0 || userPropsCount > 0) {
+      return {
+        success: false,
+        error: `Cannot delete prop. It is currently used by ${eventsCount} event(s) and ${userPropsCount} user prop(s).`,
+      };
+    }
+
+    await db.delete(props).where(eq(props.id, id));
+
+    revalidatePath("/admin/props");
+    return {
+      success: true,
+    };
+  } catch (error) {
+    console.error("Error deleting prop:", error);
+    return {
+      success: false,
+      error: "Failed to delete prop",
+    };
+  }
+}
