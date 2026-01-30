@@ -91,8 +91,8 @@ export default function AboutPage() {
           <CardHeader>
             <CardTitle className="text-2xl">Founder</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-6 text-muted-foreground">
-            <div className="w-full max-w-md mx-auto rounded-lg overflow-hidden">
+          <CardContent className="text-muted-foreground">
+            <div className="float-right w-[300px] ml-6 mb-4 rounded-lg overflow-hidden">
               <Image
                 src="/joe.avif"
                 alt="Founder"
@@ -101,7 +101,7 @@ export default function AboutPage() {
                 className="w-full h-auto object-cover"
               />
             </div>
-            <p>
+            <p className="mb-6">
               Joe is the owner and founder of Paradise, a vibrant haven that
               blends the carefree spirit of the hippie lifestyle with a sense of
               community and creative expression. For two decades, Joe served as
@@ -111,16 +111,16 @@ export default function AboutPage() {
               different path, one that would allow him to pursue his passion for
               freedom and creative living.
             </p>
-            <p>
+            <p className="mb-6">
               When asked by a prominent official why he made the decision to
               forfeit a promising career to become the owner of Paradise, Joe's
               answer was simple yet profound:
             </p>
-            <p className="italic text-center py-4">
+            <p className="italic text-center py-4 mb-6">
               "I value freedom. I'm drawn to the hippie lifestyle, and I wanted
               to do something I truly love."
             </p>
-            <p>
+            <p className="mb-6">
               In addition to his role as a business owner, Joe is a devoted
               father, husband and provider. He is a natural mentor to a diverse
               and vibrant community of international travelers, artists, and
@@ -129,7 +129,7 @@ export default function AboutPage() {
               connection, where people of all ages can come together to share in
               the arts, enjoy flow arts, and experience the magic of community.
             </p>
-            <p>
+            <p className="mb-6">
               Joe's humble yet revered leadership fosters an environment where
               creativity, individuality, and the spirit of adventure thrive. He
               is a steady presence for those who seek not only a place to relax
