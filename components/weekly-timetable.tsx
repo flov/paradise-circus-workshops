@@ -536,7 +536,7 @@ export function WeeklyTimetable({
 
           {currentWeek !== 0 && (
             <Button variant="outline" onClick={goToCurrentWeek}>
-              This Week
+              Back to current Week
             </Button>
           )}
 
@@ -548,7 +548,7 @@ export function WeeklyTimetable({
               className="sm:hidden"
               aria-label="Scroll to now"
             >
-              Now
+              Happening Now
             </Button>
           )}
 
