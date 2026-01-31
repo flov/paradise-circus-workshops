@@ -10,6 +10,7 @@ import { CustomUserButton } from "@/components/custom-user-button";
 const navItems = [
   { href: "/", label: "Home" },
   { href: "/artists", label: "Artists" },
+  { href: "/timetable", label: "Timetable" },
   { href: "/about", label: "About" },
   { href: "/faq", label: "FAQ" },
 ];
