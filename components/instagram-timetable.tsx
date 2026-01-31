@@ -334,16 +334,11 @@ function EventCell({
     return (
       <div
         className="bg-[#4a4a4a] rounded-md sm:rounded-lg flex items-center justify-center p-0.5 sm:p-1 overflow-hidden"
-        style={{ ...gridStyle, opacity: 0.95 }}
+        style={{ ...gridStyle, opacity: 0.75 }}
       >
         <div className="text-center w-full">
-          <p
-            className="text-white font-bold text-[10px] sm:text-[13px] md:text-[14px] lg:text-base leading-tight"
-            style={{
-              fontFamily: "'Arial Black', 'Arial Bold', Arial, sans-serif",
-            }}
-          >
-            FREE FLOW
+          <p className="text-gray-300 font-normal text-[9px] sm:text-[11px] md:text-[12px] lg:text-sm leading-tight">
+            Free Flow
           </p>
         </div>
       </div>
@@ -370,7 +365,7 @@ function EventCell({
   return (
     <div
       className="bg-[#4a4a4a] rounded-md sm:rounded-lg flex items-center justify-center p-0.5 sm:p-1 overflow-hidden"
-      style={{ ...gridStyle, opacity: 0.95 }}
+      style={{ ...gridStyle, opacity: 0.97 }}
     >
       <div className="text-center w-full">
         <p
