@@ -58,13 +58,13 @@ export function PropsByUsersChart({ stats }: PropsByUsersChartProps) {
     };
   }, []);
 
-  // Filter to only show props with at least 1 artist
-  const propsWithUsers = stats.filter((s) => s.userCount > 0);
+  // Filter to only show props with at least 2 artists
+  const propsWithUsers = stats.filter((s) => s.userCount >= 2);
 
   // Helper function to render artist list content
   const renderArtistList = (prop: PropStat) => (
     <div className="space-y-3">
-      <div className="flex items-center justify-between">
+      <div className="flex gap-2 items-center">
         <h4 className="font-semibold">{prop.propName}</h4>
         <Badge variant="secondary">
           {prop.userCount} artist{prop.userCount !== 1 ? "s" : ""}
@@ -157,7 +157,7 @@ export function PropsByUsersChart({ stats }: PropsByUsersChartProps) {
             <div
               className={cn(
                 "cursor-pointer group",
-                isMobile && "touch-manipulation"
+                isMobile && "touch-manipulation",
               )}
               {...(isMobile && {
                 onClick: () => setOpenDialogPropId(prop.propId),
@@ -176,7 +176,7 @@ export function PropsByUsersChart({ stats }: PropsByUsersChartProps) {
                   className={cn(
                     "h-full rounded-full transition-all duration-500 ease-out",
                     "bg-primary",
-                    (isHovered || isDialogOpen) && "brightness-110"
+                    (isHovered || isDialogOpen) && "brightness-110",
                   )}
                   style={{
                     width: `${percentage}%`,
@@ -200,9 +200,6 @@ export function PropsByUsersChart({ stats }: PropsByUsersChartProps) {
                     }}
                   >
                     <DialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-md">
-                      <DialogHeader>
-                        <DialogTitle>{prop.propName}</DialogTitle>
-                      </DialogHeader>
                       {renderArtistList(prop)}
                     </DialogContent>
                   </Dialog>
