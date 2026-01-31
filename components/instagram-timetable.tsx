@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState, useMemo, useEffect } from "react";
 
 interface ScheduleEvent {
   name: string;
@@ -22,13 +22,31 @@ interface InstagramTimetableProps {
   data: ScheduleData;
   aspectRatio?: "square" | "portrait" | "landscape";
   location?: string;
+  stripeColor?: string;
 }
 
 export function InstagramTimetable({
   data,
   aspectRatio = "landscape",
   location = "paradise-stage",
+  stripeColor: initialStripeColor,
 }: InstagramTimetableProps) {
+  // Default colors based on location
+  const defaultStripeColor = useMemo(() => {
+    if (initialStripeColor) return initialStripeColor;
+    return location === "paradise-river" ? "#16a34a" : "#dc2626"; // green-600 for river, red-600 for stage
+  }, [location, initialStripeColor]);
+
+  const [stripeColor, setStripeColor] = useState(defaultStripeColor);
+  const [secondStripeColor, setSecondStripeColor] = useState("#1a1a1a"); // Default to black
+
+  // Update stripe color when location changes
+  useEffect(() => {
+    if (!initialStripeColor) {
+      setStripeColor(location === "paradise-river" ? "#16a34a" : "#dc2626");
+    }
+  }, [location, initialStripeColor]);
+
   const aspectClasses = {
     square: "aspect-square max-w-[1080px]",
     portrait: "aspect-[4/5] max-w-[864px]",
@@ -120,17 +138,46 @@ export function InstagramTimetable({
   });
 
   return (
-    <div
-      className={`relative w-full ${aspectClasses[aspectRatio]} overflow-hidden`}
-      style={{ fontFamily: "'Arial Black', 'Arial Bold', Arial, sans-serif" }}
-    >
-      {/* Sunburst Background */}
-      <div className="absolute inset-0">
-        <SunburstBackground location={location} />
+    <div className="w-full flex flex-col items-center gap-4">
+      {/* Color Pickers */}
+      <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3">
+          <label htmlFor="stripe-color" className="text-white text-sm font-medium">
+            Stripe Color:
+          </label>
+          <input
+            id="stripe-color"
+            type="color"
+            value={stripeColor}
+            onChange={(e) => setStripeColor(e.target.value)}
+            className="w-16 h-10 rounded cursor-pointer border-2 border-gray-400"
+          />
+        </div>
+        <div className="flex items-center gap-3">
+          <label htmlFor="second-stripe-color" className="text-white text-sm font-medium">
+            Second Stripe Color:
+          </label>
+          <input
+            id="second-stripe-color"
+            type="color"
+            value={secondStripeColor}
+            onChange={(e) => setSecondStripeColor(e.target.value)}
+            className="w-16 h-10 rounded cursor-pointer border-2 border-gray-400"
+          />
+        </div>
       </div>
 
-      {/* Content */}
-      <div className="relative z-10 h-full flex flex-col p-2 sm:p-3">
+      <div
+        className={`relative w-full ${aspectClasses[aspectRatio]} overflow-hidden`}
+        style={{ fontFamily: "'Arial Black', 'Arial Bold', Arial, sans-serif" }}
+      >
+        {/* Sunburst Background */}
+        <div className="absolute inset-0">
+          <SunburstBackground location={location} stripeColor={stripeColor} secondStripeColor={secondStripeColor} />
+        </div>
+
+        {/* Content */}
+        <div className="relative z-10 h-full flex flex-col p-2 sm:p-3">
         {/* Title */}
         <h1
           className="text-center font-normal text-white text-lg sm:text-2xl md:text-3xl lg:text-4xl tracking-wide mb-2 sm:mb-3"
@@ -214,6 +261,7 @@ export function InstagramTimetable({
             })}
           </div>
         </div>
+        </div>
       </div>
     </div>
   );
@@ -221,12 +269,15 @@ export function InstagramTimetable({
 
 function SunburstBackground({
   location = "paradise-stage",
+  stripeColor,
+  secondStripeColor,
 }: {
   location?: string;
+  stripeColor: string;
+  secondStripeColor: string;
 }) {
   const rays = 24;
   const rayElements = [];
-  const stripeColor = location === "paradise-river" ? "#16a34a" : "#dc2626"; // green-600 for river, red-600 for stage
 
   for (let i = 0; i < rays; i++) {
     const rotation = (360 / rays) * i;
@@ -243,7 +294,7 @@ function SunburstBackground({
           background:
             i % 2 === 0
               ? `linear-gradient(to right, ${stripeColor} 0%, ${stripeColor} 50%, transparent 50%)`
-              : "linear-gradient(to right, #1a1a1a 0%, #1a1a1a 50%, transparent 50%)",
+              : `linear-gradient(to right, ${secondStripeColor} 0%, ${secondStripeColor} 50%, transparent 50%)`,
           clipPath: `polygon(50% 50%, 40% 0%, 55% 0%)`,
         }}
       />,
