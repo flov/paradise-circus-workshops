@@ -15,11 +15,20 @@ const navItems = [
   { href: "/faq", label: "FAQ" },
 ];
 
-export function Navigation() {
+interface NavigationProps {
+  isAdmin?: boolean;
+}
+
+export function Navigation({ isAdmin = false }: NavigationProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
+  const allNavItems = [
+    ...navItems,
+    ...(isAdmin ? [{ href: "/admin", label: "Admin interface" }] : []),
+  ];
+
   return (
-    <nav className="fixed top-0 left-0 right-0 z-50 bg-background/90 backdrop-blur-md border-b border-border/50">
+    <nav className="fixed top-0 left-0 right-0 z-50 bg-background/90 backdrop-blur-md">
       <div className="max-w-6xl mx-auto px-4 py-2">
         <div className="flex items-center justify-between">
           {/* Logo */}
@@ -35,7 +44,7 @@ export function Navigation() {
 
           {/* Desktop nav */}
           <div className="hidden md:flex items-center gap-6">
-            {navItems.map((item) => (
+            {allNavItems.map((item) => (
               <Link
                 key={item.href}
                 href={item.href}
@@ -92,26 +101,18 @@ export function Navigation() {
 
         {/* Mobile menu */}
         {mobileMenuOpen && (
-          <div className="md:hidden pt-4 pb-2 border-border/50">
-            <div className="flex flex-col gap-4">
-              <Button
-                asChild
-                size="sm"
-                onClick={() => setMobileMenuOpen(false)}
-                className="rounded-full"
-              >
-                <Link href="/timetable">View timetable</Link>
-              </Button>
-
-              {navItems.map((item) => (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className="text-foreground hover:text-primary transition-colors text-base font-medium py-2"
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  {item.label}
-                </Link>
+          <div className="md:hidden py-2">
+            <div className="flex flex-col gap-2">
+              {allNavItems.map((item, index) => (
+                <div key={item.href}>
+                  <Link
+                    href={item.href}
+                    className="text-foreground hover:text-primary transition-colors text-base font-medium py-2 block"
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    {item.label}
+                  </Link>
+                </div>
               ))}
             </div>
           </div>

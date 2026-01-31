@@ -5,6 +5,7 @@ import { ClerkProvider } from "@clerk/nextjs";
 import { Navigation } from "@/components/navigation";
 import "./globals.css";
 import { Footer } from "@/components/footer";
+import { isAdmin } from "@/app/profile/actions";
 
 const _geist = Geist({ subsets: ["latin"] });
 const _geistMono = Geist_Mono({ subsets: ["latin"] });
@@ -35,11 +36,13 @@ export const viewport: Viewport = {
   ],
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const userIsAdmin = await isAdmin();
+
   return (
     <ClerkProvider
       appearance={{
@@ -59,7 +62,7 @@ export default function RootLayout({
     >
       <html lang="en">
         <body className={`font-sans antialiased ${rye.variable} min-h-screen flex flex-col`}>
-          <Navigation />
+          <Navigation isAdmin={userIsAdmin} />
           <div className="pt-12 flex-1">{children}</div>
           <Footer />
           <Analytics />
