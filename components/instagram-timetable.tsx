@@ -11,34 +11,6 @@ interface ScheduleEvent {
   isOccupied?: boolean; // True if this slot is occupied by a multi-slot event
 }
 
-// Single color scheme for all events
-const getEventColor = (event: ScheduleEvent | null): string => {
-  if (!event) return "from-slate-700 to-slate-800"; // FREE FLOW
-
-  if (event.isSpecial) {
-    return "from-orange-600 to-red-600"; // Special events
-  }
-
-  // Single consistent color for all regular events - dark blue-indigo gradient
-  return "from-indigo-700 to-indigo-900";
-};
-
-// Get rgba gradient string for semi-transparent backgrounds
-const getEventColorRgba = (event: ScheduleEvent | null): string => {
-  if (!event) {
-    // slate-700 to slate-800
-    return "linear-gradient(to bottom right, rgba(51, 65, 85, 0.9), rgba(30, 41, 59, 0.9))";
-  }
-
-  if (event.isSpecial) {
-    // orange-600 to red-600
-    return "linear-gradient(to bottom right, rgba(234, 88, 12, 0.9), rgba(220, 38, 38, 0.9))";
-  }
-
-  // indigo-700 to indigo-900
-  return "linear-gradient(to bottom right, rgba(67, 56, 202, 0.9), rgba(49, 46, 129, 0.9))";
-};
-
 interface ScheduleData {
   title: string;
   days: string[];
@@ -161,10 +133,10 @@ export function InstagramTimetable({
       <div className="relative z-10 h-full flex flex-col p-2 sm:p-3">
         {/* Title */}
         <h1
-          className="text-center font-normal text-white text-lg sm:text-2xl md:text-3xl lg:text-4xl tracking-wide mb-2 sm:mb-3 drop-shadow-2xl"
+          className="text-center font-normal text-white text-lg sm:text-2xl md:text-3xl lg:text-4xl tracking-wide mb-2 sm:mb-3"
           style={{
             textShadow:
-              "4px 4px 0 rgba(0,0,0,0.8), -2px -2px 0 rgba(0,0,0,0.8), 2px -2px 0 rgba(0,0,0,0.8), -2px 2px 0 rgba(0,0,0,0.8), 0 0 20px rgba(0,0,0,0.5)",
+              "3px 3px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000",
             fontFamily: "var(--font-rye), 'Rye', serif",
           }}
         >
@@ -174,35 +146,72 @@ export function InstagramTimetable({
         {/* Timetable Grid */}
         <div className="flex-1 min-h-0">
           <div
-            className="grid h-full gap-1 sm:gap-1.5 md:gap-2"
+            className="grid h-full gap-[2px] sm:gap-1"
             style={{
               gridTemplateColumns: `auto repeat(${data.days.length}, 1fr)`,
               gridTemplateRows: `auto repeat(${data.timeSlots.length}, 1fr)`,
             }}
           >
             {/* Header Row */}
-            <HeaderCell>TIME</HeaderCell>
-            {data.days.map((day) => (
-              <HeaderCell key={day}>{day}</HeaderCell>
+            <HeaderCell style={{ gridRow: 1, gridColumn: 1 }}>TIME</HeaderCell>
+            {data.days.map((day, dayIndex) => (
+              <HeaderCell
+                key={day}
+                style={{ gridRow: 1, gridColumn: dayIndex + 2 }}
+              >
+                {day}
+              </HeaderCell>
             ))}
 
             {/* Time Rows */}
-            {data.timeSlots.map((time, timeIndex) => (
-              <React.Fragment key={time}>
-                <TimeCell>{time}</TimeCell>
-                {data.days.map((day, dayIndex) => {
-                  const key = `${time}-${day}`;
-                  const event = data.events[key];
-                  const { span, shouldRender } = cellData[key];
+            {data.timeSlots.map((time, timeIndex) => {
+              // Calculate the grid row (1-indexed, +1 for header row)
+              const gridRow = timeIndex + 2;
 
-                  if (!shouldRender) {
-                    return null;
-                  }
+              return (
+                <React.Fragment key={time}>
+                  <TimeCell style={{ gridRow, gridColumn: 1 }}>{time}</TimeCell>
+                  {data.days.map((day, dayIndex) => {
+                    const key = `${time}-${day}`;
+                    const event = data.events[key];
+                    const cellInfo = cellData[key];
 
-                  return <EventCell key={key} event={event} rowSpan={span} />;
-                })}
-              </React.Fragment>
-            ))}
+                    // Calculate grid column (1-indexed, +1 for time column)
+                    const gridColumn = dayIndex + 2;
+
+                    // Ensure cellData exists - if not, calculate defaults
+                    if (!cellInfo) {
+                      return (
+                        <EventCell
+                          key={key}
+                          event={event || null}
+                          rowSpan={1}
+                          gridRow={gridRow}
+                          gridColumn={gridColumn}
+                        />
+                      );
+                    }
+
+                    const { span, shouldRender } = cellInfo;
+
+                    // Don't render cells that are part of a span - CSS Grid handles this automatically
+                    if (!shouldRender) {
+                      return null;
+                    }
+
+                    return (
+                      <EventCell
+                        key={key}
+                        event={event}
+                        rowSpan={span}
+                        gridRow={gridRow}
+                        gridColumn={gridColumn}
+                      />
+                    );
+                  })}
+                </React.Fragment>
+              );
+            })}
           </div>
         </div>
       </div>
@@ -217,9 +226,7 @@ function SunburstBackground({
 }) {
   const rays = 24;
   const rayElements = [];
-  // Use brighter, more saturated colors
-  const stripeColor = location === "paradise-river" ? "#22c55e" : "#ef4444"; // green-500 for river, red-500 for stage (brighter)
-  const baseColor = location === "paradise-river" ? "#16a34a" : "#dc2626"; // green-600 for river, red-600 for stage
+  const stripeColor = location === "paradise-river" ? "#16a34a" : "#dc2626"; // green-600 for river, red-600 for stage
 
   for (let i = 0; i < rays; i++) {
     const rotation = (360 / rays) * i;
@@ -236,7 +243,7 @@ function SunburstBackground({
           background:
             i % 2 === 0
               ? `linear-gradient(to right, ${stripeColor} 0%, ${stripeColor} 50%, transparent 50%)`
-              : `linear-gradient(to right, ${baseColor} 0%, ${baseColor} 50%, transparent 50%)`,
+              : "linear-gradient(to right, #1a1a1a 0%, #1a1a1a 50%, transparent 50%)",
           clipPath: `polygon(50% 50%, 40% 0%, 55% 0%)`,
         }}
       />,
@@ -246,26 +253,27 @@ function SunburstBackground({
   return (
     <div
       className={`absolute inset-0 overflow-hidden`}
-      style={{
-        backgroundColor: stripeColor,
-        backgroundImage: `radial-gradient(circle at center, ${stripeColor} 0%, ${baseColor} 50%)`,
-      }}
+      style={{ backgroundColor: stripeColor }}
     >
       {rayElements}
     </div>
   );
 }
 
-function HeaderCell({ children }: { children: React.ReactNode }) {
+function HeaderCell({
+  children,
+  style,
+}: {
+  children: React.ReactNode;
+  style?: React.CSSProperties;
+}) {
   return (
-    <div 
-      className="rounded-lg sm:rounded-xl flex items-center justify-center px-1 py-0.5 sm:px-2 sm:py-1 shadow-lg border border-gray-600/50 backdrop-blur-[1px]"
-      style={{
-        background: 'linear-gradient(to bottom right, rgba(31, 41, 55, 0.9), rgba(55, 65, 81, 0.9), rgba(31, 41, 55, 0.9))'
-      }}
+    <div
+      className="bg-[#4a4a4a] rounded-md sm:rounded-lg flex items-center justify-center px-1 py-0.5 sm:px-2 sm:py-1"
+      style={style}
     >
       <span
-        className="text-white font-black text-[10px] sm:text-sm md:text-base lg:text-lg tracking-wide text-center drop-shadow-lg"
+        className="text-white font-black text-[10px] sm:text-sm md:text-base lg:text-lg tracking-wide text-center"
         style={{ fontFamily: "'Arial Black', 'Arial Bold', Arial, sans-serif" }}
       >
         {children}
@@ -274,16 +282,20 @@ function HeaderCell({ children }: { children: React.ReactNode }) {
   );
 }
 
-function TimeCell({ children }: { children: React.ReactNode }) {
+function TimeCell({
+  children,
+  style,
+}: {
+  children: React.ReactNode;
+  style?: React.CSSProperties;
+}) {
   return (
-    <div 
-      className="rounded-lg sm:rounded-xl flex items-center justify-center px-1 py-0.5 sm:px-2 sm:py-1 shadow-md border border-gray-600/40 backdrop-blur-[1px]"
-      style={{
-        background: 'linear-gradient(to right, rgba(31, 41, 55, 0.9), rgba(55, 65, 81, 0.9), rgba(31, 41, 55, 0.9))'
-      }}
+    <div
+      className="bg-[#4a4a4a] rounded-md sm:rounded-lg flex items-center justify-center px-1 py-0.5 sm:px-2 sm:py-1"
+      style={style}
     >
       <span
-        className="text-white font-black text-[8px] sm:text-xs md:text-sm lg:text-base tracking-wide drop-shadow-md"
+        className="text-white font-black text-[8px] sm:text-xs md:text-sm lg:text-base tracking-wide"
         style={{ fontFamily: "'Arial Black', 'Arial Bold', Arial, sans-serif" }}
       >
         {children}
@@ -295,34 +307,38 @@ function TimeCell({ children }: { children: React.ReactNode }) {
 function EventCell({
   event,
   rowSpan = 1,
+  gridRow,
+  gridColumn,
 }: {
   event: ScheduleEvent | null;
   rowSpan?: number;
+  gridRow?: number;
+  gridColumn?: number;
 }) {
-  // Apply grid-row-span style if this event spans multiple rows
-  const gridRowStyle =
-    rowSpan > 1
-      ? {
-          gridRow: `span ${rowSpan}`,
-        }
-      : {};
-
-  const colorClass = getEventColor(event);
-  const eventNameUpper = event?.name?.toUpperCase() || "";
-  const isSpecial = eventNameUpper.includes("FIRESHOW");
+  // Apply explicit grid positioning and row span
+  const gridStyle: React.CSSProperties = {};
+  if (gridRow !== undefined) {
+    if (rowSpan > 1) {
+      gridStyle.gridRow = `${gridRow} / span ${rowSpan}`;
+    } else {
+      gridStyle.gridRow = gridRow;
+    }
+  } else if (rowSpan > 1) {
+    gridStyle.gridRow = `span ${rowSpan}`;
+  }
+  if (gridColumn !== undefined) {
+    gridStyle.gridColumn = gridColumn;
+  }
 
   if (!event) {
     return (
       <div
-        className="rounded-lg sm:rounded-xl flex items-center justify-center p-0.5 sm:p-1 overflow-hidden shadow-md border border-gray-600/30 backdrop-blur-[1px] transition-all duration-200 hover:shadow-lg hover:scale-[1.02]"
-        style={{
-          ...gridRowStyle,
-          background: getEventColorRgba(event),
-        }}
+        className="bg-[#4a4a4a] rounded-md sm:rounded-lg flex items-center justify-center p-0.5 sm:p-1 overflow-hidden"
+        style={{ ...gridStyle, opacity: 0.95 }}
       >
         <div className="text-center w-full">
           <p
-            className="text-white/90 font-bold text-[10px] sm:text-[13px] md:text-[14px] lg:text-base leading-tight drop-shadow-md"
+            className="text-white font-bold text-[10px] sm:text-[13px] md:text-[14px] lg:text-base leading-tight"
             style={{
               fontFamily: "'Arial Black', 'Arial Bold', Arial, sans-serif",
             }}
@@ -337,20 +353,15 @@ function EventCell({
   if (event.isLogo) {
     return (
       <div
-        className="rounded-lg sm:rounded-xl flex items-center justify-center p-1 shadow-xl border-2 border-white/20 backdrop-blur-[1px]"
-        style={{
-          ...gridRowStyle,
-          background: "linear-gradient(to bottom right, rgba(0, 0, 0, 0.9), rgba(17, 24, 39, 0.9), rgba(0, 0, 0, 0.9))",
-        }}
+        className="bg-black rounded-md sm:rounded-lg flex items-center justify-center p-1"
+        style={gridStyle}
       >
         <div className="text-white text-center">
-          <div className="text-[6px] sm:text-[8px] italic opacity-80">The</div>
-          <div className="text-[8px] sm:text-xs font-black border-2 border-white px-1 py-0.5 shadow-lg">
+          <div className="text-[6px] sm:text-[8px] italic">The</div>
+          <div className="text-[8px] sm:text-xs font-black border border-white px-1">
             PARADISE
           </div>
-          <div className="text-[8px] sm:text-xs font-black drop-shadow-lg">
-            CIRCUS
-          </div>
+          <div className="text-[8px] sm:text-xs font-black">CIRCUS</div>
         </div>
       </div>
     );
@@ -358,21 +369,12 @@ function EventCell({
 
   return (
     <div
-      className={`rounded-lg sm:rounded-xl flex items-center justify-center p-0.5 sm:p-1 overflow-hidden shadow-lg border-2 ${
-        isSpecial
-          ? "border-orange-400/60 shadow-orange-500/30"
-          : "border-white/20"
-      } backdrop-blur-[1px] transition-all duration-200 hover:shadow-xl hover:scale-[1.02] hover:brightness-110`}
-      style={{
-        ...gridRowStyle,
-        background: getEventColorRgba(event),
-      }}
+      className="bg-[#4a4a4a] rounded-md sm:rounded-lg flex items-center justify-center p-0.5 sm:p-1 overflow-hidden"
+      style={{ ...gridStyle, opacity: 0.95 }}
     >
-      <div className="text-center w-full px-0.5">
+      <div className="text-center w-full">
         <p
-          className={`text-white font-black text-[10px] sm:text-[13px] md:text-[14px] lg:text-base leading-tight line-clamp-2 drop-shadow-lg ${
-            isSpecial ? "text-yellow-100" : ""
-          }`}
+          className="text-white font-bold text-[10px] sm:text-[13px] md:text-[14px] lg:text-base leading-tight line-clamp-2"
           style={{
             fontFamily: "'Arial Black', 'Arial Bold', Arial, sans-serif",
           }}
@@ -381,9 +383,7 @@ function EventCell({
         </p>
         {event.instructor && (
           <p
-            className={`text-white font-semibold text-[9px] sm:text-[11px] md:text-[12px] lg:text-sm leading-tight mt-0.5 drop-shadow-md ${
-              isSpecial ? "text-yellow-50 opacity-95" : "opacity-90"
-            }`}
+            className="text-white font-bold text-[9px] sm:text-[11px] md:text-[12px] lg:text-sm leading-tight"
             style={{ fontFamily: "'Arial', sans-serif" }}
           >
             {event.instructor}
