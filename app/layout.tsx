@@ -17,7 +17,7 @@ const rye = Rye({
 export const metadata: Metadata = {
   title: "Paradise Circus",
   description:
-    "Book and manage your workshop sessions with ease at Paradise Circus.",
+    "The website of Paradise Circus in Pai, Thailand. Discover what Paradise Circus is about, explore our talented artists, view our up-to-date timetable, and join our workshops.",
   icons: {
     icon: [
       { url: "/favicon.svg", type: "image/svg+xml", sizes: "any" },
