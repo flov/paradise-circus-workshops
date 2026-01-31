@@ -3,7 +3,7 @@
 import { db } from "@/db";
 import { events, participations, props, users, userProps } from "@/db/schema";
 import { eq, sql, inArray, asc, desc, isNotNull, and, gte } from "drizzle-orm";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { createEventSlug, getUserEmail } from "@/lib/utils";
 import { auth, currentUser } from "@clerk/nextjs/server";
 import { isAdmin, isInstructor, getAllAdmins } from "@/app/profile/actions";
@@ -2499,6 +2499,7 @@ export async function createProp(formData: FormData) {
       .returning({ id: props.id, name: props.name });
 
     revalidatePath("/admin/props");
+    revalidateTag("props-stats");
     return {
       success: true,
       prop: newProp[0],
@@ -2570,6 +2571,7 @@ export async function updateProp(formData: FormData) {
     }
 
     revalidatePath("/admin/props");
+    revalidateTag("props-stats");
     return {
       success: true,
       prop: updatedProp[0],
@@ -2649,6 +2651,7 @@ export async function deleteProp(formData: FormData) {
     await db.delete(props).where(eq(props.id, id));
 
     revalidatePath("/admin/props");
+    revalidateTag("props-stats");
     return {
       success: true,
     };

@@ -1,6 +1,7 @@
 import { db } from "@/db";
 import { events, participations, props, users, userProps } from "@/db/schema";
-import { count, sql, eq, desc, gte, and, isNotNull } from "drizzle-orm";
+import { count, sql, eq, desc, gte, and, isNotNull, inArray } from "drizzle-orm";
+import { unstable_cache } from "next/cache";
 
 // Types for statistics data
 export interface PropStatUser {
@@ -49,9 +50,10 @@ export interface TimeSlotData {
 }
 
 /**
- * Get props statistics with user counts and user details
+ * Get props statistics with user counts and user details (uncached)
+ * This function performs the actual database queries
  */
-export async function getPropsStats(): Promise<PropStat[]> {
+async function getPropsStatsUncached(): Promise<PropStat[]> {
   // Get all props with user counts
   const propsWithCounts = await db
     .select({
@@ -64,44 +66,79 @@ export async function getPropsStats(): Promise<PropStat[]> {
     .groupBy(props.id, props.name)
     .orderBy(desc(sql`COUNT(DISTINCT ${userProps.userId})`));
 
-  // Get users for each prop
-  const propsStats: PropStat[] = [];
+  // Filter to only props with users for batch query
+  const propsWithUsers = propsWithCounts.filter((p) => p.userCount > 0);
+  const propIds = propsWithUsers.map((p) => p.propId);
 
-  for (const prop of propsWithCounts) {
-    if (prop.userCount === 0) {
-      propsStats.push({
-        propId: prop.propId,
-        propName: prop.propName,
-        userCount: 0,
-        users: [],
-      });
-      continue;
+  // Batch fetch all users for all props in a single query
+  const allUsers = propIds.length > 0
+    ? await db
+        .select({
+          propId: userProps.propId,
+          id: users.id,
+          username: users.username,
+          displayName: users.displayName,
+          avatarImageUrl: users.avatarImageUrl,
+          bio: users.bio,
+          skillLevel: userProps.skillLevel,
+        })
+        .from(userProps)
+        .innerJoin(users, eq(userProps.userId, users.id))
+        .where(inArray(userProps.propId, propIds))
+    : [];
+
+  // Sort by skillLevel descending, then group by propId and limit to top 8 per prop
+  allUsers.sort((a, b) => {
+    // First sort by propId, then by skillLevel desc
+    if (a.propId !== b.propId) {
+      return a.propId - b.propId;
     }
+    return b.skillLevel - a.skillLevel;
+  });
 
-    const propUsers = await db
-      .select({
-        id: users.id,
-        username: users.username,
-        displayName: users.displayName,
-        avatarImageUrl: users.avatarImageUrl,
-        bio: users.bio,
-        skillLevel: userProps.skillLevel,
-      })
-      .from(userProps)
-      .innerJoin(users, eq(userProps.userId, users.id))
-      .where(eq(userProps.propId, prop.propId))
-      .orderBy(desc(userProps.skillLevel));
-
-    propsStats.push({
-      propId: prop.propId,
-      propName: prop.propName,
-      userCount: prop.userCount,
-      users: propUsers,
-    });
+  // Group users by propId and limit to top 8 per prop
+  const usersByPropId = new Map<number, PropStatUser[]>();
+  for (const user of allUsers) {
+    if (!usersByPropId.has(user.propId)) {
+      usersByPropId.set(user.propId, []);
+    }
+    const propUsers = usersByPropId.get(user.propId)!;
+    // Limit to 8 users per prop (matching component display limit)
+    if (propUsers.length < 8) {
+      propUsers.push({
+        id: user.id,
+        username: user.username,
+        displayName: user.displayName,
+        avatarImageUrl: user.avatarImageUrl,
+        bio: user.bio,
+        skillLevel: user.skillLevel,
+      });
+    }
   }
+
+  // Build final result array
+  const propsStats: PropStat[] = propsWithCounts.map((prop) => ({
+    propId: prop.propId,
+    propName: prop.propName,
+    userCount: prop.userCount,
+    users: usersByPropId.get(prop.propId) || [],
+  }));
 
   return propsStats;
 }
+
+/**
+ * Get props statistics with user counts and user details
+ * Cached for 4 hours to improve performance
+ */
+export const getPropsStats = unstable_cache(
+  async () => getPropsStatsUncached(),
+  ["props-stats"],
+  {
+    revalidate: 14400, // 4 hours in seconds
+    tags: ["props-stats"],
+  }
+);
 
 /**
  * Get community growth data (users by week)

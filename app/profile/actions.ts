@@ -3,7 +3,7 @@
 import { db } from "@/db";
 import { users, userProps, props, events } from "@/db/schema";
 import { eq, asc, desc, sql, and } from "drizzle-orm";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { auth, currentUser } from "@clerk/nextjs/server";
 import { validateUsername, extractYouTubeId, extractVimeoId, validateInstagramHandle, isEventPast } from "@/lib/utils";
 import type { UserProfile, UserProp, PropOption } from "@/lib/types";
@@ -303,6 +303,10 @@ export async function createProfile(formData: FormData) {
     revalidatePath("/artists");
     revalidatePath("/profile/edit");
     revalidatePath("/onboarding");
+    // Invalidate props stats cache when user props are modified
+    if (propsJson) {
+      revalidateTag("props-stats");
+    }
 
     return { success: true, username: normalizedUsername };
   } catch (error: unknown) {
