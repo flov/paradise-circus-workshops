@@ -11,6 +11,7 @@ const navItems = [
   { href: "/", label: "Home" },
   { href: "/artists", label: "Artists" },
   { href: "/timetable", label: "Timetable" },
+  { href: "/statistics", label: "Statistics" },
   { href: "/about", label: "About" },
   { href: "/faq", label: "FAQ" },
 ];

@@ -77,7 +77,7 @@ export function PropsByUsersChart({ stats }: PropsByUsersChartProps) {
             Artists using this prop:
           </p>
           <div className="flex flex-wrap gap-2">
-            {prop.users.slice(0, 8).map((user) => (
+            {prop.users.slice(0, 13).map((user) => (
               <Tooltip key={user.id}>
                 <TooltipTrigger asChild>
                   <Link
@@ -116,9 +116,9 @@ export function PropsByUsersChart({ stats }: PropsByUsersChartProps) {
                 </TooltipContent>
               </Tooltip>
             ))}
-            {prop.users.length > 8 && (
+            {prop.users.length > 13 && (
               <div className="flex items-center justify-center size-8 rounded-full bg-muted text-xs font-medium text-muted-foreground">
-                +{prop.users.length - 8}
+                +{prop.users.length - 13}
               </div>
             )}
           </div>
