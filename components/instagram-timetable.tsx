@@ -1,10 +1,14 @@
 "use client";
 
 import React, { useState, useMemo, useEffect } from "react";
+import Link from "next/link";
+import { createEventSlug } from "@/lib/utils";
 
 interface ScheduleEvent {
   name: string;
   instructor: string;
+  eventId?: number;
+  instructorUsername?: string;
   isLogo?: boolean;
   isSpecial?: boolean;
   span?: number; // Number of time slots this event spans
@@ -432,21 +436,51 @@ function EventCell({
           }}
         >
           <div className="text-center w-full">
-            <p
-              className="text-white font-bold text-[10px] sm:text-[13px] md:text-[14px] lg:text-base leading-tight line-clamp-2"
-              style={{
-                fontFamily: "'Arial Black', 'Arial Bold', Arial, sans-serif",
-              }}
-            >
-              {event.name}
-            </p>
-            {event.instructor && (
-              <p
-                className="text-white font-bold text-[9px] sm:text-[11px] md:text-[12px] lg:text-sm leading-tight"
-                style={{ fontFamily: "'Arial', sans-serif" }}
+            {event.eventId ? (
+              <Link
+                href={`/event/${createEventSlug(event.eventId, event.name, event.instructor)}`}
+                className="hover:underline"
               >
-                {event.instructor}
+                <p
+                  className="text-white font-bold text-[10px] sm:text-[13px] md:text-[14px] lg:text-base leading-tight line-clamp-2"
+                  style={{
+                    fontFamily: "'Arial Black', 'Arial Bold', Arial, sans-serif",
+                  }}
+                >
+                  {event.name}
+                </p>
+              </Link>
+            ) : (
+              <p
+                className="text-white font-bold text-[10px] sm:text-[13px] md:text-[14px] lg:text-base leading-tight line-clamp-2"
+                style={{
+                  fontFamily: "'Arial Black', 'Arial Bold', Arial, sans-serif",
+                }}
+              >
+                {event.name}
               </p>
+            )}
+            {event.instructor && (
+              event.instructorUsername ? (
+                <Link
+                  href={`/artists/${event.instructorUsername}`}
+                  className="hover:underline"
+                >
+                  <p
+                    className="text-white font-bold text-[9px] sm:text-[11px] md:text-[12px] lg:text-sm leading-tight"
+                    style={{ fontFamily: "'Arial', sans-serif" }}
+                  >
+                    {event.instructor}
+                  </p>
+                </Link>
+              ) : (
+                <p
+                  className="text-white font-bold text-[9px] sm:text-[11px] md:text-[12px] lg:text-sm leading-tight"
+                  style={{ fontFamily: "'Arial', sans-serif" }}
+                >
+                  {event.instructor}
+                </p>
+              )
             )}
           </div>
         </div>
@@ -460,21 +494,51 @@ function EventCell({
       style={{ ...gridStyle, opacity: 0.97 }}
     >
       <div className="text-center w-full">
-        <p
-          className="text-white font-bold text-[10px] sm:text-[13px] md:text-[14px] lg:text-base leading-tight line-clamp-2"
-          style={{
-            fontFamily: "'Arial Black', 'Arial Bold', Arial, sans-serif",
-          }}
-        >
-          {event.name}
-        </p>
-        {event.instructor && (
-          <p
-            className="text-white font-bold text-[9px] sm:text-[11px] md:text-[12px] lg:text-sm leading-tight"
-            style={{ fontFamily: "'Arial', sans-serif" }}
+        {event.eventId ? (
+          <Link
+            href={`/event/${createEventSlug(event.eventId, event.name, event.instructor)}`}
+            className="hover:underline"
           >
-            {event.instructor}
+            <p
+              className="text-white font-bold text-[10px] sm:text-[13px] md:text-[14px] lg:text-base leading-tight line-clamp-2"
+              style={{
+                fontFamily: "'Arial Black', 'Arial Bold', Arial, sans-serif",
+              }}
+            >
+              {event.name}
+            </p>
+          </Link>
+        ) : (
+          <p
+            className="text-white font-bold text-[10px] sm:text-[13px] md:text-[14px] lg:text-base leading-tight line-clamp-2"
+            style={{
+              fontFamily: "'Arial Black', 'Arial Bold', Arial, sans-serif",
+            }}
+          >
+            {event.name}
           </p>
+        )}
+        {event.instructor && (
+          event.instructorUsername ? (
+            <Link
+              href={`/artists/${event.instructorUsername}`}
+              className="hover:underline"
+            >
+              <p
+                className="text-white font-bold text-[9px] sm:text-[11px] md:text-[12px] lg:text-sm leading-tight"
+                style={{ fontFamily: "'Arial', sans-serif" }}
+              >
+                {event.instructor}
+              </p>
+            </Link>
+          ) : (
+            <p
+              className="text-white font-bold text-[9px] sm:text-[11px] md:text-[12px] lg:text-sm leading-tight"
+              style={{ fontFamily: "'Arial', sans-serif" }}
+            >
+              {event.instructor}
+            </p>
+          )
         )}
       </div>
     </div>

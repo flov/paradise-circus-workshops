@@ -627,17 +627,21 @@ export async function getInstagramTimetableData(
     // Fetch events for the selected location
     // Use case-insensitive matching with SQL template to handle variations
     // Handle null locations by checking if location is not null first
+    const { users } = await import("@/db/schema");
     const eventsData = await db
       .select({
         id: events.id,
         title: events.title,
         instructor: events.instructor,
+        instructorId: events.instructorId,
         date: events.date,
         startTime: events.startTime,
         endTime: events.endTime,
         location: events.location,
+        instructorUsername: users.username,
       })
       .from(events)
+      .leftJoin(users, eq(events.instructorId, users.id))
       .where(
         and(
           gte(events.date, startDateStr),
@@ -720,6 +724,8 @@ export async function getInstagramTimetableData(
       {
         name: string;
         instructor: string;
+        eventId?: number;
+        instructorUsername?: string;
         isLogo?: boolean;
         isSpecial?: boolean;
         span?: number;
@@ -786,6 +792,8 @@ export async function getInstagramTimetableData(
         eventsMap[key] = {
           name: event.title,
           instructor: event.instructor || "",
+          eventId: event.id,
+          instructorUsername: event.instructorUsername || undefined,
           isSpecial,
           span, // Store span for CSS grid row spanning
           startsAtHalfHour, // Flag for half-hour starts
