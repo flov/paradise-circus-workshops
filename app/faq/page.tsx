@@ -6,6 +6,10 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import Link from "next/link";
+import { db } from "@/db";
+import { users } from "@/db/schema";
+import { eq, or } from "drizzle-orm";
 
 export const metadata: Metadata = {
   title: {
@@ -13,7 +17,30 @@ export const metadata: Metadata = {
   },
 };
 
-export default function FAQPage() {
+async function getFlowWizardUsername(): Promise<string | null> {
+  try {
+    const result = await db
+      .select({ username: users.username })
+      .from(users)
+      .where(
+        or(
+          eq(users.displayName, "The Flow Wizard"),
+          eq(users.username, "flow-wizard"),
+          eq(users.username, "the-flow-wizard"),
+        ),
+      )
+      .limit(1);
+
+    return result.length > 0 ? result[0].username : null;
+  } catch (error) {
+    console.error("Error fetching Flow Wizard username:", error);
+    return null;
+  }
+}
+
+export default async function FAQPage() {
+  const flowWizardUsername = await getFlowWizardUsername();
+
   return (
     <div className="min-h-screen bg-background">
       <main
@@ -156,6 +183,50 @@ export default function FAQPage() {
                   backgrounds, and skill levels. Our mission is to create a
                   space where everyone can discover themselves, find their
                   voice, and be part of something larger.
+                </AccordionContent>
+              </AccordionItem>
+            </Accordion>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-2xl">Contributing</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Accordion>
+              <AccordionItem value="open-source">
+                <AccordionTrigger value="open-source">
+                  Is this website open source? Can I contribute?
+                </AccordionTrigger>
+                <AccordionContent value="open-source">
+                  Yes! This website is completely open source and built with
+                  modern web technologies. The platform runs on the latest
+                  version of Next.js and uses serverless functions deployed on
+                  Vercel. The entire codebase is available on{" "}
+                  <Link
+                    href="https://github.com/flov/paradise-circus-workshops"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-primary hover:underline font-medium"
+                  >
+                    GitHub
+                  </Link>
+                  .
+                  <br />
+                  <br />
+                  We welcome contributions from developers! If you have a
+                  feature idea, bug fix, or improvement you'd like to
+                  contribute, feel free to open a pull request on GitHub. For
+                  questions or to discuss your contribution ideas, you can
+                  contact{" "}
+                  <Link
+                    href={"/artists/the_flow_wizard"}
+                    className="text-primary hover:underline font-medium"
+                  >
+                    The Flow Wizard
+                  </Link>{" "}
+                  or simply open a pull request and we'll review it.
                 </AccordionContent>
               </AccordionItem>
             </Accordion>
