@@ -177,55 +177,7 @@ export async function POST(request: NextRequest) {
     try {
       console.log("🔍 [WEBHOOK] Starting cleanup for user:", clerkUserId)
       
-      // Find all participations for this user before deleting
-      const userParticipations = await db
-        .select({ eventId: participations.eventId })
-        .from(participations)
-        .where(eq(participations.clerkUserId, clerkUserId))
-
-      console.log(`📅 [WEBHOOK] Found ${userParticipations.length} participation(s) for user`)
-
-      // Group participations by eventId and count them
-      const participationsByEvent = userParticipations.reduce((acc, participation) => {
-        acc[participation.eventId] = (acc[participation.eventId] || 0) + 1
-        return acc
-      }, {} as Record<number, number>)
-
-      console.log("📊 [WEBHOOK] Participations by event:", participationsByEvent)
-
-      // Delete all participations for this user
-      if (userParticipations.length > 0) {
-        await db.delete(participations).where(eq(participations.clerkUserId, clerkUserId))
-        console.log(`✅ [WEBHOOK] Deleted ${userParticipations.length} participation(s)`)
-
-        // Update participation counts for affected events
-        for (const [eventId, count] of Object.entries(participationsByEvent)) {
-          await db
-            .update(events)
-            .set({ currentBookings: sql`${events.currentBookings} - ${count}` })
-            .where(eq(events.id, parseInt(eventId)))
-          console.log(`📉 [WEBHOOK] Updated event ${eventId} participation count: -${count}`)
-        }
-      } else {
-        console.log("ℹ️  [WEBHOOK] No participations to delete")
-      }
-
-      // Find and delete all comments for this user
-      const userComments = await db
-        .select({ id: comments.id })
-        .from(comments)
-        .where(eq(comments.clerkUserId, clerkUserId))
-
-      console.log(`💬 [WEBHOOK] Found ${userComments.length} comment(s) for user`)
-
-      if (userComments.length > 0) {
-        await db.delete(comments).where(eq(comments.clerkUserId, clerkUserId))
-        console.log(`✅ [WEBHOOK] Deleted ${userComments.length} comment(s)`)
-      } else {
-        console.log("ℹ️  [WEBHOOK] No comments to delete")
-      }
-
-      // Check if user record exists
+      // Check if user record exists and get database ID
       const userRecord = await db
         .select({ id: users.id, username: users.username })
         .from(users)
@@ -234,8 +186,74 @@ export async function POST(request: NextRequest) {
 
       console.log(`👤 [WEBHOOK] User record found:`, userRecord.length > 0 ? `Yes (username: ${userRecord[0]?.username})` : "No")
 
-      // Delete the user record (this will cascade delete userProps automatically)
       if (userRecord.length > 0) {
+        const userId = userRecord[0].id
+
+        // Find and delete all events where user is the instructor
+        // This will cascade delete participations and comments for those events
+        const userEvents = await db
+          .select({ id: events.id })
+          .from(events)
+          .where(eq(events.instructorId, userId))
+
+        console.log(`📅 [WEBHOOK] Found ${userEvents.length} event(s) where user is instructor`)
+
+        if (userEvents.length > 0) {
+          await db.delete(events).where(eq(events.instructorId, userId))
+          console.log(`✅ [WEBHOOK] Deleted ${userEvents.length} event(s) (participations and comments for these events were cascade deleted)`)
+        } else {
+          console.log("ℹ️  [WEBHOOK] No events to delete")
+        }
+
+        // Find all participations for this user in remaining events (events they didn't create)
+        const userParticipations = await db
+          .select({ eventId: participations.eventId })
+          .from(participations)
+          .where(eq(participations.clerkUserId, clerkUserId))
+
+        console.log(`📅 [WEBHOOK] Found ${userParticipations.length} participation(s) for user in other events`)
+
+        // Group participations by eventId and count them
+        const participationsByEvent = userParticipations.reduce((acc, participation) => {
+          acc[participation.eventId] = (acc[participation.eventId] || 0) + 1
+          return acc
+        }, {} as Record<number, number>)
+
+        console.log("📊 [WEBHOOK] Participations by event:", participationsByEvent)
+
+        // Delete all participations for this user
+        if (userParticipations.length > 0) {
+          await db.delete(participations).where(eq(participations.clerkUserId, clerkUserId))
+          console.log(`✅ [WEBHOOK] Deleted ${userParticipations.length} participation(s)`)
+
+          // Update participation counts for affected events
+          for (const [eventId, count] of Object.entries(participationsByEvent)) {
+            await db
+              .update(events)
+              .set({ currentBookings: sql`${events.currentBookings} - ${count}` })
+              .where(eq(events.id, parseInt(eventId)))
+            console.log(`📉 [WEBHOOK] Updated event ${eventId} participation count: -${count}`)
+          }
+        } else {
+          console.log("ℹ️  [WEBHOOK] No participations to delete")
+        }
+
+        // Find and delete all comments for this user in remaining events (events they didn't create)
+        const userComments = await db
+          .select({ id: comments.id })
+          .from(comments)
+          .where(eq(comments.clerkUserId, clerkUserId))
+
+        console.log(`💬 [WEBHOOK] Found ${userComments.length} comment(s) for user in other events`)
+
+        if (userComments.length > 0) {
+          await db.delete(comments).where(eq(comments.clerkUserId, clerkUserId))
+          console.log(`✅ [WEBHOOK] Deleted ${userComments.length} comment(s)`)
+        } else {
+          console.log("ℹ️  [WEBHOOK] No comments to delete")
+        }
+
+        // Delete the user record (this will cascade delete userProps automatically)
         await db.delete(users).where(eq(users.clerkUserId, clerkUserId))
         console.log(`✅ [WEBHOOK] Deleted user record (userProps will cascade delete)`)
       } else {
