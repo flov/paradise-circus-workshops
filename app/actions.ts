@@ -724,6 +724,7 @@ export async function getInstagramTimetableData(
         isSpecial?: boolean;
         span?: number;
         isOccupied?: boolean;
+        startsAtHalfHour?: boolean;
       } | null
     > = {};
 
@@ -771,6 +772,10 @@ export async function getInstagramTimetableData(
 
         const key = `${startTimeSlot}-${dayAbbr}`;
 
+        // Check if event starts at :30 (half-hour)
+        const [startHours, startMinutes] = event.startTime.split(":").map(Number);
+        const startsAtHalfHour = startMinutes === 30;
+
         // Check if event title contains special keywords
         const titleUpper = event.title.toUpperCase();
         const isSpecial =
@@ -783,6 +788,7 @@ export async function getInstagramTimetableData(
           instructor: event.instructor || "",
           isSpecial,
           span, // Store span for CSS grid row spanning
+          startsAtHalfHour, // Flag for half-hour starts
         };
       }
     });

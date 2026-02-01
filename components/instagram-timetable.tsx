@@ -9,6 +9,7 @@ interface ScheduleEvent {
   isSpecial?: boolean;
   span?: number; // Number of time slots this event spans
   isOccupied?: boolean; // True if this slot is occupied by a multi-slot event
+  startsAtHalfHour?: boolean; // True if event starts at :30 (e.g., 12:30)
 }
 
 interface ScheduleData {
@@ -381,6 +382,9 @@ function EventCell({
     gridStyle.gridColumn = gridColumn;
   }
 
+  // Handle half-hour starts: position in bottom half of the slot
+  const needsHalfHourPositioning = event?.startsAtHalfHour && rowSpan === 1;
+
   if (!event) {
     return (
       <div
@@ -408,6 +412,43 @@ function EventCell({
             PARADISE
           </div>
           <div className="text-[8px] sm:text-xs font-black">CIRCUS</div>
+        </div>
+      </div>
+    );
+  }
+
+  // For half-hour starts, position in bottom half of the slot
+  if (needsHalfHourPositioning) {
+    return (
+      <div
+        className="flex flex-col justify-end"
+        style={{ ...gridStyle, height: "100%" }}
+      >
+        <div
+          className="bg-[#4a4a4a] rounded-md sm:rounded-lg flex items-center justify-center p-0.5 sm:p-1 overflow-hidden"
+          style={{ 
+            height: "50%",
+            opacity: 0.97,
+          }}
+        >
+          <div className="text-center w-full">
+            <p
+              className="text-white font-bold text-[10px] sm:text-[13px] md:text-[14px] lg:text-base leading-tight line-clamp-2"
+              style={{
+                fontFamily: "'Arial Black', 'Arial Bold', Arial, sans-serif",
+              }}
+            >
+              {event.name}
+            </p>
+            {event.instructor && (
+              <p
+                className="text-white font-bold text-[9px] sm:text-[11px] md:text-[12px] lg:text-sm leading-tight"
+                style={{ fontFamily: "'Arial', sans-serif" }}
+              >
+                {event.instructor}
+              </p>
+            )}
+          </div>
         </div>
       </div>
     );
