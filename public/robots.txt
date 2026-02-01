@@ -1,0 +1,22 @@
+User-agent: *
+Allow: /
+
+# Disallow admin and private routes
+Disallow: /admin/
+Disallow: /api/
+Disallow: /profile/
+Disallow: /sign-in/
+Disallow: /sign-up/
+Disallow: /onboarding/
+Disallow: /booking-confirmation/
+
+# Allow public pages
+Allow: /
+Allow: /timetable
+Allow: /artists
+Allow: /event/
+Allow: /about
+Allow: /faq
+
+# Sitemap location
+Sitemap: https://paradise-circus.app/sitemap.xml
