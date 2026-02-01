@@ -1,7 +1,7 @@
 "use server";
 
 import { db } from "@/db";
-import { events, participations, props, users, userProps } from "@/db/schema";
+import { events, participations, props, users, userProps, comments } from "@/db/schema";
 import { eq, sql, inArray, asc, desc, isNotNull, and, gte } from "drizzle-orm";
 import { revalidatePath, revalidateTag } from "next/cache";
 import { createEventSlug, getUserEmail } from "@/lib/utils";
@@ -952,6 +952,11 @@ export async function updateEvent(formData: FormData) {
       updateData.isRecurring = true;
     }
 
+    // CRITICAL: Check if event has recurringSeriesId BEFORE any conversion logic
+    // This prevents accidentally triggering conversion when event is already part of a series
+    // even if isRecurring flag is temporarily false
+    const hasRecurringSeriesId = currentEvent.recurringSeriesId !== null;
+    
     // Handle converting recurring event to non-recurring (admins and instructors)
     // Note: This only converts the current event, not the entire series
     if (isRecurringEvent && !isRecurring) {
@@ -980,8 +985,65 @@ export async function updateEvent(formData: FormData) {
       return { success: true };
     }
 
+    // Handle case where event has recurringSeriesId but isRecurring is false
+    // This can happen due to data inconsistencies - just update the event and restore isRecurring flag
+    if (hasRecurringSeriesId && !isRecurringEvent && isRecurring) {
+      // Event is part of a series but isRecurring flag was false - restore it
+      await db
+        .update(events)
+        .set({
+          ...updateData,
+          isRecurring: true, // Restore the flag
+        })
+        .where(eq(events.id, eventId));
+      
+      revalidatePath("/admin");
+      revalidatePath("/");
+      revalidatePath("/api/timetable");
+      
+      if (title && instructorName) {
+        revalidatePath(`/event/${createEventSlug(eventId, title, instructorName)}`);
+      }
+      
+      return { success: true };
+    }
+
     // Handle converting non-recurring event to recurring (admins and instructors)
-    if (!isRecurringEvent && isRecurring) {
+    // IMPORTANT: Do NOT convert if event already has a recurringSeriesId (even if isRecurring is false)
+    // This prevents duplicate creation when updating events that are part of a series
+    if (!isRecurringEvent && isRecurring && !hasRecurringSeriesId) {
+      // Double-check: Make sure this event is truly not part of a recurring series
+      // This prevents accidentally creating duplicates if there's a data inconsistency
+      const verifyEvent = await db
+        .select({
+          recurringSeriesId: events.recurringSeriesId,
+          isRecurring: events.isRecurring,
+        })
+        .from(events)
+        .where(eq(events.id, eventId))
+        .limit(1);
+
+      if (verifyEvent.length === 0) {
+        return { success: false, error: "Event not found." };
+      }
+
+      // If event already has a recurringSeriesId, don't convert (it's already part of a series)
+      if (verifyEvent[0].recurringSeriesId !== null) {
+        // Event is already part of a recurring series, just update it normally
+        // This prevents duplicate creation when updating recurring events
+        await db.update(events).set(updateData).where(eq(events.id, eventId));
+        
+        revalidatePath("/admin");
+        revalidatePath("/");
+        revalidatePath("/api/timetable");
+        
+        if (title && instructorName) {
+          revalidatePath(`/event/${createEventSlug(eventId, title, instructorName)}`);
+        }
+        
+        return { success: true };
+      }
+
       // Generate UUID for recurring series
       const recurringSeriesId = randomUUID();
 
@@ -1002,6 +1064,22 @@ export async function updateEvent(formData: FormData) {
         };
       }
 
+      // Check if events with these dates already exist to prevent duplicates
+      // Note: recurringSeriesId is new, so we check for any events with these dates and same title/instructor
+      // to prevent accidental duplicates
+      const existingEvents = await db
+        .select({ date: events.date })
+        .from(events)
+        .where(
+          and(
+            inArray(events.date, eventDates),
+            eq(events.title, title),
+            eq(events.instructor, instructorName)
+          )
+        );
+
+      const existingDates = new Set(existingEvents.map((e) => e.date));
+
       // Update the current event to be part of the recurring series
       await db
         .update(events)
@@ -1013,8 +1091,11 @@ export async function updateEvent(formData: FormData) {
         .where(eq(events.id, eventId));
 
       // Create additional events for remaining dates (skip the first date as it's the current event)
-      if (eventDates.length > 1) {
-        const additionalEventValues = eventDates.slice(1).map((eventDate) => ({
+      // Only create events that don't already exist
+      const datesToCreate = eventDates.slice(1).filter((eventDate) => !existingDates.has(eventDate));
+      
+      if (datesToCreate.length > 0) {
+        const additionalEventValues = datesToCreate.map((eventDate) => ({
           title,
           description,
           instructor: instructorName,
@@ -1090,6 +1171,37 @@ export async function updateEvent(formData: FormData) {
     // Handle recurring events - update all events in the series (admin only)
     // Instructors can only update single events in a recurring series
     if (isRecurringEvent && userIsAdmin && currentEvent.recurringSeriesId) {
+      // Double-check: Verify the event is still part of the recurring series
+      // This prevents issues if the event was modified between fetching and updating
+      const verifySeriesEvent = await db
+        .select({
+          recurringSeriesId: events.recurringSeriesId,
+          isRecurring: events.isRecurring,
+        })
+        .from(events)
+        .where(eq(events.id, eventId))
+        .limit(1);
+
+      if (verifySeriesEvent.length === 0) {
+        return { success: false, error: "Event not found." };
+      }
+
+      // If event is no longer part of a recurring series, just update the single event
+      if (verifySeriesEvent[0].recurringSeriesId !== currentEvent.recurringSeriesId || 
+          !verifySeriesEvent[0].isRecurring) {
+        await db.update(events).set(updateData).where(eq(events.id, eventId));
+        
+        revalidatePath("/admin");
+        revalidatePath("/");
+        revalidatePath("/api/timetable");
+        
+        if (title && instructorName) {
+          revalidatePath(`/event/${createEventSlug(eventId, title, instructorName)}`);
+        }
+        
+        return { success: true };
+      }
+
       // Check if start date changed - if so, we need to recalculate dates
       const startDateChanged = currentEvent.date !== date;
 
@@ -1113,12 +1225,40 @@ export async function updateEvent(formData: FormData) {
               (1000 * 60 * 60 * 24),
           );
 
-          // Update all events in the series with new dates
+          // Collect all new dates to check for duplicates before updating
+          const newDates = new Map<number, string>();
           for (const seriesEvent of seriesEvents) {
             const originalDate = new Date(seriesEvent.date);
             const newDate = new Date(originalDate);
             newDate.setDate(newDate.getDate() + dateDiff);
             const newDateStr = newDate.toISOString().split("T")[0];
+            newDates.set(seriesEvent.id, newDateStr);
+          }
+
+          // Check if any of the new dates already exist in the series (to prevent duplicates)
+          const dateValues = Array.from(newDates.values());
+          const existingEvents = await db
+            .select({ id: events.id, date: events.date })
+            .from(events)
+            .where(
+              and(
+                eq(events.recurringSeriesId, currentEvent.recurringSeriesId),
+                inArray(events.date, dateValues)
+              )
+            );
+
+          const existingDates = new Set(existingEvents.map((e) => e.date));
+
+          // Update all events in the series with new dates, but skip if date already exists
+          for (const seriesEvent of seriesEvents) {
+            const newDateStr = newDates.get(seriesEvent.id);
+            if (!newDateStr) continue;
+
+            // Skip updating if this date already exists for another event in the series
+            if (existingDates.has(newDateStr) && existingEvents.some(e => e.id !== seriesEvent.id && e.date === newDateStr)) {
+              console.warn(`Skipping update for event ${seriesEvent.id}: date ${newDateStr} already exists in series`);
+              continue;
+            }
 
             await db
               .update(events)
@@ -1130,11 +1270,26 @@ export async function updateEvent(formData: FormData) {
           }
         }
       } else {
-        // Start date didn't change, just update all events in the series with the same data
+        // Start date didn't change
+        // First, update the specific event being edited with all fields (including date)
         await db
           .update(events)
           .set(updateData)
-          .where(eq(events.recurringSeriesId, currentEvent.recurringSeriesId));
+          .where(eq(events.id, eventId));
+
+        // Then, update other events in the series with all fields EXCEPT date
+        // (they should keep their original dates to maintain the weekly schedule)
+        const { date: _, ...updateDataWithoutDate } = updateData;
+        await db
+          .update(events)
+          .set(updateDataWithoutDate)
+          .where(
+            and(
+              eq(events.recurringSeriesId, currentEvent.recurringSeriesId),
+              eq(events.isRecurring, true),
+              sql`${events.id} != ${eventId}` // Exclude the event we just updated
+            )
+          );
       }
     } else {
       // Non-recurring event or non-admin updating - update single event
@@ -2184,7 +2339,54 @@ export async function deleteUser(userId: number) {
 
     const user = userResult[0];
 
-    // Delete user (cascade will handle user_props, and events.instructorId will be set to null)
+    // Find and delete all events where user is the instructor
+    // This will cascade delete participations and comments for those events
+    const userEvents = await db
+      .select({ id: events.id })
+      .from(events)
+      .where(eq(events.instructorId, userId));
+
+    if (userEvents.length > 0) {
+      await db.delete(events).where(eq(events.instructorId, userId));
+      console.log(`Deleted ${userEvents.length} event(s) where user was instructor`);
+    }
+
+    // Find all participations for this user in remaining events (events they didn't create)
+    const userParticipations = await db
+      .select({ eventId: participations.eventId })
+      .from(participations)
+      .where(eq(participations.clerkUserId, user.clerkUserId));
+
+    // Group participations by eventId and count them
+    const participationsByEvent = userParticipations.reduce((acc, participation) => {
+      acc[participation.eventId] = (acc[participation.eventId] || 0) + 1
+      return acc
+    }, {} as Record<number, number>)
+
+    // Delete all participations for this user
+    if (userParticipations.length > 0) {
+      await db.delete(participations).where(eq(participations.clerkUserId, user.clerkUserId));
+
+      // Update participation counts for affected events
+      for (const [eventId, count] of Object.entries(participationsByEvent)) {
+        await db
+          .update(events)
+          .set({ currentBookings: sql`${events.currentBookings} - ${count}` })
+          .where(eq(events.id, parseInt(eventId)))
+      }
+    }
+
+    // Find and delete all comments for this user in remaining events (events they didn't create)
+    const userComments = await db
+      .select({ id: comments.id })
+      .from(comments)
+      .where(eq(comments.clerkUserId, user.clerkUserId));
+
+    if (userComments.length > 0) {
+      await db.delete(comments).where(eq(comments.clerkUserId, user.clerkUserId));
+    }
+
+    // Delete user (cascade will handle user_props)
     await db.delete(users).where(eq(users.id, userId));
 
     revalidatePath("/admin/users");

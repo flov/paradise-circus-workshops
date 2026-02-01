@@ -16,6 +16,12 @@ import {
   mockCurrentUserData,
   createMockUser,
 } from "@/tests/helpers/auth";
+// Import email helpers BEFORE actions to ensure email mocks are set up
+import {
+  resetEmailMocks,
+  wasEmailSent,
+  getSentEmails,
+} from "@/tests/helpers/email";
 import {
   createEvent,
   approveEvent,
@@ -33,11 +39,6 @@ import {
   getTestDb,
 } from "@/tests/helpers/db";
 import {
-  resetEmailMocks,
-  wasEmailSent,
-  getSentEmails,
-} from "@/tests/helpers/email";
-import {
   createEventFormData,
   createEventUpdateFormData,
 } from "@/tests/helpers/form-data";
@@ -53,6 +54,7 @@ vi.mock("@/app/profile/actions", async () => {
   return {
     ...actual,
     isAdmin: vi.fn().mockResolvedValue(false),
+    isInstructor: vi.fn().mockResolvedValue(false),
   };
 });
 
@@ -602,18 +604,18 @@ describe("deleteEventAndFutureInstructorEvents", () => {
     await deleteEventAndFutureInstructorEvents(currentEvent.id, "Test cancellation message");
 
     // Verify emails were sent
-    expect(wasEmailSent("participant1@example.com")).toBe(true);
-    expect(wasEmailSent("participant2@example.com")).toBe(true);
+    expect(wasEmailSent("event-cancelled", "participant1@example.com")).toBe(true);
+    expect(wasEmailSent("event-cancelled", "participant2@example.com")).toBe(true);
 
     const emails = getSentEmails();
-    const email1 = emails.find((e) => e.to === "participant1@example.com");
-    const email2 = emails.find((e) => e.to === "participant2@example.com");
+    const email1 = emails.find((e) => e.type === "event-cancelled" && e.to === "participant1@example.com");
+    const email2 = emails.find((e) => e.type === "event-cancelled" && e.to === "participant2@example.com");
 
     expect(email1).toBeDefined();
     expect(email2).toBeDefined();
-    if (email1) {
-      expect(email1.subject).toContain("cancelled");
-      expect(email1.body).toContain("Test cancellation message");
+    if (email1 && email1.props) {
+      expect(email1.props.cancellationMessage).toBe("Test cancellation message");
+      expect(email1.props.eventTitle).toBeDefined();
     }
   });
 
@@ -785,5 +787,320 @@ describe("deleteEventAndFutureInstructorEvents", () => {
       .from(participations)
       .where(eq(participations.id, participation2.id));
     expect(participation2Check).toHaveLength(0);
+  });
+
+  describe("recurring event update duplication bug", () => {
+    it("should NOT create duplicate events when updating title of existing recurring event", async () => {
+      const admin = await createTestUser({
+        clerkUserId: "admin-user",
+        isAdmin: true,
+      });
+      const instructor = await createTestUser({
+        clerkUserId: "instructor-user",
+        username: "kevin",
+        displayName: "Kevin",
+        isInstructor: true,
+      });
+
+      mockAdminAuth(admin.clerkUserId);
+      vi.mocked(isAdmin).mockResolvedValue(true);
+      vi.mocked(isInstructor).mockResolvedValue(false);
+
+      const seriesId = randomUUID();
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      
+      // Create a recurring event series with 3 events (simulating event 356 scenario)
+      const originalTitle = "Social Media Workshop";
+      const updatedTitle = "Social Media Onboarding";
+      
+      const event1 = await createTestEvent({
+        id: 356, // Simulating the specific event ID mentioned
+        title: originalTitle,
+        description: "Learn social media",
+        instructor: "Kevin",
+        instructorId: instructor.id,
+        date: today.toISOString().split("T")[0],
+        recurringSeriesId: seriesId,
+        isRecurring: true,
+      });
+
+      // Create additional events in the series (simulating existing series)
+      const nextWeek = new Date(today);
+      nextWeek.setDate(nextWeek.getDate() + 7);
+      const event2 = await createTestEvent({
+        title: originalTitle,
+        description: "Learn social media",
+        instructor: "Kevin",
+        instructorId: instructor.id,
+        date: nextWeek.toISOString().split("T")[0],
+        recurringSeriesId: seriesId,
+        isRecurring: true,
+      });
+
+      const twoWeeksLater = new Date(today);
+      twoWeeksLater.setDate(twoWeeksLater.getDate() + 14);
+      const event3 = await createTestEvent({
+        title: originalTitle,
+        description: "Learn social media",
+        instructor: "Kevin",
+        instructorId: instructor.id,
+        date: twoWeeksLater.toISOString().split("T")[0],
+        recurringSeriesId: seriesId,
+        isRecurring: true,
+      });
+
+      // Count events before update
+      const db = getTestDb();
+      const eventsBefore = await db
+        .select({ id: events.id, title: events.title })
+        .from(events)
+        .where(eq(events.recurringSeriesId, seriesId))
+        .orderBy(events.id);
+      
+      expect(eventsBefore.length).toBe(3);
+      expect(eventsBefore.map(e => e.id)).toEqual([event1.id, event2.id, event3.id]);
+      expect(eventsBefore.every(e => e.title === originalTitle)).toBe(true);
+
+      // Update ONLY the title of event 356 (keeping isRecurring = true)
+      const updateFormData = createEventUpdateFormData(event1.id, {
+        title: updatedTitle,
+        description: "Learn social media",
+        instructor: "Kevin",
+        instructorId: instructor.id.toString(),
+        date: today.toISOString().split("T")[0],
+        start_time: "10:00",
+        end_time: "12:00",
+        location: event1.location || "Test Location",
+        isWorkshop: "on",
+        isPublished: "on",
+        isRecurring: "on", // Keep it as recurring
+      });
+
+      const result = await updateEvent(updateFormData);
+      
+      expect(result.success).toBe(true);
+
+      // Count events after update - should still be 3, NO duplicates created
+      const eventsAfter = await db
+        .select({ id: events.id, title: events.title, date: events.date })
+        .from(events)
+        .where(eq(events.recurringSeriesId, seriesId))
+        .orderBy(events.id);
+      
+      expect(eventsAfter.length).toBe(3); // Should NOT have created duplicates
+      
+      // Verify all events have the updated title
+      expect(eventsAfter.every(e => e.title === updatedTitle)).toBe(true);
+      
+      // Verify we still have the same 3 events (no new IDs)
+      const eventIdsAfter = eventsAfter.map(e => e.id).sort((a, b) => a - b);
+      const eventIdsBefore = eventsBefore.map(e => e.id).sort((a, b) => a - b);
+      expect(eventIdsAfter).toEqual(eventIdsBefore);
+
+      // Verify no events were created with IDs like 391 or 465 (the reported duplicate IDs)
+      const allEvents = await db
+        .select({ id: events.id, title: events.title })
+        .from(events)
+        .where(eq(events.title, updatedTitle));
+      
+      // Should only have the 3 events from the series
+      expect(allEvents.length).toBe(3);
+      expect(allEvents.every(e => eventIdsBefore.includes(e.id))).toBe(true);
+    });
+
+    it("should NOT create duplicate events when updating title of recurring event if conversion logic is incorrectly triggered", async () => {
+      const admin = await createTestUser({
+        clerkUserId: "admin-user",
+        isAdmin: true,
+      });
+      const instructor = await createTestUser({
+        clerkUserId: "instructor-user",
+        username: "kevin",
+        displayName: "Kevin",
+        isInstructor: true,
+      });
+
+      mockAdminAuth(admin.clerkUserId);
+      vi.mocked(isAdmin).mockResolvedValue(true);
+      vi.mocked(isInstructor).mockResolvedValue(false);
+
+      const seriesId = randomUUID();
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      
+      // Create a recurring event (simulating event 356)
+      const originalTitle = "Social Media Workshop";
+      const updatedTitle = "Social Media Onboarding";
+      
+      const event1 = await createTestEvent({
+        id: 356,
+        title: originalTitle,
+        description: "Learn social media",
+        instructor: "Kevin",
+        instructorId: instructor.id,
+        date: today.toISOString().split("T")[0],
+        recurringSeriesId: seriesId,
+        isRecurring: true,
+      });
+
+      // Simulate a potential race condition: temporarily set isRecurring to false
+      // (this could happen if there's a data inconsistency)
+      const db = getTestDb();
+      await db
+        .update(events)
+        .set({ isRecurring: false })
+        .where(eq(events.id, event1.id));
+
+      // Now update the title - this should NOT trigger conversion logic
+      // because the event still has a recurringSeriesId
+      const updateFormData = createEventUpdateFormData(event1.id, {
+        title: updatedTitle,
+        description: "Learn social media",
+        instructor: "Kevin",
+        instructorId: instructor.id.toString(),
+        date: today.toISOString().split("T")[0],
+        start_time: "10:00",
+        end_time: "12:00",
+        location: event1.location || "Test Location",
+        isWorkshop: "on",
+        isPublished: "on",
+        isRecurring: "on",
+      });
+
+      const result = await updateEvent(updateFormData);
+      
+      expect(result.success).toBe(true);
+
+      // Should NOT have created duplicate events
+      const eventsAfter = await db
+        .select({ id: events.id, title: events.title })
+        .from(events)
+        .where(eq(events.recurringSeriesId, seriesId));
+      
+      // Should only have 1 event (the original), not duplicates
+      expect(eventsAfter.length).toBe(1);
+      expect(eventsAfter[0].title).toBe(updatedTitle);
+      
+      // Verify no events were created with the same title but different IDs
+      const duplicateEvents = await db
+        .select({ id: events.id, title: events.title, recurringSeriesId: events.recurringSeriesId })
+        .from(events)
+        .where(eq(events.title, updatedTitle));
+      
+      // Should only have 1 event with this title
+      expect(duplicateEvents.length).toBe(1);
+    });
+
+    it("should NOT move second event to current date when editing first event in recurring series", async () => {
+      const admin = await createTestUser({
+        clerkUserId: "admin-user",
+        isAdmin: true,
+      });
+      const instructor = await createTestUser({
+        clerkUserId: "instructor-user",
+        username: "kevin",
+        displayName: "Kevin",
+        isInstructor: true,
+      });
+
+      mockAdminAuth(admin.clerkUserId);
+      vi.mocked(isAdmin).mockResolvedValue(true);
+      vi.mocked(isInstructor).mockResolvedValue(false);
+
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const nextWeek = new Date(today);
+      nextWeek.setDate(nextWeek.getDate() + 7);
+
+      // Create a recurring event - this creates 2 events (this week and next week)
+      const createFormData = createEventFormData({
+        title: "Weekly Workshop",
+        description: "Learn something new",
+        instructor: "Kevin",
+        instructorId: instructor.id.toString(),
+        date: today.toISOString().split("T")[0],
+        start_time: "10:00",
+        end_time: "12:00",
+        location: "Studio A",
+        isWorkshop: "on",
+        isRecurring: "on",
+      });
+
+      const createResult = await createEvent(createFormData);
+      expect(createResult.success).toBe(true);
+
+      // Find events by title - need to get the actual seriesId from created events
+      const db = getTestDb();
+      const allEvents = await db
+        .select({ id: events.id, title: events.title, date: events.date, recurringSeriesId: events.recurringSeriesId })
+        .from(events)
+        .where(eq(events.title, "Weekly Workshop"))
+        .orderBy(events.date);
+
+      expect(allEvents.length).toBe(2);
+      const firstEvent = allEvents[0];
+      const secondEvent = allEvents[1];
+      const actualSeriesId = firstEvent.recurringSeriesId;
+      expect(actualSeriesId).toBeTruthy();
+      expect(secondEvent.recurringSeriesId).toBe(actualSeriesId);
+
+      // Verify dates are different (one week apart)
+      const firstDate = new Date(firstEvent.date);
+      const secondDate = new Date(secondEvent.date);
+      const daysDiff = Math.round((secondDate.getTime() - firstDate.getTime()) / (1000 * 60 * 60 * 24));
+      expect(daysDiff).toBe(7);
+
+      // Now edit the first event - change title and keep the same date
+      const updatedTitle = "Updated Weekly Workshop";
+      const updateFormData = createEventUpdateFormData(firstEvent.id, {
+        title: updatedTitle,
+        description: "Learn something new - updated",
+        instructor: "Kevin",
+        instructorId: instructor.id.toString(),
+        date: firstEvent.date, // Keep the same date
+        start_time: "10:00",
+        end_time: "12:00",
+        location: "Studio A",
+        isWorkshop: "on",
+        isPublished: "on",
+        isRecurring: "on",
+      });
+
+      const updateResult = await updateEvent(updateFormData);
+      expect(updateResult.success).toBe(true);
+
+      // Verify events after update
+      const eventsAfterUpdate = await db
+        .select({ id: events.id, title: events.title, date: events.date })
+        .from(events)
+        .where(eq(events.recurringSeriesId, actualSeriesId))
+        .orderBy(events.date);
+
+      // Should still have 2 events
+      expect(eventsAfterUpdate.length).toBe(2);
+
+      // Both events should have updated title
+      expect(eventsAfterUpdate[0].title).toBe(updatedTitle);
+      expect(eventsAfterUpdate[1].title).toBe(updatedTitle);
+
+      // CRITICAL: The second event should STILL have its original date (next week)
+      // It should NOT be moved to the current date
+      const firstEventAfterUpdate = eventsAfterUpdate[0];
+      const secondEventAfterUpdate = eventsAfterUpdate[1];
+      
+      expect(firstEventAfterUpdate.date).toBe(firstEvent.date);
+      expect(secondEventAfterUpdate.date).toBe(secondEvent.date);
+      
+      // Verify they are still 7 days apart
+      const firstDateAfter = new Date(firstEventAfterUpdate.date);
+      const secondDateAfter = new Date(secondEventAfterUpdate.date);
+      const daysDiffAfter = Math.round((secondDateAfter.getTime() - firstDateAfter.getTime()) / (1000 * 60 * 60 * 24));
+      expect(daysDiffAfter).toBe(7);
+
+      // Verify they are NOT duplicates (different dates)
+      expect(firstEventAfterUpdate.date).not.toBe(secondEventAfterUpdate.date);
+      expect(firstEventAfterUpdate.id).not.toBe(secondEventAfterUpdate.id);
+    });
   });
 });
