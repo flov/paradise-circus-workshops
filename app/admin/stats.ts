@@ -1,6 +1,15 @@
 import { db } from "@/db";
 import { events, participations, props, users, userProps } from "@/db/schema";
-import { count, sql, eq, desc, gte, and, isNotNull, inArray } from "drizzle-orm";
+import {
+  count,
+  sql,
+  eq,
+  desc,
+  gte,
+  and,
+  isNotNull,
+  inArray,
+} from "drizzle-orm";
 import { unstable_cache } from "next/cache";
 
 // Types for statistics data
@@ -71,23 +80,24 @@ async function getPropsStatsUncached(): Promise<PropStat[]> {
   const propIds = propsWithUsers.map((p) => p.propId);
 
   // Batch fetch all users for all props in a single query
-  const allUsers = propIds.length > 0
-    ? await db
-        .select({
-          propId: userProps.propId,
-          id: users.id,
-          username: users.username,
-          displayName: users.displayName,
-          avatarImageUrl: users.avatarImageUrl,
-          bio: users.bio,
-          skillLevel: userProps.skillLevel,
-        })
-        .from(userProps)
-        .innerJoin(users, eq(userProps.userId, users.id))
-        .where(inArray(userProps.propId, propIds))
-    : [];
+  const allUsers =
+    propIds.length > 0
+      ? await db
+          .select({
+            propId: userProps.propId,
+            id: users.id,
+            username: users.username,
+            displayName: users.displayName,
+            avatarImageUrl: users.avatarImageUrl,
+            bio: users.bio,
+            skillLevel: userProps.skillLevel,
+          })
+          .from(userProps)
+          .innerJoin(users, eq(userProps.userId, users.id))
+          .where(inArray(userProps.propId, propIds))
+      : [];
 
-  // Sort by skillLevel descending, then group by propId and limit to top 8 per prop
+  // Sort by skillLevel descending, then group by propId and limit to top 13 per prop
   allUsers.sort((a, b) => {
     // First sort by propId, then by skillLevel desc
     if (a.propId !== b.propId) {
@@ -96,15 +106,15 @@ async function getPropsStatsUncached(): Promise<PropStat[]> {
     return b.skillLevel - a.skillLevel;
   });
 
-  // Group users by propId and limit to top 8 per prop
+  // Group users by propId and limit to top 13 per prop
   const usersByPropId = new Map<number, PropStatUser[]>();
   for (const user of allUsers) {
     if (!usersByPropId.has(user.propId)) {
       usersByPropId.set(user.propId, []);
     }
     const propUsers = usersByPropId.get(user.propId)!;
-    // Limit to 8 users per prop (matching component display limit)
-    if (propUsers.length < 8) {
+    // Limit to 13 users per prop (matching component display limit)
+    if (propUsers.length < 13) {
       propUsers.push({
         id: user.id,
         username: user.username,
@@ -129,15 +139,15 @@ async function getPropsStatsUncached(): Promise<PropStat[]> {
 
 /**
  * Get props statistics with user counts and user details
- * Cached for 4 hours to improve performance
+ * Cached for 4 hours to improve performance (60 seconds in development)
  */
 export const getPropsStats = unstable_cache(
   async () => getPropsStatsUncached(),
   ["props-stats"],
   {
-    revalidate: 14400, // 4 hours in seconds
+    revalidate: process.env.NODE_ENV === "development" ? 1 : 14400, // 1 second in dev, 4 hours in production
     tags: ["props-stats"],
-  }
+  },
 );
 
 /**
@@ -231,13 +241,12 @@ export async function getWorkshopTimeSlots(): Promise<TimeSlotData[]> {
     .where(and(eq(events.isPublished, true), eq(events.isWorkshop, true)))
     .groupBy(
       sql`EXTRACT(DOW FROM ${events.date}::date)`,
-      sql`EXTRACT(HOUR FROM ${events.startTime}::time)`
+      sql`EXTRACT(HOUR FROM ${events.startTime}::time)`,
     )
     .orderBy(
       sql`EXTRACT(DOW FROM ${events.date}::date)`,
-      sql`EXTRACT(HOUR FROM ${events.startTime}::time)`
+      sql`EXTRACT(HOUR FROM ${events.startTime}::time)`,
     );
 
   return timeSlots;
 }
-

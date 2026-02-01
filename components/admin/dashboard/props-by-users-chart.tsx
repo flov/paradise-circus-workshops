@@ -15,12 +15,7 @@ import {
   HoverCardContent,
   HoverCardTrigger,
 } from "@/components/ui/hover-card";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 import {
   Tooltip,
   TooltipContent,
@@ -74,7 +69,7 @@ export function PropsByUsersChart({ stats }: PropsByUsersChartProps) {
       {prop.users.length > 0 && (
         <div className="space-y-2">
           <p className="text-xs text-muted-foreground">
-            Artists using this prop:
+            showing {Math.min(prop.users.length, 13)} of {prop.userCount} artists using this prop
           </p>
           <div className="flex flex-wrap gap-2">
             {prop.users.slice(0, 13).map((user) => (
@@ -116,9 +111,9 @@ export function PropsByUsersChart({ stats }: PropsByUsersChartProps) {
                 </TooltipContent>
               </Tooltip>
             ))}
-            {prop.users.length > 13 && (
+            {prop.userCount > prop.users.length && (
               <div className="flex items-center justify-center size-8 rounded-full bg-muted text-xs font-medium text-muted-foreground">
-                +{prop.users.length - 13}
+                +{prop.userCount - prop.users.length}
               </div>
             )}
           </div>
@@ -171,7 +166,7 @@ export function PropsByUsersChart({ stats }: PropsByUsersChartProps) {
                   {prop.userCount} artist{prop.userCount !== 1 ? "s" : ""}
                 </span>
               </div>
-              <div className="h-6 bg-muted rounded-full overflow-hidden">
+              <div className="h-3 bg-muted rounded-full overflow-hidden">
                 <div
                   className={cn(
                     "h-full rounded-full transition-all duration-500 ease-out",
