@@ -1,5 +1,12 @@
+import type { Metadata } from "next";
 import Image from "next/image";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+
+export const metadata: Metadata = {
+  title: {
+    absolute: "Paradise Circus | About",
+  },
+};
 
 export default function AboutPage() {
   return (

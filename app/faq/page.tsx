@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import {
   Accordion,
   AccordionContent,
@@ -5,6 +6,12 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+
+export const metadata: Metadata = {
+  title: {
+    absolute: "Paradise Circus | FAQ",
+  },
+};
 
 export default function FAQPage() {
   return (

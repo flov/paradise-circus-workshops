@@ -31,12 +31,16 @@ export async function generateMetadata({
 
   if (!user) {
     return {
-      title: "Paradise Circus • Artist Not Found",
+      title: {
+        absolute: "Paradise Circus | Artist Not Found",
+      },
     };
   }
 
   return {
-    title: `Paradise Circus • ${user.displayName || user.username}'s artistic profile`,
+    title: {
+      absolute: `Paradise Circus | ${user.displayName || user.username}'s artistic profile`,
+    },
   };
 }
 

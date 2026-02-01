@@ -1,9 +1,16 @@
 import Link from "next/link";
+import type { Metadata } from "next";
 import { db } from "@/db";
 import { events as eventsTable, type Event } from "@/db/schema";
 import { gte, asc, eq, and } from "drizzle-orm";
 import { WeeklyTimetable } from "@/components/weekly-timetable";
 import { getCurrentUserProfile } from "@/app/profile/actions";
+
+export const metadata: Metadata = {
+  title: {
+    absolute: "Paradise Circus | Timetable",
+  },
+};
 
 export default async function TimetablePage() {
   // Fetch upcoming events ordered by date and time

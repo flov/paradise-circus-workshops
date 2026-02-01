@@ -1,7 +1,14 @@
+import type { Metadata } from "next";
 import { db } from "@/db";
 import { users, userProps, props, events } from "@/db/schema";
 import { eq, sql, asc, and, inArray } from "drizzle-orm";
 import { ArtistList } from "@/components/artist-list";
+
+export const metadata: Metadata = {
+  title: {
+    absolute: "Paradise Circus | Artists",
+  },
+};
 
 async function getAllArtists() {
   // Get all users with their props and workshop counts
