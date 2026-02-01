@@ -2,12 +2,19 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { ChevronLeft, ChevronRight, Plus, Repeat } from "lucide-react";
+import {
+  ChevronLeft,
+  ChevronRight,
+  Plus,
+  Repeat,
+  Instagram,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { createEventSlug } from "@/lib/utils";
 import { EditEventButton } from "@/components/admin/edit-event-button";
 import { AddEventButton } from "@/components/admin/add-event-button";
 import { MobileLandscapeHint } from "@/components/mobile-landscape-hint";
+import Link from "next/link";
 
 type TimeSlot = {
   id: number;
@@ -521,7 +528,16 @@ export function WeeklyTimetable({
           >
             Weekly Workshop Timetable
           </h2>
-          <p className="text-muted-foreground mt-1">{formatDateRange()}</p>
+          <div className="flex align-center mt-1 justify-between">
+            <p className="text-muted-foreground">{formatDateRange()}</p>
+            <Link
+              href="/instagram"
+              className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-primary transition-colors"
+            >
+              <Instagram className="w-4 h-4" />
+              <span>Instagram Timetable</span>
+            </Link>
+          </div>
         </div>
 
         <div className="flex items-center gap-2">
@@ -564,7 +580,7 @@ export function WeeklyTimetable({
       </div>
 
       {/* Legend */}
-      <div className="flex items-center gap-6 text-sm">
+      <div className="flex items-center gap-6 text-sm flex-wrap">
         <div className="flex items-center gap-2">
           <div className="w-4 h-4 rounded bg-blue-500/20 border border-blue-500/40"></div>
           <span className="text-muted-foreground">Paradise River</span>

@@ -24,7 +24,7 @@ export function Navigation({ isAdmin = false }: NavigationProps) {
 
   const allNavItems = [
     ...navItems,
-    ...(isAdmin ? [{ href: "/admin", label: "Admin interface" }] : []),
+    ...(isAdmin ? [{ href: "/admin", label: "Admin" }] : []),
   ];
 
   return (
