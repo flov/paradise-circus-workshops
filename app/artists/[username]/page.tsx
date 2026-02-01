@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import type { Metadata } from "next";
 import {
   getUserByUsername,
   getUserProps,
@@ -20,6 +21,25 @@ import {
   Code,
 } from "lucide-react";
 
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ username: string }>;
+}): Promise<Metadata> {
+  const { username } = await params;
+  const user = await getUserByUsername(username);
+
+  if (!user) {
+    return {
+      title: "Paradise Circus • Artist Not Found",
+    };
+  }
+
+  return {
+    title: `Paradise Circus • ${user.displayName || user.username}'s artistic profile`,
+  };
+}
+
 export default async function ArtistProfilePage({
   params,
 }: {
@@ -40,7 +60,8 @@ export default async function ArtistProfilePage({
 
   // Get profile image from database
   const profileImageUrl = user.avatarImageUrl || null;
-  const isFlowWizard = (user.displayName || user.username) === "The Flow Wizard";
+  const isFlowWizard =
+    (user.displayName || user.username) === "The Flow Wizard";
 
   return (
     <div className="container mx-auto max-w-4xl py-4 px-4">
