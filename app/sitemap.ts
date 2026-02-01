@@ -39,12 +39,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: 'monthly',
       priority: 0.6,
     },
-    {
-      url: `${baseUrl}/instagram`,
-      lastModified: new Date(),
-      changeFrequency: 'daily',
-      priority: 0.7,
-    },
   ]
 
   // Get all published events (including future and recent past events for SEO)
@@ -82,7 +76,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       url: `${baseUrl}/event/${slug}`,
       lastModified: event.updatedAt || new Date(),
       changeFrequency: 'weekly' as const,
-      priority: 0.8,
+      priority: 0.5,
     }
   })
 
