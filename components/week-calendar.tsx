@@ -143,6 +143,10 @@ export function WeekCalendar({ events }: WeekCalendarProps) {
           <div className="w-4 h-4 rounded bg-red-600 border border-red-500"></div>
           <span className="text-white drop-shadow-black">Paradise Stage</span>
         </div>
+        <div className="flex items-center gap-2">
+          <div className="w-4 h-4 rounded bg-purple-600 border border-purple-500"></div>
+          <span className="text-white drop-shadow-black">Other Locations</span>
+        </div>
       </div>
 
       {/* Calendar Header */}
@@ -225,18 +229,19 @@ export function WeekCalendar({ events }: WeekCalendarProps) {
                       {eventsInSlot.length > 0 ? (
                         <div className="space-y-2">
                           {eventsInSlot.map((event) => {
-                            const isParadiseRiver =
-                              event.location
-                                ?.toLowerCase()
-                                .includes("paradise river") ||
-                              event.location?.toLowerCase() ===
-                                "paradise river";
+                            const isParadiseStage =
+                              event.location === "Paradise Stage";
+                            const isParadiseLake =
+                              event.location === "Paradise River";
+                            const isOtherLocation = !isParadiseStage && !isParadiseLake;
                             return (
                               <Link
                                 key={event.id}
                                 href={`/event/${createEventSlug(event.id, event.title, event.instructor)}`}
                                 className={`block rounded-lg p-3 text-white transition-colors h-full border ${
-                                  isParadiseRiver
+                                  isOtherLocation
+                                    ? "bg-purple-600 hover:bg-purple-500 border-purple-500"
+                                    : isParadiseLake
                                     ? "bg-blue-600 hover:bg-blue-500 border-blue-500"
                                     : "bg-red-600 hover:bg-red-500 border-red-500"
                                 }`}

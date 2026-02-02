@@ -594,7 +594,7 @@ export function WeeklyTimetable({
         </div>
         <div className="flex items-center gap-2">
           <div className="w-4 h-4 rounded bg-purple-500/20 border border-purple-500/40"></div>
-          <span className="text-muted-foreground">Community Events</span>
+          <span className="text-muted-foreground">Other Locations</span>
         </div>
       </div>
 
@@ -659,12 +659,12 @@ export function WeeklyTimetable({
                           ) : slots.length > 0 ? (
                             <div className="space-y-1">
                               {slots.map((slot) => {
-                                const isParadiseRiver =
-                                  slot.location
-                                    ?.toLowerCase()
-                                    .includes("paradise river") ||
-                                  slot.location?.toLowerCase() ===
-                                    "paradise river";
+                                const isParadiseStage =
+                                  slot.location === "Paradise Stage";
+                                const isParadiseLake =
+                                  slot.location === "Paradise River";
+                                const isOtherLocation =
+                                  !isParadiseStage && !isParadiseLake;
                                 const isPending = !slot.isPublished;
                                 const hasNoInstructorId =
                                   isAdmin &&
@@ -674,13 +674,12 @@ export function WeeklyTimetable({
                                 const getColorClasses = () => {
                                   // Blocked entries get muted styling
                                   if (isBlocked) {
-                                    const baseBlockedClasses = isParadiseRiver
-                                      ? "bg-blue-500/10 border border-blue-500/20"
-                                      : "bg-red-500/10 border border-red-500/20";
-                                    if (!slot.isWorkshop) {
+                                    if (isOtherLocation) {
                                       return "bg-purple-500/10 border border-purple-500/20";
                                     }
-                                    return baseBlockedClasses;
+                                    return isParadiseLake
+                                      ? "bg-blue-500/10 border border-blue-500/20"
+                                      : "bg-red-500/10 border border-red-500/20";
                                   }
                                   // Pending events get yellow/orange styling
                                   if (isPending) {
@@ -690,10 +689,10 @@ export function WeeklyTimetable({
                                   const borderStyle = hasNoInstructorId
                                     ? "border-dashed"
                                     : "border-solid";
-                                  if (!slot.isWorkshop) {
+                                  if (isOtherLocation) {
                                     return `bg-purple-500/20 hover:bg-purple-500/30 border ${borderStyle} border-purple-500/40`;
                                   }
-                                  const baseClasses = isParadiseRiver
+                                  const baseClasses = isParadiseLake
                                     ? `bg-blue-500/20 hover:bg-blue-500/30 border ${borderStyle} border-blue-500/40`
                                     : `bg-red-500/20 hover:bg-red-500/30 border ${borderStyle} border-red-500/40`;
                                   return baseClasses;
@@ -904,11 +903,12 @@ export function WeeklyTimetable({
                           className="space-y-2"
                         >
                           {slots.map((slot) => {
-                            const isParadiseRiver =
-                              slot.location
-                                ?.toLowerCase()
-                                .includes("paradise river") ||
-                              slot.location?.toLowerCase() === "paradise river";
+                            const isParadiseStage =
+                              slot.location === "Paradise Stage";
+                            const isParadiseLake =
+                              slot.location === "Paradise River";
+                            const isOtherLocation =
+                              !isParadiseStage && !isParadiseLake;
                             const isPending = !slot.isPublished;
                             const hasNoInstructorId =
                               isAdmin &&
@@ -918,13 +918,12 @@ export function WeeklyTimetable({
                             const getMobileColorClasses = () => {
                               // Blocked entries get muted styling
                               if (isBlocked) {
-                                const baseBlockedClasses = isParadiseRiver
-                                  ? "bg-blue-500/8 border-blue-500/15"
-                                  : "bg-red-500/8 border-red-500/15";
-                                if (!slot.isWorkshop) {
+                                if (isOtherLocation) {
                                   return "bg-purple-500/8 border-purple-500/15";
                                 }
-                                return baseBlockedClasses;
+                                return isParadiseLake
+                                  ? "bg-blue-500/8 border-blue-500/15"
+                                  : "bg-red-500/8 border-red-500/15";
                               }
                               // Pending events get yellow/orange styling
                               if (isPending) {
@@ -934,10 +933,10 @@ export function WeeklyTimetable({
                               const borderStyle = hasNoInstructorId
                                 ? "border-dashed"
                                 : "border-solid";
-                              if (!slot.isWorkshop) {
+                              if (isOtherLocation) {
                                 return `bg-purple-500/15 hover:bg-purple-500/25 active:bg-purple-500/30 ${borderStyle} border-purple-500/40 hover:border-purple-500/50 active:border-purple-500/60`;
                               }
-                              const baseClasses = isParadiseRiver
+                              const baseClasses = isParadiseLake
                                 ? `bg-blue-500/15 hover:bg-blue-500/25 active:bg-blue-500/30 ${borderStyle} border-blue-500/40 hover:border-blue-500/50 active:border-blue-500/60`
                                 : `bg-red-500/15 hover:bg-red-500/25 active:bg-red-500/30 ${borderStyle} border-red-500/40 hover:border-red-500/50 active:border-red-500/60`;
                               return baseClasses;
@@ -949,10 +948,10 @@ export function WeeklyTimetable({
                               if (isPending) {
                                 return "text-yellow-600 dark:text-yellow-400";
                               }
-                              if (!slot.isWorkshop) {
+                              if (isOtherLocation) {
                                 return "text-purple-600 dark:text-purple-400";
                               }
-                              return isParadiseRiver
+                              return isParadiseLake
                                 ? "text-blue-600 dark:text-blue-400"
                                 : "text-red-600 dark:text-red-400";
                             };
