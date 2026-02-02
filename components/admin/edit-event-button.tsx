@@ -40,7 +40,7 @@ export function EditEventButton({
     | "isPublished"
     | "propId"
     | "isRecurring"
-  >;
+  > & { createdAt?: Date };
 }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -120,6 +120,7 @@ export function EditEventButton({
     isPublished: event.isPublished ?? true,
     propId: event.propId,
     isRecurring: event.isRecurring ?? false,
+    createdAt: event.createdAt,
   };
 
   return (

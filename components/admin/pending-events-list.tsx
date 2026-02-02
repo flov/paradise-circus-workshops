@@ -44,6 +44,7 @@ export async function PendingEventsList() {
       isRecurring: events.isRecurring,
       recurringSeriesId: events.recurringSeriesId,
       recapVideoId: events.recapVideoId,
+      createdAt: events.createdAt,
       instructorProfile: {
         id: users.id,
         displayName: users.displayName,
@@ -162,7 +163,7 @@ export async function PendingEventsList() {
                           title: event.title,
                           description: event.description,
                           instructor: event.instructor,
-                          instructorId: event.instructorId || undefined,
+                          instructorId: event.instructorId ?? null,
                           date: event.date,
                           startTime: event.startTime,
                           endTime: event.endTime,
@@ -172,6 +173,7 @@ export async function PendingEventsList() {
                           isPublished: event.isPublished,
                           propId: event.propId,
                           isRecurring: event.isRecurring,
+                          createdAt: event.createdAt,
                         }} />
                         <DeleteEventButton eventId={event.id} eventTitle={event.title} />
                       </>

@@ -62,6 +62,7 @@ export async function EventsList() {
       isRecurring: events.isRecurring,
       recurringSeriesId: events.recurringSeriesId,
       recapVideoId: events.recapVideoId,
+      createdAt: events.createdAt,
       instructorProfile: {
         id: users.id,
         displayName: users.displayName,
@@ -225,7 +226,7 @@ export async function EventsList() {
                               title: event.title,
                               description: event.description,
                               instructor: event.instructor,
-                              instructorId: event.instructorId || undefined,
+                              instructorId: event.instructorId ?? null,
                               date: event.date,
                               startTime: event.startTime,
                               endTime: event.endTime,
@@ -235,8 +236,7 @@ export async function EventsList() {
                               isPublished: event.isPublished,
                               propId: event.propId,
                               isRecurring: event.isRecurring,
-                              recurringSeriesId:
-                                event.recurringSeriesId || undefined,
+                              createdAt: event.createdAt,
                             }}
                           />
                           <DeleteEventButton

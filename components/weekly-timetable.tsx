@@ -33,6 +33,7 @@ type TimeSlot = {
   isPublished: boolean;
   isRecurring: boolean;
   recurringSeriesId: string | null;
+  createdAt?: string; // ISO date string from API
   isBlocked?: boolean; // Indicates this slot is blocked by an event starting in a previous hour
 };
 
@@ -269,6 +270,7 @@ export function WeeklyTimetable({
             event.isPublished !== undefined ? event.isPublished : true,
           isRecurring: (event as any).isRecurring ?? false,
           recurringSeriesId: (event as any).recurringSeriesId || null,
+          createdAt: (event as any).createdAt,
         });
 
         // For each subsequent hour slot, add a blocked entry
@@ -301,6 +303,7 @@ export function WeeklyTimetable({
                 event.isPublished !== undefined ? event.isPublished : true,
               isRecurring: (event as any).isRecurring ?? false,
               recurringSeriesId: (event as any).recurringSeriesId || null,
+              createdAt: (event as any).createdAt,
               isBlocked: true,
             });
           }
@@ -767,6 +770,9 @@ export function WeeklyTimetable({
                                             recurringSeriesId:
                                               slot.recurringSeriesId ||
                                               undefined,
+                                            createdAt: slot.createdAt
+                                              ? new Date(slot.createdAt)
+                                              : undefined,
                                           }}
                                         />
                                       </div>
@@ -1025,6 +1031,9 @@ export function WeeklyTimetable({
                                         isRecurring: slot.isRecurring,
                                         recurringSeriesId:
                                           slot.recurringSeriesId || undefined,
+                                        createdAt: slot.createdAt
+                                          ? new Date(slot.createdAt)
+                                          : undefined,
                                       }}
                                     />
                                   </div>

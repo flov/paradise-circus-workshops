@@ -47,6 +47,7 @@ export default async function EditEventPage({
       propId: events.propId,
       isRecurring: events.isRecurring,
       recapVideoId: events.recapVideoId,
+      createdAt: events.createdAt,
     })
     .from(events)
     .where(eq(events.id, eventId))
@@ -93,6 +94,7 @@ export default async function EditEventPage({
     isPublished: event.isPublished ?? true,
     propId: event.propId,
     isRecurring: event.isRecurring ?? false,
+    createdAt: event.createdAt,
   };
 
   return (

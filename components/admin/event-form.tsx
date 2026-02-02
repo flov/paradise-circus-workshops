@@ -39,6 +39,7 @@ export type EventFormInitialValues = {
   isPublished?: boolean;
   propId?: number | null;
   isRecurring?: boolean;
+  createdAt?: string | Date;
 };
 
 type EventFormProps = {
@@ -284,8 +285,24 @@ export function EventForm({
 
   const isEditMode = !!initialValues?.id;
 
+  const formatCreatedAt = (value: string | Date) => {
+    const d = typeof value === "string" ? new Date(value) : value;
+    return d.toLocaleDateString("en-US", {
+      weekday: "long",
+      month: "long",
+      day: "numeric",
+      year: "numeric",
+    });
+  };
+
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
+      {isEditMode && initialValues?.createdAt && (
+        <div className="rounded-md bg-muted/50 border border-border px-3 py-2 text-sm text-muted-foreground">
+          <span className="font-medium text-foreground">Created: </span>
+          {formatCreatedAt(initialValues.createdAt)}
+        </div>
+      )}
       <div className="grid gap-4 md:grid-cols-2">
         <div className="space-y-2">
           <Label htmlFor="title">Event Title *</Label>
