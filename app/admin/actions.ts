@@ -1770,7 +1770,19 @@ export async function deleteBooking(participationId: number, eventId: number) {
 }
 
 /**
- * Extends recurring events to ensure there's always at least 10 days of future events.
+ * Returns the Sunday of the next week (the week after the current one) in UTC.
+ * E.g. if today is Monday Feb 2, returns Sunday Feb 15.
+ */
+function getNextWeekSundayUTC(todayUTC: Date): Date {
+  const dayOfWeek = todayUTC.getUTCDay(); // 0=Sun, 1=Mon, ..., 6=Sat
+  const daysSinceMonday = (dayOfWeek + 6) % 7; // Mon=0, Tue=1, ..., Sun=6
+  const currentWeekMonday = new Date(Date.UTC(todayUTC.getUTCFullYear(), todayUTC.getUTCMonth(), todayUTC.getUTCDate() - daysSinceMonday));
+  const nextWeekSunday = new Date(Date.UTC(currentWeekMonday.getUTCFullYear(), currentWeekMonday.getUTCMonth(), currentWeekMonday.getUTCDate() + 7 + 6));
+  return nextWeekSunday;
+}
+
+/**
+ * Extends recurring events to ensure there's always events up to the Sunday of the next week.
  * This function is called by the cron job to automatically extend recurring event series.
  */
 export async function extendRecurringEvents() {
@@ -1783,10 +1795,10 @@ export async function extendRecurringEvents() {
         and(eq(events.isRecurring, true), isNotNull(events.recurringSeriesId)),
       );
 
-    // Use UTC dates to avoid timezone issues
+    // Use UTC dates to avoid timezone issues; extend to Sunday of the next week
     const today = new Date();
     const todayUTC = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate()));
-    const targetDate = new Date(Date.UTC(todayUTC.getUTCFullYear(), todayUTC.getUTCMonth(), todayUTC.getUTCDate() + 10)); // 10 days ahead
+    const targetDate = getNextWeekSundayUTC(todayUTC);
 
     let totalEventsCreated = 0;
 
@@ -1841,7 +1853,7 @@ export async function extendRecurringEvents() {
           .where(eq(events.recurringSeriesId, series.recurringSeriesId));
         const existingDates = new Set(allSeriesEvents.map((e) => e.date));
 
-        // Create events until at least 10 days ahead is covered
+        // Create events until the Sunday of the next week is covered
         const eventsToCreate: Array<{
           title: string;
           description: string | null;
@@ -1864,7 +1876,7 @@ export async function extendRecurringEvents() {
         // Use UTC date arithmetic to avoid timezone issues
         let currentDate = new Date(Date.UTC(year, month - 1, day + 7));
 
-        // Create events until we're at least 10 days ahead
+        // Create events until we've reached the Sunday of the next week
         while (currentDate <= targetDate) {
           // Format as YYYY-MM-DD using UTC methods to avoid timezone shifts
           const dateStr = `${currentDate.getUTCFullYear()}-${String(currentDate.getUTCMonth() + 1).padStart(2, "0")}-${String(currentDate.getUTCDate()).padStart(2, "0")}`;

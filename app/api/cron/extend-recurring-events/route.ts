@@ -10,7 +10,7 @@ export const dynamic = "force-dynamic"
 /**
  * Cron job endpoint to extend recurring events.
  * This endpoint is called by Vercel Cron to ensure recurring events
- * always have at least 10 days of future events.
+ * extend at least to the Sunday of the next week (e.g. on Monday, 13 days ahead).
  * 
  * Schedule: Daily at 2 AM UTC (configured in vercel.json)
  */
