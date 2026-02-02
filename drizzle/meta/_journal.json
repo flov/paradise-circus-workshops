@@ -162,6 +162,13 @@
       "when": 1769272879479,
       "tag": "0022_adds_recap_video_id_to_events",
       "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1770071135607,
+      "tag": "0023_optimize_timetable_indexes",
+      "breakpoints": true
     }
   ]
 }

@@ -28,6 +28,9 @@ export const events = pgTable(
   (table) => ({
     dateIdx: index("idx_events_date").on(table.date),
     recurringSeriesIdIdx: index("idx_events_recurring_series_id").on(table.recurringSeriesId),
+    dateIsPublishedIdx: index("idx_events_date_is_published").on(table.date, table.isPublished),
+    instructorIdIdx: index("idx_events_instructor_id").on(table.instructorId),
+    isPublishedIdx: index("idx_events_is_published").on(table.isPublished),
   })
 );
 

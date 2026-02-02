@@ -41,22 +41,16 @@ export async function GET(request: NextRequest) {
 
     // Build publish condition:
     // - If user is admin: show all events (published and unpublished)
-    // - If user is instructor: show published events + all unpublished events (from all instructors)
+    // - If user is instructor: show all events (published and unpublished) - same as admin
     // - If userId is provided and valid: show published events + unpublished events for that instructor
     // - Otherwise: only show published events
     const parsedUserId = userId ? Number.parseInt(userId, 10) : null
     const isValidUserId = parsedUserId !== null && !Number.isNaN(parsedUserId)
     
     let publishCondition
-    if (userIsAdmin) {
-      // Admins see all events (published and unpublished)
+    if (userIsAdmin || userIsInstructor) {
+      // Admins and instructors see all events (published and unpublished)
       publishCondition = undefined // No filter needed
-    } else if (userIsInstructor) {
-      // Instructors see published events + all unpublished events (from all instructors)
-      publishCondition = or(
-        eq(events.isPublished, true),
-        eq(events.isPublished, false)
-      )
     } else if (isValidUserId) {
       // If userId is provided but user is not an instructor, show published events + their own unpublished events
       publishCondition = or(
@@ -110,33 +104,15 @@ export async function GET(request: NextRequest) {
       .where(publishCondition ? and(dateConditions, publishCondition) : dateConditions)
       .orderBy(asc(events.date), asc(events.startTime))
 
-    // Add instructor display name to events
-    const eventsWithInstructorInfo = eventsData.map(event => ({
-      id: event.id,
-      title: event.title,
-      description: event.description,
-      instructor: event.instructor,
-      instructorId: event.instructorId,
-      date: event.date,
-      startTime: event.startTime,
-      endTime: event.endTime,
-      location: event.location,
-      whatToBring: event.whatToBring,
-      isWorkshop: event.isWorkshop,
-      currentBookings: event.currentBookings,
-      propId: event.propId,
-      isPublished: event.isPublished,
-      isRecurring: event.isRecurring,
-      recurringSeriesId: event.recurringSeriesId,
-      recapVideoId: event.recapVideoId,
-      createdAt: event.createdAt,
-      instructorDisplayName: event.instructorProfile
-        ? (event.instructorProfile.displayName || event.instructorProfile.username)
-        : null,
-      instructorProfile: event.instructorProfile,
-    }))
-
-    return Response.json(eventsWithInstructorInfo)
+    // Return events with computed instructorDisplayName field
+    return Response.json(
+      eventsData.map(event => ({
+        ...event,
+        instructorDisplayName: event.instructorProfile
+          ? (event.instructorProfile.displayName || event.instructorProfile.username)
+          : null,
+      }))
+    )
   } catch (error) {
     console.error("Database error:", error)
     return Response.json({ error: "Failed to fetch timetable" }, { status: 500 })
