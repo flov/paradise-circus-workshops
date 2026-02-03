@@ -139,13 +139,13 @@ async function getPropsStatsUncached(): Promise<PropStat[]> {
 
 /**
  * Get props statistics with user counts and user details
- * Cached for 4 hours to improve performance (60 seconds in development)
+ * Cached for 8 hours to improve performance (60 seconds in development)
  */
 export const getPropsStats = unstable_cache(
   async () => getPropsStatsUncached(),
   ["props-stats"],
   {
-    revalidate: process.env.NODE_ENV === "development" ? 1 : 14400, // 1 second in dev, 4 hours in production
+    revalidate: process.env.NODE_ENV === "development" ? 60 : 28800, // 60 seconds in dev, 8 hours in production
     tags: ["props-stats"],
   },
 );
