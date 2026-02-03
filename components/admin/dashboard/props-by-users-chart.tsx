@@ -257,11 +257,11 @@ export function PropsByUsersChart({ stats }: PropsByUsersChartProps) {
                   {prop.userCount} artist{prop.userCount !== 1 ? "s" : ""}
                 </span>
               </div>
-              <div className="h-3 bg-muted rounded-full overflow-hidden">
+              <div className="h-2 bg-muted rounded-full overflow-hidden">
                 <div
                   className={cn(
                     "h-full rounded-full transition-all duration-500 ease-out",
-                    "bg-primary",
+                    "bg-gradient-to-r from-purple-500 to-pink-500",
                     (isHovered || isDialogOpen) && "brightness-110",
                   )}
                   style={{
