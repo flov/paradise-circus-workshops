@@ -278,7 +278,7 @@ export interface EventStatsResult {
 }
 
 /**
- * Get event/workshop statistics: summary, by prop, and over time
+ * Get event/workshop statistics: summary, by prop
  */
 export async function getEventStats(): Promise<EventStatsResult> {
   const today = new Date().toISOString().split("T")[0];

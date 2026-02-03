@@ -33,49 +33,12 @@ interface EventsStatsDashboardProps {
   byProp: EventsByPropStat[];
 }
 
-function formatEventDate(isoDate: string): string {
-  const [y, m, d] = isoDate.split("-").map(Number);
-  const date = new Date(y, m - 1, d);
-  return date.toLocaleDateString("en-GB", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-  });
-}
-
-function daysBetween(earliest: string, latest: string): number {
-  const start = new Date(earliest);
-  const end = new Date(latest);
-  const msPerDay = 24 * 60 * 60 * 1000;
-  return Math.round((end.getTime() - start.getTime()) / msPerDay);
-}
-
 export function EventsStatsDashboard({
   summary,
   byProp,
 }: EventsStatsDashboardProps) {
-  const hasDateRange =
-    summary.earliestEventDate && summary.latestEventDate;
-  const dayCount = hasDateRange
-    ? daysBetween(summary.earliestEventDate, summary.latestEventDate)
-    : 0;
-
   return (
     <div className="space-y-8">
-      {hasDateRange && (
-        <p className="text-sm text-muted-foreground">
-          Statistics span from{" "}
-          <span className="font-medium text-foreground">
-            {formatEventDate(summary.earliestEventDate)}
-          </span>{" "}
-          to{" "}
-          <span className="font-medium text-foreground">
-            {formatEventDate(summary.latestEventDate)}
-          </span>{" "}
-          ({dayCount} day{dayCount !== 1 ? "s" : ""}).
-        </p>
-      )}
-
       {/* Workshops by prop */}
       <Card>
         <CardHeader>
@@ -84,19 +47,8 @@ export function EventsStatsDashboard({
             <CardTitle className="text-lg">Workshops by Prop</CardTitle>
           </div>
           <CardDescription>
-            At Paradise we gave <span className="font-bold">{summary.totalWorkshops} workshop
-            {summary.totalWorkshops !== 1 ? "s" : ""}</span>
-            {hasDateRange ? (
-              <>
-                {" "}
-                within <span className="font-bold">{dayCount} day
-                {dayCount !== 1 ? "s" : ""}
-                </span>
-              </>
-            ) : (
-              ""
-            )}
-            . Here's a bar chart that shows the workshops sorted by props.
+            In the below statistics you can see the number of props that have
+            been used in the workshops given.
           </CardDescription>
         </CardHeader>
         <CardContent>
