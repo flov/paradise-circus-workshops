@@ -58,6 +58,27 @@ export interface TimeSlotData {
   count: number;
 }
 
+// Event / workshop statistics
+export interface EventStatsSummary {
+  totalWorkshops: number;
+  totalParticipations: number;
+  avgFillRatePercent: number;
+  upcomingCount: number;
+  pastCount: number;
+  /** Earliest event date (YYYY-MM-DD), null if no events */
+  earliestEventDate: string | null;
+  /** Latest event date (YYYY-MM-DD), null if no events */
+  latestEventDate: string | null;
+}
+
+export interface EventsByPropStat {
+  propId: number;
+  propName: string;
+  eventCount: number;
+  totalParticipants: number;
+}
+
+
 /**
  * Get props statistics with user counts and user details (uncached)
  * This function performs the actual database queries
@@ -249,4 +270,69 @@ export async function getWorkshopTimeSlots(): Promise<TimeSlotData[]> {
     );
 
   return timeSlots;
+}
+
+export interface EventStatsResult {
+  summary: EventStatsSummary;
+  byProp: EventsByPropStat[];
+}
+
+/**
+ * Get event/workshop statistics: summary, by prop, and over time
+ */
+export async function getEventStats(): Promise<EventStatsResult> {
+  const today = new Date().toISOString().split("T")[0];
+
+  // Summary: total workshops, participations, fill rate, upcoming vs past, date range
+  const [summaryRow] = await db
+    .select({
+      totalWorkshops: sql<number>`CAST(COUNT(*) AS INTEGER)`,
+      totalParticipations: sql<number>`CAST(COALESCE(SUM(${events.currentBookings}), 0) AS INTEGER)`,
+      totalCapacity: sql<number>`CAST(COALESCE(SUM(${events.maxCapacity}), 0) AS INTEGER)`,
+      upcomingCount: sql<number>`CAST(COUNT(CASE WHEN ${events.date} >= ${today} THEN 1 END) AS INTEGER)`,
+      pastCount: sql<number>`CAST(COUNT(CASE WHEN ${events.date} < ${today} THEN 1 END) AS INTEGER)`,
+      earliestEventDate: sql<string | null>`MIN(${events.date})::text`,
+      latestEventDate: sql<string | null>`MAX(${events.date})::text`,
+    })
+    .from(events)
+    .where(and(eq(events.isPublished, true), eq(events.isWorkshop, true)));
+
+  const totalWorkshops = summaryRow?.totalWorkshops ?? 0;
+  const totalParticipations = summaryRow?.totalParticipations ?? 0;
+  const totalCapacity = summaryRow?.totalCapacity ?? 0;
+  const avgFillRatePercent =
+    totalCapacity > 0 ? Math.round((totalParticipations / totalCapacity) * 100) : 0;
+
+  const summaryData: EventStatsSummary = {
+    totalWorkshops,
+    totalParticipations,
+    avgFillRatePercent,
+    upcomingCount: summaryRow?.upcomingCount ?? 0,
+    pastCount: summaryRow?.pastCount ?? 0,
+    earliestEventDate: summaryRow?.earliestEventDate ?? null,
+    latestEventDate: summaryRow?.latestEventDate ?? null,
+  };
+
+  // By prop: event count and total participants per prop (only events with a prop)
+  const byPropRows = await db
+    .select({
+      propId: props.id,
+      propName: props.name,
+      eventCount: sql<number>`CAST(COUNT(${events.id}) AS INTEGER)`,
+      totalParticipants: sql<number>`CAST(COALESCE(SUM(${events.currentBookings}), 0) AS INTEGER)`,
+    })
+    .from(events)
+    .innerJoin(props, eq(events.propId, props.id))
+    .where(and(eq(events.isPublished, true), eq(events.isWorkshop, true)))
+    .groupBy(props.id, props.name)
+    .orderBy(desc(sql`COUNT(${events.id})`));
+
+  const byProp: EventsByPropStat[] = byPropRows.map((row) => ({
+    propId: row.propId,
+    propName: row.propName,
+    eventCount: row.eventCount,
+    totalParticipants: row.totalParticipants,
+  }));
+
+  return { summary: summaryData, byProp };
 }

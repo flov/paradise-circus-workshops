@@ -10,7 +10,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import Link from "next/link";
-import { Orbit, TrendingUp, UserCheck, BarChart3, ArrowRight } from "lucide-react";
+import { Orbit, TrendingUp, UserCheck, BarChart3, ArrowRight, CalendarDays } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export default async function AdminPage() {
@@ -51,6 +51,12 @@ export default async function AdminPage() {
       description: "Analyze skill levels across different props",
       href: "/admin/stats/skills",
       icon: BarChart3,
+    },
+    {
+      title: "Event Statistics",
+      description: "Workshop counts, participations, and trends by prop and over time",
+      href: "/admin/stats/events",
+      icon: CalendarDays,
     },
   ];
 
