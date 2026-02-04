@@ -6,6 +6,7 @@ import {
   eq,
   desc,
   gte,
+  lte,
   and,
   isNotNull,
   inArray,
@@ -199,12 +200,16 @@ export async function getCommunityGrowth(): Promise<CommunityGrowthPoint[]> {
 }
 
 /**
- * Get top instructors by workshop count
+ * Get top instructors by workshop count (last 30 days)
  */
 export async function getTopInstructors(limit = 10): Promise<TopInstructor[]> {
-  const today = new Date().toISOString().split("T")[0];
+  const now = new Date();
+  const today = now.toISOString().split("T")[0];
+  const thirtyDaysAgo = new Date(now);
+  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+  const startDate = thirtyDaysAgo.toISOString().split("T")[0];
 
-  // Get instructors with their workshop counts
+  // Get instructors with their workshop counts (events in the last 30 days)
   const instructors = await db
     .select({
       id: users.id,
@@ -216,7 +221,14 @@ export async function getTopInstructors(limit = 10): Promise<TopInstructor[]> {
     })
     .from(users)
     .innerJoin(events, eq(users.id, events.instructorId))
-    .where(and(eq(events.isPublished, true), eq(events.isWorkshop, true)))
+    .where(
+      and(
+        eq(events.isPublished, true),
+        eq(events.isWorkshop, true),
+        gte(events.date, startDate),
+        lte(events.date, today),
+      ),
+    )
     .groupBy(users.id, users.username, users.displayName, users.avatarImageUrl)
     .orderBy(desc(sql`COUNT(DISTINCT ${events.id})`))
     .limit(limit);

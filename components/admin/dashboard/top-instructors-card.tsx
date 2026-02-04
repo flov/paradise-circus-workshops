@@ -22,7 +22,9 @@ export function TopInstructorsCard({ instructors }: TopInstructorsCardProps) {
     return (
       <Card>
         <CardHeader>
-          <CardTitle className="text-lg">Top Instructors</CardTitle>
+          <CardTitle className="text-lg">
+            Most workshops taught by instructor in the last 30 days
+          </CardTitle>
           <CardDescription>No instructor data available yet</CardDescription>
         </CardHeader>
       </Card>
@@ -34,8 +36,10 @@ export function TopInstructorsCard({ instructors }: TopInstructorsCardProps) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-lg">Top Instructors</CardTitle>
-        <CardDescription>By total workshops taught</CardDescription>
+        <CardTitle className="text-lg">
+          Most workshops taught by instructor in the last 30 days
+        </CardTitle>
+        <CardDescription>By workshops taught in the last 30 days</CardDescription>
       </CardHeader>
       <CardContent className="space-y-3">
         {instructors.map((instructor, index) => {
