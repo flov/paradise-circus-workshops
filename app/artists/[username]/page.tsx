@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import {
@@ -5,7 +6,11 @@ import {
   getUserProps,
   getUserWorkshops,
 } from "@/app/profile/actions";
-import { getYouTubeEmbedUrl, getVimeoEmbedUrl } from "@/lib/utils";
+import {
+  getYouTubeEmbedUrl,
+  getVimeoEmbedUrl,
+  createEventSlug,
+} from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { EventCard } from "@/components/event-card";
@@ -19,6 +24,7 @@ import {
   Calendar,
   Shield,
   Code,
+  Clock,
 } from "lucide-react";
 
 export async function generateMetadata({
@@ -269,25 +275,57 @@ export default async function ArtistProfilePage({
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div
-                    className={`grid gap-4 ${
-                      workshops.past.length === 1
-                        ? "grid-cols-1"
-                        : workshops.past.length === 2
-                          ? "grid-cols-1 md:grid-cols-2"
-                          : "grid-cols-1 md:grid-cols-2 lg:grid-cols-3"
-                    }`}
-                  >
-                    {workshops.past.map((workshop) => (
-                      <EventCard
-                        key={workshop.id}
-                        event={workshop}
-                        instructorDisplayName={
-                          user.displayName || user.username
-                        }
-                      />
-                    ))}
-                  </div>
+                  <ul className="divide-y divide-border">
+                    {workshops.past.map((workshop) => {
+                      const date = new Date(workshop.date);
+                      const formattedDate = date.toLocaleDateString("en-US", {
+                        month: "short",
+                        day: "numeric",
+                        year: "numeric",
+                      });
+                      const formatTime = (time: string) => {
+                        const [hours, minutes] = time.split(":");
+                        const hour = Number.parseInt(hours, 10);
+                        const ampm = hour >= 12 ? "PM" : "AM";
+                        const displayHour = hour % 12 || 12;
+                        return `${displayHour}:${minutes} ${ampm}`;
+                      };
+                      const slug = createEventSlug(
+                        workshop.id,
+                        workshop.title,
+                        user.displayName || user.username,
+                      );
+                      return (
+                        <li key={workshop.id}>
+                          <Link
+                            href={`/event/${slug}`}
+                            className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 py-3 hover:bg-muted/50 -mx-2 px-2 rounded-lg transition-colors group"
+                          >
+                            <span className="font-medium group-hover:text-primary group-hover:underline truncate">
+                              {workshop.title}
+                            </span>
+                            <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-sm text-muted-foreground shrink-0">
+                              <span className="flex items-center gap-1">
+                                <Calendar className="h-3.5 w-3.5" />
+                                {formattedDate}
+                              </span>
+                              <span className="flex items-center gap-1">
+                                <Clock className="h-3.5 w-3.5" />
+                                {formatTime(workshop.startTime)}–
+                                {formatTime(workshop.endTime)}
+                              </span>
+                              {workshop.location && (
+                                <span className="flex items-center gap-1 truncate max-w-[12rem]">
+                                  <MapPin className="h-3.5 w-3.5 shrink-0" />
+                                  {workshop.location}
+                                </span>
+                              )}
+                            </div>
+                          </Link>
+                        </li>
+                      );
+                    })}
+                  </ul>
                 </CardContent>
               </Card>
             )}
