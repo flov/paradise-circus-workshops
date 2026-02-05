@@ -261,7 +261,7 @@ export function ArtistList({ artists }: ArtistListProps) {
             <div>
               <h2 className="font-semibold">Artists</h2>
               <p className="text-base text-muted-foreground">
-                {filteredArtists.length} of {artists.length} performer
+                {filteredArtists.length} of {artists.length} artist
                 {artists.length !== 1 ? "s" : ""}
               </p>
             </div>
