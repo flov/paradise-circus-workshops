@@ -199,18 +199,18 @@ export async function getCommunityGrowth(): Promise<CommunityGrowthPoint[]> {
   return growthData;
 }
 
-/**
- * Get top instructors by workshop count (last 30 days)
- */
-export async function getTopInstructors(limit = 10): Promise<TopInstructor[]> {
+const TOP_INSTRUCTORS_REVALIDATE_SECONDS = 86400; // 24 hours
+
+async function getTopInstructorsUncached(
+  limit: number,
+): Promise<TopInstructor[]> {
   const now = new Date();
   const today = now.toISOString().split("T")[0];
   const thirtyDaysAgo = new Date(now);
   thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
   const startDate = thirtyDaysAgo.toISOString().split("T")[0];
 
-  // Get instructors with their workshop counts (events in the last 30 days)
-  const instructors = await db
+  return db
     .select({
       id: users.id,
       username: users.username,
@@ -232,9 +232,20 @@ export async function getTopInstructors(limit = 10): Promise<TopInstructor[]> {
     .groupBy(users.id, users.username, users.displayName, users.avatarImageUrl)
     .orderBy(desc(sql`COUNT(DISTINCT ${events.id})`))
     .limit(limit);
-
-  return instructors;
 }
+
+/**
+ * Get top instructors by workshop count (last 30 days). Cached for 24 hours.
+ */
+export const getTopInstructors = (limit = 10) =>
+  unstable_cache(
+    () => getTopInstructorsUncached(limit),
+    ["top-instructors", String(limit)],
+    {
+      revalidate: TOP_INSTRUCTORS_REVALIDATE_SECONDS,
+      tags: ["top-instructors"],
+    },
+  )();
 
 /**
  * Get skill level distribution by prop
