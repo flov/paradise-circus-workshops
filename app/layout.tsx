@@ -50,7 +50,7 @@ export const metadata: Metadata = {
     locale: "en_US",
     url: baseUrl,
     siteName: "Paradise Circus",
-    title: "Paradise Circus - Circus Workshops in Pai, Thailand",
+    title: "Paradise Circus - A Circus Community in Pai, Thailand",
     description:
       "Discover Paradise Circus in Pai, Thailand. Explore our talented artists, view our up-to-date timetable, and join our workshops.",
     images: [
