@@ -72,6 +72,11 @@ export default async function ArtistProfilePage({
   const profileImageUrl = user.avatarImageUrl || null;
   const isFlowWizard =
     (user.displayName || user.username) === "The Flow Wizard";
+  const websiteUrl = user.website
+    ? user.website.match(/^https?:\/\//i)
+      ? user.website
+      : `https://${user.website}`
+    : null;
 
   return (
     <div className="container mx-auto max-w-4xl py-4 px-4">
@@ -163,10 +168,10 @@ export default async function ArtistProfilePage({
               </div>
             )}
 
-            {user.website && (
+            {websiteUrl && (
               <div>
                 <a
-                  href={user.website}
+                  href={websiteUrl}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex items-center gap-2 text-primary hover:underline"
