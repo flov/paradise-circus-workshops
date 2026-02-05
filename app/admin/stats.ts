@@ -207,41 +207,72 @@ export async function getCommunityGrowth(): Promise<CommunityGrowthPoint[]> {
 
 /**
  * Get daily user growth data for the last 30 days
+ * This improved version ensures we have entries for all 30 days, even if no users registered on some days
  */
 export async function getDailyUserGrowth(): Promise<DailyGrowthPoint[]> {
   const now = new Date();
-  const thirtyDaysAgo = new Date(now);
-  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-  const startDate = thirtyDaysAgo.toISOString().split('T')[0];
+  now.setHours(23, 59, 59, 999); // End of today
   
+  const thirtyDaysAgo = new Date(now);
+  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 29); // 30 days including today
+  thirtyDaysAgo.setHours(0, 0, 0, 0); // Start of the first day
+  
+  const startDate = thirtyDaysAgo.toISOString().split('T')[0];
+  const endDate = now.toISOString().split('T')[0];
+  
+  // Generate a date series for all 30 days
+  const dateRange = [];
+  const currentDate = new Date(thirtyDaysAgo);
+  
+  while (currentDate <= now) {
+    dateRange.push(currentDate.toISOString().split('T')[0]);
+    currentDate.setDate(currentDate.getDate() + 1);
+  }
+  
+  // Query actual registrations
   const dailyData = await db
     .select({
       date: sql<string>`TO_CHAR(${users.createdAt}::date, 'YYYY-MM-DD')`,
       count: sql<number>`CAST(COUNT(*) AS INTEGER)`,
     })
     .from(users)
-    .where(gte(users.createdAt, startDate))
+    .where(
+      and(
+        gte(users.createdAt, thirtyDaysAgo.toISOString()),
+        lte(users.createdAt, now.toISOString())
+      )
+    )
     .groupBy(sql`${users.createdAt}::date`)
     .orderBy(sql`${users.createdAt}::date`);
 
-  // Calculate cumulative users
-  // We need to get the total count before the time period
+  // Create a map of date -> count for easy lookup
+  const countByDate = new Map<string, number>();
+  dailyData.forEach(row => {
+    countByDate.set(row.date, row.count);
+  });
+  
+  // Get total users before our period (for cumulative calculation)
   const [{ count: previousCount }] = await db
     .select({
       count: sql<number>`CAST(COUNT(*) AS INTEGER)`,
     })
     .from(users)
-    .where(lte(users.createdAt, startDate));
+    .where(lt(users.createdAt, thirtyDaysAgo.toISOString()));
 
+  // Build complete dataset with all dates
   let cumulative = previousCount || 0;
-  const growthData: DailyGrowthPoint[] = dailyData.map((row) => {
-    cumulative += row.count;
-    return {
-      date: row.date,
-      users: row.count,
+  const growthData: DailyGrowthPoint[] = [];
+  
+  for (const date of dateRange) {
+    const count = countByDate.get(date) || 0;
+    cumulative += count;
+    
+    growthData.push({
+      date,
+      users: count,
       cumulativeUsers: cumulative,
-    };
-  });
+    });
+  }
 
   return growthData;
 }
