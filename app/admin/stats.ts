@@ -175,6 +175,12 @@ export const getPropsStats = unstable_cache(
 /**
  * Get community growth data (users by week)
  */
+export interface DailyGrowthPoint {
+  date: string; // YYYY-MM-DD format
+  users: number;
+  cumulativeUsers: number;
+}
+
 export async function getCommunityGrowth(): Promise<CommunityGrowthPoint[]> {
   const weeklyData = await db
     .select({
@@ -191,6 +197,47 @@ export async function getCommunityGrowth(): Promise<CommunityGrowthPoint[]> {
     cumulative += row.count;
     return {
       week: row.week,
+      users: row.count,
+      cumulativeUsers: cumulative,
+    };
+  });
+
+  return growthData;
+}
+
+/**
+ * Get daily user growth data for the last 30 days
+ */
+export async function getDailyUserGrowth(): Promise<DailyGrowthPoint[]> {
+  const now = new Date();
+  const thirtyDaysAgo = new Date(now);
+  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+  const startDate = thirtyDaysAgo.toISOString().split('T')[0];
+  
+  const dailyData = await db
+    .select({
+      date: sql<string>`TO_CHAR(${users.createdAt}::date, 'YYYY-MM-DD')`,
+      count: sql<number>`CAST(COUNT(*) AS INTEGER)`,
+    })
+    .from(users)
+    .where(gte(users.createdAt, startDate))
+    .groupBy(sql`${users.createdAt}::date`)
+    .orderBy(sql`${users.createdAt}::date`);
+
+  // Calculate cumulative users
+  // We need to get the total count before the time period
+  const [{ count: previousCount }] = await db
+    .select({
+      count: sql<number>`CAST(COUNT(*) AS INTEGER)`,
+    })
+    .from(users)
+    .where(lte(users.createdAt, startDate));
+
+  let cumulative = previousCount || 0;
+  const growthData: DailyGrowthPoint[] = dailyData.map((row) => {
+    cumulative += row.count;
+    return {
+      date: row.date,
       users: row.count,
       cumulativeUsers: cumulative,
     };
