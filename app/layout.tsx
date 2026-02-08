@@ -26,7 +26,8 @@ export const metadata: Metadata = {
     template: "%s | Paradise Circus",
   },
   description:
-    "Discover the magic of Paradise Circus with our official website. Find out about our workshops, meet our collective of world-class artists, and participate in life-changing shows. Everything you need to know about how to run away with the circus is right here. Experience the spectacle!",
+    "Connect with fellow artists, discover workshops, share your skills, and be part of the Paradise Circus community in Pai, Thailand.",
+
   keywords: [
     "Paradise Circus",
     "Pai Thailand",
