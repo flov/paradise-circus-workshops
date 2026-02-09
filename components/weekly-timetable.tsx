@@ -194,10 +194,10 @@ export function WeeklyTimetable({
       const startDate = formatLocalDate(dates[0]);
       const endDate = formatLocalDate(dates[6]);
 
-      // Build API URL with userId if available
+      // Build API URL - use public route for logged-out users, authenticated route for logged-in users
       const apiUrl = userId
         ? `/api/timetable?start=${startDate}&end=${endDate}&userId=${userId}`
-        : `/api/timetable?start=${startDate}&end=${endDate}`;
+        : `/api/timetable/public?start=${startDate}&end=${endDate}`;
 
       const response = await fetch(apiUrl);
       const events = await response.json();

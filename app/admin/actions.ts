@@ -384,6 +384,7 @@ export async function createEvent(formData: FormData) {
       revalidatePath("/admin");
       revalidatePath("/");
       revalidatePath("/api/timetable");
+      revalidateTag("timetable-public");
 
       return { success: true };
     }
@@ -561,6 +562,7 @@ export async function createEvent(formData: FormData) {
     revalidatePath("/admin");
     revalidatePath("/");
     revalidatePath("/api/timetable");
+    revalidateTag("timetable-public");
 
     return { success: true };
   } catch (error) {
@@ -974,6 +976,7 @@ export async function updateEvent(formData: FormData) {
       revalidatePath("/admin");
       revalidatePath("/");
       revalidatePath("/api/timetable");
+      revalidateTag("timetable-public");
 
       // Ensure title and instructorName are not null before creating slug
       if (title && instructorName) {
@@ -1000,6 +1003,7 @@ export async function updateEvent(formData: FormData) {
       revalidatePath("/admin");
       revalidatePath("/");
       revalidatePath("/api/timetable");
+      revalidateTag("timetable-public");
       
       if (title && instructorName) {
         revalidatePath(`/event/${createEventSlug(eventId, title, instructorName)}`);
@@ -1036,6 +1040,7 @@ export async function updateEvent(formData: FormData) {
         revalidatePath("/admin");
         revalidatePath("/");
         revalidatePath("/api/timetable");
+        revalidateTag("timetable-public");
         
         if (title && instructorName) {
           revalidatePath(`/event/${createEventSlug(eventId, title, instructorName)}`);
@@ -1164,6 +1169,7 @@ export async function updateEvent(formData: FormData) {
       revalidatePath("/admin");
       revalidatePath("/");
       revalidatePath("/api/timetable");
+      revalidateTag("timetable-public");
 
       return { success: true };
     }
@@ -1194,6 +1200,7 @@ export async function updateEvent(formData: FormData) {
         revalidatePath("/admin");
         revalidatePath("/");
         revalidatePath("/api/timetable");
+        revalidateTag("timetable-public");
         
         if (title && instructorName) {
           revalidatePath(`/event/${createEventSlug(eventId, title, instructorName)}`);
@@ -1414,6 +1421,7 @@ export async function updateEvent(formData: FormData) {
     revalidatePath("/admin");
     revalidatePath("/");
     revalidatePath("/api/timetable");
+    revalidateTag("timetable-public");
 
     // Ensure title and instructorName are not null before creating slug
     if (title && instructorName) {
@@ -1570,6 +1578,7 @@ export async function deleteEvent(
     revalidatePath("/admin");
     revalidatePath("/");
     revalidatePath("/api/timetable");
+    revalidateTag("timetable-public");
   } catch (error) {
     console.error("Error deleting workshop:", error);
     throw error;
@@ -1723,6 +1732,7 @@ export async function deleteEventAndFutureInstructorEvents(
     revalidatePath("/admin");
     revalidatePath("/");
     revalidatePath("/api/timetable");
+    revalidateTag("timetable-public");
   } catch (error) {
     console.error("Error deleting event and future instructor events:", error);
     throw error;
@@ -1925,6 +1935,7 @@ export async function extendRecurringEvents() {
     revalidatePath("/admin");
     revalidatePath("/");
     revalidatePath("/api/timetable");
+    revalidateTag("timetable-public");
 
     return {
       success: true,
@@ -2139,6 +2150,7 @@ export async function updateEventRecapVideo(
 
     revalidatePath(`/event`);
     revalidatePath("/api/timetable");
+    revalidateTag("timetable-public");
 
     return { success: true };
   } catch (error) {
