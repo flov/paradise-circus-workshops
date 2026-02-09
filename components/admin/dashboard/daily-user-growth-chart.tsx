@@ -107,7 +107,7 @@ export function DailyUserGrowthChart({ data }: DailyUserGrowthChartProps) {
               <Users className="h-3 w-3" />
               <span>{totalNewUsers} total</span>
             </Badge>
-            <Badge variant="outline" className={growthTrend >= 0 ? "bg-green-500/10" : "bg-red-500/10"} className="flex items-center gap-1">
+            <Badge variant="outline" className={`flex items-center gap-1 ${growthTrend >= 0 ? "bg-green-500/10" : "bg-red-500/10"}`}>
               <TrendingUp className="h-3 w-3" />
               <span>{growthTrend >= 0 ? "+" : ""}{growthTrend.toFixed(0)}%</span>
             </Badge>
@@ -211,6 +211,7 @@ export function DailyUserGrowthChart({ data }: DailyUserGrowthChartProps) {
               />
               <ReferenceLine
                 y={averageNewUsersPerDay}
+                yAxisId="left"
                 stroke="#f43f5e"
                 strokeDasharray="3 3"
                 strokeWidth={1}

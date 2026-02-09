@@ -1942,6 +1942,33 @@ export async function extendRecurringEvents() {
   }
 }
 
+/**
+ * Server action wrapper for extendRecurringEvents with admin authorization check.
+ * This allows admins to manually trigger the recurring events extension from the UI.
+ */
+export async function runExtendRecurringEvents() {
+  // Check authentication
+  const { userId } = await auth();
+
+  if (!userId) {
+    return {
+      success: false,
+      error: "Unauthorized. You must be signed in to run this action.",
+    };
+  }
+
+  // Check admin authorization
+  const userIsAdmin = await isAdmin();
+  if (!userIsAdmin) {
+    return {
+      success: false,
+      error: "Unauthorized. Only admins can run this action.",
+    };
+  }
+
+  return await extendRecurringEvents();
+}
+
 export async function updateEventRecapVideo(
   eventId: number,
   recapVideoId: string | null,

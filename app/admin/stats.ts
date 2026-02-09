@@ -7,6 +7,7 @@ import {
   desc,
   gte,
   lte,
+  lt,
   and,
   isNotNull,
   inArray,
@@ -238,8 +239,8 @@ export async function getDailyUserGrowth(): Promise<DailyGrowthPoint[]> {
     .from(users)
     .where(
       and(
-        gte(users.createdAt, thirtyDaysAgo.toISOString()),
-        lte(users.createdAt, now.toISOString())
+        gte(users.createdAt, thirtyDaysAgo),
+        lte(users.createdAt, now)
       )
     )
     .groupBy(sql`${users.createdAt}::date`)
@@ -257,7 +258,7 @@ export async function getDailyUserGrowth(): Promise<DailyGrowthPoint[]> {
       count: sql<number>`CAST(COUNT(*) AS INTEGER)`,
     })
     .from(users)
-    .where(lt(users.createdAt, thirtyDaysAgo.toISOString()));
+    .where(lt(users.createdAt, thirtyDaysAgo));
 
   // Build complete dataset with all dates
   let cumulative = previousCount || 0;

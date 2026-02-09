@@ -10,8 +10,9 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import Link from "next/link";
-import { Orbit, TrendingUp, UserCheck, BarChart3, ArrowRight, CalendarDays } from "lucide-react";
+import { Orbit, TrendingUp, UserCheck, BarChart3, ArrowRight, CalendarDays, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { RunExtendRecurringEventsButton } from "@/components/admin/run-extend-recurring-events-button";
 
 export default async function AdminPage() {
   // Check authentication
@@ -97,6 +98,24 @@ export default async function AdminPage() {
               </Link>
             );
           })}
+          
+          {/* Manual Cronjob Trigger Card */}
+          <Card className="h-full">
+            <CardHeader>
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-primary/10">
+                  <RefreshCw className="h-5 w-5 text-primary" />
+                </div>
+                <CardTitle className="text-lg">Extend Recurring Events</CardTitle>
+              </div>
+              <CardDescription className="mt-2">
+                Manually trigger the cronjob to extend recurring event series. This ensures events are created up to the Sunday of the next week.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <RunExtendRecurringEventsButton />
+            </CardContent>
+          </Card>
         </div>
       </main>
     </div>
