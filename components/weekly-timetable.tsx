@@ -978,16 +978,10 @@ export function WeeklyTimetable({
                                           </span>
                                         )}
                                       </div>
-                                      {(isNotFullHour(slot.startTime) ||
-                                        isLongerThanOneHour(
-                                          slot.startTime,
-                                          slot.endTime,
-                                        )) && (
-                                        <div className="text-sm text-muted-foreground">
-                                          {formatTime(slot.startTime)} -{" "}
-                                          {formatTime(slot.endTime)}
-                                        </div>
-                                      )}
+                                      <div className="text-sm text-muted-foreground">
+                                        {formatTime(slot.startTime)} -{" "}
+                                        {formatTime(slot.endTime)}
+                                      </div>
                                       <div className="text-sm text-muted-foreground">
                                         {slot.instructorDisplayName ||
                                           slot.instructor ||
