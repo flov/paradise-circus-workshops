@@ -379,6 +379,16 @@ export function WeeklyTimetable({
     return Number.parseInt(minutes) !== 0;
   };
 
+  // Helper function to check if duration is longer than 1 hour
+  const isLongerThanOneHour = (startTime: string, endTime: string): boolean => {
+    const [startHours, startMinutes] = startTime.split(":").map(Number);
+    const [endHours, endMinutes] = endTime.split(":").map(Number);
+    const startTotalMinutes = startHours * 60 + startMinutes;
+    const endTotalMinutes = endHours * 60 + endMinutes;
+    const durationMinutes = endTotalMinutes - startTotalMinutes;
+    return durationMinutes > 60;
+  };
+
   // Helper function to format time for display next to title (HH:MM format)
   const formatTimeShort = (time: string): string => {
     const [hours, minutes] = time.split(":");
@@ -706,19 +716,24 @@ export function WeeklyTimetable({
                                       href={`/event/${createEventSlug(slot.id, slot.title, slot.instructorDisplayName || slot.instructor || "")}`}
                                       className={`block p-2 ${isBlocked ? "opacity-60" : ""}`}
                                     >
-                                      <div className="text-sm font-medium text-foreground line-clamp-2 flex items-center gap-1.5">
+                                      <div className="text-sm font-medium text-foreground line-clamp-2">
                                         {slot.title}
-                                        {isNotFullHour(slot.startTime) && (
-                                          <span className="text-xs font-normal text-muted-foreground whitespace-nowrap">
-                                            {formatTimeShort(slot.startTime)}
-                                          </span>
-                                        )}
                                         {isPending && (
                                           <span className="ml-1 text-xs font-normal text-yellow-600 dark:text-yellow-400">
                                             (Pending)
                                           </span>
                                         )}
                                       </div>
+                                      {(isNotFullHour(slot.startTime) ||
+                                        isLongerThanOneHour(
+                                          slot.startTime,
+                                          slot.endTime,
+                                        )) && (
+                                        <div className="text-xs font-normal text-muted-foreground mt-0.5">
+                                          {formatTimeShort(slot.startTime)} -{" "}
+                                          {formatTimeShort(slot.endTime)}
+                                        </div>
+                                      )}
                                       <div className="flex justify-between">
                                         <div className="text-xs text-muted-foreground mt-0.5 line-clamp-1">
                                           {slot.instructorDisplayName ||
@@ -963,9 +978,16 @@ export function WeeklyTimetable({
                                           </span>
                                         )}
                                       </div>
-                                      <div className="text-sm text-muted-foreground">
-                                        {formatTime(slot.startTime)} - {formatTime(slot.endTime)}
-                                      </div>
+                                      {(isNotFullHour(slot.startTime) ||
+                                        isLongerThanOneHour(
+                                          slot.startTime,
+                                          slot.endTime,
+                                        )) && (
+                                        <div className="text-sm text-muted-foreground">
+                                          {formatTime(slot.startTime)} -{" "}
+                                          {formatTime(slot.endTime)}
+                                        </div>
+                                      )}
                                       <div className="text-sm text-muted-foreground">
                                         {slot.instructorDisplayName ||
                                           slot.instructor ||
