@@ -902,104 +902,77 @@ export function WeeklyTimetable({
                           data-day-index={dayIndex}
                           className="space-y-2"
                         >
-                          {slots.map((slot) => {
-                            const isParadiseStage =
-                              slot.location === "Paradise Stage";
-                            const isParadiseLake =
-                              slot.location === "Paradise River";
-                            const isOtherLocation =
-                              !isParadiseStage && !isParadiseLake;
-                            const isPending = !slot.isPublished;
-                            const hasNoInstructorId =
-                              isAdmin &&
-                              (slot.instructorId === null ||
-                                slot.instructorId === undefined);
-                            const isBlocked = slot.isBlocked === true;
-                            const getMobileColorClasses = () => {
-                              // Blocked entries get muted styling
-                              if (isBlocked) {
-                                if (isOtherLocation) {
-                                  return "bg-purple-500/8 border-purple-500/15";
+                          {slots
+                            .filter((slot) => !slot.isBlocked)
+                            .map((slot) => {
+                              const isParadiseStage =
+                                slot.location === "Paradise Stage";
+                              const isParadiseLake =
+                                slot.location === "Paradise River";
+                              const isOtherLocation =
+                                !isParadiseStage && !isParadiseLake;
+                              const isPending = !slot.isPublished;
+                              const hasNoInstructorId =
+                                isAdmin &&
+                                (slot.instructorId === null ||
+                                  slot.instructorId === undefined);
+                              
+                              const getMobileColorClasses = () => {
+                                // Pending events get yellow/orange styling
+                                if (isPending) {
+                                  return "bg-yellow-500/20 hover:bg-yellow-500/30 active:bg-yellow-500/35 border-yellow-500/50 hover:border-yellow-500/60 active:border-yellow-500/70 border-dashed";
                                 }
-                                return isParadiseLake
-                                  ? "bg-blue-500/8 border-blue-500/15"
-                                  : "bg-red-500/8 border-red-500/15";
-                              }
-                              // Pending events get yellow/orange styling
-                              if (isPending) {
-                                return "bg-yellow-500/20 hover:bg-yellow-500/30 active:bg-yellow-500/35 border-yellow-500/50 hover:border-yellow-500/60 active:border-yellow-500/70 border-dashed";
-                              }
-                              // Events without instructorId get dashed borders (admin only)
-                              const borderStyle = hasNoInstructorId
-                                ? "border-dashed"
-                                : "border-solid";
-                              if (isOtherLocation) {
-                                return `bg-purple-500/15 hover:bg-purple-500/25 active:bg-purple-500/30 ${borderStyle} border-purple-500/40 hover:border-purple-500/50 active:border-purple-500/60`;
-                              }
-                              const baseClasses = isParadiseLake
-                                ? `bg-blue-500/15 hover:bg-blue-500/25 active:bg-blue-500/30 ${borderStyle} border-blue-500/40 hover:border-blue-500/50 active:border-blue-500/60`
-                                : `bg-red-500/15 hover:bg-red-500/25 active:bg-red-500/30 ${borderStyle} border-red-500/40 hover:border-red-500/50 active:border-red-500/60`;
-                              return baseClasses;
-                            };
-                            const getArrowColor = () => {
-                              if (isBlocked) {
-                                return "text-muted-foreground/50";
-                              }
-                              if (isPending) {
-                                return "text-yellow-600 dark:text-yellow-400";
-                              }
-                              if (isOtherLocation) {
-                                return "text-purple-600 dark:text-purple-400";
-                              }
-                              return isParadiseLake
-                                ? "text-blue-600 dark:text-blue-400"
-                                : "text-red-600 dark:text-red-400";
-                            };
-                            return (
-                              <div
-                                key={`${slot.id}-${slot.startTime}-${isBlocked ? "blocked" : "main"}`}
-                                className={`relative block rounded-lg border-2 shadow-sm hover:shadow-md active:shadow-sm transition-all duration-150 ${getMobileColorClasses()}`}
-                              >
-                                <a
-                                  href={`/event/${createEventSlug(slot.id, slot.title, slot.instructorDisplayName || slot.instructor || "")}`}
-                                  className={`block p-4 cursor-pointer ${isBlocked ? "opacity-60" : ""}`}
+                                // Events without instructorId get dashed borders (admin only)
+                                const borderStyle = hasNoInstructorId
+                                  ? "border-dashed"
+                                  : "border-solid";
+                                if (isOtherLocation) {
+                                  return `bg-purple-500/15 hover:bg-purple-500/25 active:bg-purple-500/30 ${borderStyle} border-purple-500/40 hover:border-purple-500/50 active:border-purple-500/60`;
+                                }
+                                const baseClasses = isParadiseLake
+                                  ? `bg-blue-500/15 hover:bg-blue-500/25 active:bg-blue-500/30 ${borderStyle} border-blue-500/40 hover:border-blue-500/50 active:border-blue-500/60`
+                                  : `bg-red-500/15 hover:bg-red-500/25 active:bg-red-500/30 ${borderStyle} border-red-500/40 hover:border-red-500/50 active:border-red-500/60`;
+                                return baseClasses;
+                              };
+                              return (
+                                <div
+                                  key={`${slot.id}-${slot.startTime}-main`}
+                                  className={`relative block rounded-lg border-2 shadow-sm hover:shadow-md active:shadow-sm transition-all duration-150 ${getMobileColorClasses()}`}
                                 >
-                                  <div className="flex justify-between items-start gap-2 mb-1">
-                                    <div className="font-medium text-foreground flex-1 min-w-0 flex items-center gap-1.5">
-                                      {slot.title}
-                                      {isNotFullHour(slot.startTime) && (
-                                        <span className="hidden sm:inline text-xs font-normal text-muted-foreground whitespace-nowrap">
-                                          {formatTimeShort(slot.startTime)}
-                                        </span>
-                                      )}
-                                      {isPending && (
-                                        <span className="ml-2 text-xs font-normal text-yellow-600 dark:text-yellow-400">
-                                          (Pending Approval)
-                                        </span>
-                                      )}
-                                      {isAdmin && slot.isRecurring && (
-                                        <span
-                                          className="inline-flex items-center gap-0.5 text-xs font-normal text-muted-foreground"
-                                          title="Recurring event"
-                                        >
-                                          <Repeat className="h-3 w-3" />
-                                          <span className="sr-only">
-                                            Recurring
+                                  <a
+                                    href={`/event/${createEventSlug(slot.id, slot.title, slot.instructorDisplayName || slot.instructor || "")}`}
+                                    className="block p-4 cursor-pointer"
+                                  >
+                                    <div className="space-y-1.5">
+                                      <div className="font-medium text-foreground flex items-center gap-1.5 flex-wrap">
+                                        <span className="flex-1 min-w-0">{slot.title}</span>
+                                        {isPending && (
+                                          <span className="text-xs font-normal text-yellow-600 dark:text-yellow-400 whitespace-nowrap">
+                                            (Pending Approval)
                                           </span>
-                                        </span>
-                                      )}
+                                        )}
+                                        {isAdmin && slot.isRecurring && (
+                                          <span
+                                            className="inline-flex items-center gap-0.5 text-xs font-normal text-muted-foreground"
+                                            title="Recurring event"
+                                          >
+                                            <Repeat className="h-3 w-3" />
+                                            <span className="sr-only">
+                                              Recurring
+                                            </span>
+                                          </span>
+                                        )}
+                                      </div>
+                                      <div className="text-sm text-muted-foreground">
+                                        {formatTime(slot.startTime)} - {formatTime(slot.endTime)}
+                                      </div>
+                                      <div className="text-sm text-muted-foreground">
+                                        {slot.instructorDisplayName ||
+                                          slot.instructor ||
+                                          "Unknown"}
+                                      </div>
                                     </div>
-                                    <div className="text-sm text-muted-foreground whitespace-nowrap flex-shrink-0 flex items-center gap-1">
-                                      {formatTime(slot.startTime)}
-                                      <span className={getArrowColor()}>→</span>
-                                    </div>
-                                  </div>
-                                  <div className="text-sm text-muted-foreground">
-                                    {slot.instructorDisplayName ||
-                                      slot.instructor ||
-                                      "Unknown"}
-                                  </div>
-                                </a>
+                                  </a>
                                 {(isAdmin ||
                                   (isInstructor &&
                                     slot.instructorId !== null &&
