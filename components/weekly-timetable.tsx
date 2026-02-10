@@ -389,6 +389,16 @@ export function WeeklyTimetable({
     return durationMinutes > 60;
   };
 
+  // Helper function to check if duration is exactly 1 hour
+  const isExactlyOneHour = (startTime: string, endTime: string): boolean => {
+    const [startHours, startMinutes] = startTime.split(":").map(Number);
+    const [endHours, endMinutes] = endTime.split(":").map(Number);
+    const startTotalMinutes = startHours * 60 + startMinutes;
+    const endTotalMinutes = endHours * 60 + endMinutes;
+    const durationMinutes = endTotalMinutes - startTotalMinutes;
+    return durationMinutes === 60;
+  };
+
   // Helper function to format time for display next to title (HH:MM format)
   const formatTimeShort = (time: string): string => {
     const [hours, minutes] = time.split(":");
@@ -959,28 +969,32 @@ export function WeeklyTimetable({
                                     className="block p-4 cursor-pointer"
                                   >
                                     <div className="space-y-1.5">
-                                      <div className="font-medium text-foreground flex items-center gap-1.5 flex-wrap">
-                                        <span className="flex-1 min-w-0">{slot.title}</span>
-                                        {isPending && (
-                                          <span className="text-xs font-normal text-yellow-600 dark:text-yellow-400 whitespace-nowrap">
-                                            (Pending Approval)
-                                          </span>
-                                        )}
-                                        {isAdmin && slot.isRecurring && (
-                                          <span
-                                            className="inline-flex items-center gap-0.5 text-xs font-normal text-muted-foreground"
-                                            title="Recurring event"
-                                          >
-                                            <Repeat className="h-3 w-3" />
-                                            <span className="sr-only">
-                                              Recurring
+                                      <div className="font-medium text-foreground flex items-center justify-between gap-1.5">
+                                        <span className="flex items-center gap-1.5 min-w-0 flex-wrap">
+                                          <span className="min-w-0">{slot.title}</span>
+                                          {isPending && (
+                                            <span className="text-xs font-normal text-yellow-600 dark:text-yellow-400 whitespace-nowrap">
+                                              (Pending Approval)
                                             </span>
-                                          </span>
-                                        )}
-                                      </div>
-                                      <div className="text-sm text-muted-foreground">
-                                        {formatTime(slot.startTime)} -{" "}
-                                        {formatTime(slot.endTime)}
+                                          )}
+                                          {isAdmin && slot.isRecurring && (
+                                            <span
+                                              className="inline-flex items-center gap-0.5 text-xs font-normal text-muted-foreground"
+                                              title="Recurring event"
+                                            >
+                                              <Repeat className="h-3 w-3" />
+                                              <span className="sr-only">
+                                                Recurring
+                                              </span>
+                                            </span>
+                                          )}
+                                        </span>
+                                        <span className="text-sm font-normal text-muted-foreground whitespace-nowrap">
+                                          {formatTime(slot.startTime)}
+                                          {!isExactlyOneHour(slot.startTime, slot.endTime) && (
+                                            <> - {formatTime(slot.endTime)}</>
+                                          )}
+                                        </span>
                                       </div>
                                       <div className="text-sm text-muted-foreground">
                                         {slot.instructorDisplayName ||
