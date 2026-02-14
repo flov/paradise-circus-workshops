@@ -147,7 +147,10 @@ export function InstagramTimetable({
       {/* Color Pickers */}
       <div className="flex items-center gap-4">
         <div className="flex items-center gap-3">
-          <label htmlFor="stripe-color" className="text-white text-sm font-medium">
+          <label
+            htmlFor="stripe-color"
+            className="text-white text-sm font-medium"
+          >
             Stripe Color:
           </label>
           <input
@@ -159,7 +162,10 @@ export function InstagramTimetable({
           />
         </div>
         <div className="flex items-center gap-3">
-          <label htmlFor="second-stripe-color" className="text-white text-sm font-medium">
+          <label
+            htmlFor="second-stripe-color"
+            className="text-white text-sm font-medium"
+          >
             Second Stripe Color:
           </label>
           <input
@@ -178,94 +184,106 @@ export function InstagramTimetable({
       >
         {/* Sunburst Background */}
         <div className="absolute inset-0">
-          <SunburstBackground location={location} stripeColor={stripeColor} secondStripeColor={secondStripeColor} />
+          <SunburstBackground
+            location={location}
+            stripeColor={stripeColor}
+            secondStripeColor={secondStripeColor}
+          />
         </div>
 
         {/* Content */}
         <div className="relative z-10 h-full flex flex-col p-2 sm:p-3">
-        {/* Title */}
-        <h1
-          className="text-center font-normal text-white text-lg sm:text-2xl md:text-3xl lg:text-4xl tracking-wide mb-2 sm:mb-3"
-          style={{
-            textShadow:
-              "3px 3px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000",
-            fontFamily: "var(--font-rye), 'Rye', serif",
-          }}
-        >
-          {data.title}
-        </h1>
-
-        {/* Timetable Grid */}
-        <div className="flex-1 min-h-0">
-          <div
-            className="grid h-full gap-[2px] sm:gap-1"
+          {/* Title */}
+          <h1
+            className="text-center font-normal text-white text-lg sm:text-2xl md:text-3xl lg:text-4xl tracking-wide mb-2 sm:mb-3"
             style={{
-              gridTemplateColumns: `auto repeat(${data.days.length}, 1fr)`,
-              gridTemplateRows: `auto repeat(${data.timeSlots.length}, 1fr)`,
+              textShadow:
+                "3px 3px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000",
+              fontFamily: "var(--font-rye), 'Rye', serif",
             }}
           >
-            {/* Header Row */}
-            <HeaderCell style={{ gridRow: 1, gridColumn: 1 }}>TIME</HeaderCell>
-            {data.days.map((day, dayIndex) => (
-              <HeaderCell
-                key={day}
-                style={{ gridRow: 1, gridColumn: dayIndex + 2 }}
-              >
-                {day}
+            {data.title}
+          </h1>
+
+          {/* Timetable Grid */}
+          <div className="flex-1 min-h-0">
+            <div
+              className="grid h-full gap-[2px] sm:gap-1"
+              style={{
+                gridTemplateColumns: `auto repeat(${data.days.length}, 1fr)`,
+                gridTemplateRows: `auto repeat(${data.timeSlots.length}, 1fr)`,
+              }}
+            >
+              {/* Header Row */}
+              <HeaderCell style={{ gridRow: 1, gridColumn: 1 }}>
+                TIME
               </HeaderCell>
-            ))}
+              {data.days.map((day, dayIndex) => (
+                <HeaderCell
+                  key={day}
+                  style={{ gridRow: 1, gridColumn: dayIndex + 2 }}
+                >
+                  {day}
+                </HeaderCell>
+              ))}
 
-            {/* Time Rows */}
-            {data.timeSlots.map((time, timeIndex) => {
-              // Calculate the grid row (1-indexed, +1 for header row)
-              const gridRow = timeIndex + 2;
+              {/* Time Rows */}
+              {data.timeSlots.map((time, timeIndex) => {
+                // Calculate the grid row (1-indexed, +1 for header row)
+                const gridRow = timeIndex + 2;
 
-              return (
-                <React.Fragment key={time}>
-                  <TimeCell style={{ gridRow, gridColumn: 1 }}>{time}</TimeCell>
-                  {data.days.map((day, dayIndex) => {
-                    const key = `${time}-${day}`;
-                    const event = data.events[key];
-                    const cellInfo = cellData[key];
+                return (
+                  <React.Fragment key={time}>
+                    <TimeCell style={{ gridRow, gridColumn: 1 }}>
+                      {time}
+                    </TimeCell>
+                    {data.days.map((day, dayIndex) => {
+                      const key = `${time}-${day}`;
+                      const event = data.events[key];
+                      const cellInfo = cellData[key];
 
-                    // Calculate grid column (1-indexed, +1 for time column)
-                    const gridColumn = dayIndex + 2;
+                      // Calculate grid column (1-indexed, +1 for time column)
+                      const gridColumn = dayIndex + 2;
 
-                    // Ensure cellData exists - if not, calculate defaults
-                    if (!cellInfo) {
+                      // Ensure cellData exists - if not, calculate defaults
+                      if (!cellInfo) {
+                        return (
+                          <EventCell
+                            key={key}
+                            event={event || null}
+                            rowSpan={1}
+                            gridRow={gridRow}
+                            gridColumn={gridColumn}
+                            day={day}
+                            time={time}
+                          />
+                        );
+                      }
+
+                      const { span, shouldRender } = cellInfo;
+
+                      // Don't render cells that are part of a span - CSS Grid handles this automatically
+                      if (!shouldRender) {
+                        return null;
+                      }
+
                       return (
                         <EventCell
                           key={key}
-                          event={event || null}
-                          rowSpan={1}
+                          event={event}
+                          rowSpan={span}
                           gridRow={gridRow}
                           gridColumn={gridColumn}
+                          day={day}
+                          time={time}
                         />
                       );
-                    }
-
-                    const { span, shouldRender } = cellInfo;
-
-                    // Don't render cells that are part of a span - CSS Grid handles this automatically
-                    if (!shouldRender) {
-                      return null;
-                    }
-
-                    return (
-                      <EventCell
-                        key={key}
-                        event={event}
-                        rowSpan={span}
-                        gridRow={gridRow}
-                        gridColumn={gridColumn}
-                      />
-                    );
-                  })}
-                </React.Fragment>
-              );
-            })}
+                    })}
+                  </React.Fragment>
+                );
+              })}
+            </div>
           </div>
-        </div>
         </div>
       </div>
     </div>
@@ -365,11 +383,15 @@ function EventCell({
   rowSpan = 1,
   gridRow,
   gridColumn,
+  day,
+  time,
 }: {
   event: ScheduleEvent | null;
   rowSpan?: number;
   gridRow?: number;
   gridColumn?: number;
+  day?: string;
+  time?: string;
 }) {
   // Apply explicit grid positioning and row span
   const gridStyle: React.CSSProperties = {};
@@ -386,6 +408,11 @@ function EventCell({
     gridStyle.gridColumn = gridColumn;
   }
 
+  // Check if this is Wednesday at 6pm for the buffet event
+  const isBuffetTime = day === "Wed" && time === "6pm";
+  // Check if this is Sunday at 12pm for the community clean up event
+  const isCleanupTime = day === "Sun" && time === "12pm";
+
   // Handle half-hour starts: position in bottom half of the slot
   const needsHalfHourPositioning = event?.startsAtHalfHour && rowSpan === 1;
 
@@ -393,9 +420,42 @@ function EventCell({
     return (
       <div
         className="bg-[#4a4a4a] rounded-md sm:rounded-lg flex items-center justify-center p-0.5 sm:p-1 overflow-hidden"
-        style={{ ...gridStyle, opacity: 0.75 }}
+        style={{
+          ...gridStyle,
+          opacity: isCleanupTime || isBuffetTime ? 1 : 0.75,
+        }}
       >
         <div className="text-center w-full">
+          {isBuffetTime && (
+            <>
+              <p
+                className="text-[9px] sm:text-[11px] md:text-[12px] lg:text-[15px] leading-tight"
+                style={{
+                  color: "#a855f7",
+                  fontFamily: "'Arial Black', 'Arial Bold', Arial, sans-serif",
+                }}
+              >
+                All You Can Eat Buffet
+              </p>
+              <p
+                className="text-[8px] sm:text-[10px] md:text-[11px] lg:text-xs leading-tight"
+                style={{ color: "#a855f7" }}
+              >
+                Pi Gaew
+              </p>
+            </>
+          )}
+          {isCleanupTime && (
+            <p
+              className="text-[9px] sm:text-[11px] md:text-[12px] lg:text-sm leading-tight mt-1"
+              style={{
+                color: "#a855f7",
+                fontFamily: "'Arial Black', 'Arial Bold', Arial, sans-serif",
+              }}
+            >
+              10:30 Dacha Park Community Clean Up
+            </p>
+          )}
           <p className="text-gray-300 font-normal text-[9px] sm:text-[11px] md:text-[12px] lg:text-sm leading-tight">
             Free Flow
           </p>
@@ -421,22 +481,6 @@ function EventCell({
     );
   }
 
-  const titleLength = event.name.length;
-  const isVeryLongTitle = titleLength > 40;
-  const isLongTitle = titleLength > 27;
-  
-  let titleClassName: string;
-  if (isVeryLongTitle) {
-    // Even smaller font for very long titles (>40 chars)
-    titleClassName = "text-white font-bold text-[8px] sm:text-[10px] md:text-[11px] lg:text-[13px] leading-tight line-clamp-2";
-  } else if (isLongTitle) {
-    // Smaller font for long titles (28-40 chars)
-    titleClassName = "text-white font-bold text-[9px] sm:text-[12px] md:text-[13px] lg:text-[15px] leading-tight line-clamp-2";
-  } else {
-    // Default font for normal titles (≤27 chars)
-    titleClassName = "text-white font-bold text-[10px] sm:text-[13px] md:text-[14px] lg:text-base leading-tight line-clamp-2";
-  }
-
   // For half-hour starts, position in bottom half of the slot
   if (needsHalfHourPositioning) {
     return (
@@ -446,7 +490,7 @@ function EventCell({
       >
         <div
           className="bg-[#4a4a4a] rounded-md sm:rounded-lg flex items-center justify-center p-0.5 sm:p-1 overflow-hidden"
-          style={{ 
+          style={{
             height: "50%",
             opacity: 0.97,
           }}
@@ -458,9 +502,10 @@ function EventCell({
                 className="hover:underline"
               >
                 <p
-                  className={titleClassName}
+                  className="text-white font-bold text-[10px] sm:text-[13px] md:text-[14px] lg:text-base leading-tight line-clamp-2"
                   style={{
-                    fontFamily: "'Arial Black', 'Arial Bold', Arial, sans-serif",
+                    fontFamily:
+                      "'Arial Black', 'Arial Bold', Arial, sans-serif",
                   }}
                 >
                   {event.name}
@@ -468,7 +513,7 @@ function EventCell({
               </Link>
             ) : (
               <p
-                className={titleClassName}
+                className="text-white font-bold text-[10px] sm:text-[13px] md:text-[14px] lg:text-base leading-tight line-clamp-2"
                 style={{
                   fontFamily: "'Arial Black', 'Arial Bold', Arial, sans-serif",
                 }}
@@ -476,8 +521,8 @@ function EventCell({
                 {event.name}
               </p>
             )}
-            {event.instructor && (
-              event.instructorUsername ? (
+            {event.instructor &&
+              (event.instructorUsername ? (
                 <Link
                   href={`/artists/${event.instructorUsername}`}
                   className="hover:underline"
@@ -496,7 +541,40 @@ function EventCell({
                 >
                   {event.instructor}
                 </p>
-              )
+              ))}
+            {isBuffetTime && (
+              <>
+                <p
+                  className="text-[9px] sm:text-[11px] md:text-[12px] lg:text-sm leading-tight mt-1"
+                  style={{
+                    color: "#a855f7",
+                    fontFamily:
+                      "'Arial Black', 'Arial Bold', Arial, sans-serif",
+                  }}
+                >
+                  All You Can Eat Buffet
+                </p>
+                <p
+                  className="text-[8px] sm:text-[10px] md:text-[11px] lg:text-xs leading-tight"
+                  style={{
+                    color: "#a855f7",
+                    fontFamily: "'Arial', sans-serif",
+                  }}
+                >
+                  Pi Gaew
+                </p>
+              </>
+            )}
+            {isCleanupTime && (
+              <p
+                className="text-[9px] sm:text-[11px] md:text-[12px] lg:text-sm leading-tight mt-1"
+                style={{
+                  color: "#a855f7",
+                  fontFamily: "'Arial Black', 'Arial Bold', Arial, sans-serif",
+                }}
+              >
+                10:30 Dacha Park Community Clean Up
+              </p>
             )}
           </div>
         </div>
@@ -516,7 +594,7 @@ function EventCell({
             className="hover:underline"
           >
             <p
-              className={titleClassName}
+              className="text-white font-bold text-[10px] sm:text-[13px] md:text-[13px] lg:text-[14px] leading-tight line-clamp-2"
               style={{
                 fontFamily: "'Arial Black', 'Arial Bold', Arial, sans-serif",
               }}
@@ -526,7 +604,7 @@ function EventCell({
           </Link>
         ) : (
           <p
-            className={titleClassName}
+            className="text-white font-bold text-[10px] sm:text-[13px] md:text-[14px] lg:text-base leading-tight line-clamp-2"
             style={{
               fontFamily: "'Arial Black', 'Arial Bold', Arial, sans-serif",
             }}
@@ -534,8 +612,8 @@ function EventCell({
             {event.name}
           </p>
         )}
-        {event.instructor && (
-          event.instructorUsername ? (
+        {event.instructor &&
+          (event.instructorUsername ? (
             <Link
               href={`/artists/${event.instructorUsername}`}
               className="hover:underline"
@@ -554,7 +632,30 @@ function EventCell({
             >
               {event.instructor}
             </p>
-          )
+          ))}
+        {isBuffetTime && (
+          <>
+            <p
+              className="text-[8px] sm:text-[10px] md:text-[11px] lg:text-[11px] leading-tight"
+              style={{
+                color: "#a855f7",
+                fontFamily: "'Arial Black', 'Arial Bold', Arial, sans-serif",
+              }}
+            >
+              All You Can Eat Buffet - Pi Gaew
+            </p>
+          </>
+        )}
+        {isCleanupTime && (
+          <p
+            className="text-[9px] sm:text-[11px] md:text-[12px] lg:text-sm leading-tight mt-1"
+            style={{
+              color: "#a855f7",
+              fontFamily: "'Arial Black', 'Arial Bold', Arial, sans-serif",
+            }}
+          >
+            10:30 Dacha Park Community Clean Up
+          </p>
         )}
       </div>
     </div>
