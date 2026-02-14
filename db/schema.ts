@@ -25,6 +25,8 @@ export const events = pgTable(
     recapVideoId: varchar("recap_video_id", { length: 50 }),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at").defaultNow().notNull(),
+    lastUpdatedBy: integer("last_updated_by").references(() => users.id, { onDelete: "set null" }),
+    approvedBy: integer("approved_by").references(() => users.id, { onDelete: "set null" }),
   },
   (table) => ({
     dateIdx: index("idx_events_date").on(table.date),
@@ -84,6 +86,14 @@ export const eventsRelations = relations(events, ({ many, one }) => ({
   }),
   instructor: one(users, {
     fields: [events.instructorId],
+    references: [users.id],
+  }),
+  lastUpdatedByUser: one(users, {
+    fields: [events.lastUpdatedBy],
+    references: [users.id],
+  }),
+  approvedByUser: one(users, {
+    fields: [events.approvedBy],
     references: [users.id],
   }),
 }));
@@ -193,6 +203,15 @@ export const userPropsRelations = relations(userProps, ({ one }) => ({
 // Export inferred types for each table
 export type Event = InferSelectModel<typeof events>;
 export type NewEvent = InferInsertModel<typeof events>;
+
+/** User fields needed when displaying "Approved By" / "Last Updated By" in event forms */
+export type UserDisplayInfo = Pick<User, "id" | "username" | "displayName">;
+
+/** Event with optional user relations (from JOINs when querying with lastUpdatedByUser/approvedByUser) */
+export type EventWithUserRelations = Event & {
+  lastUpdatedByUser?: UserDisplayInfo | null;
+  approvedByUser?: UserDisplayInfo | null;
+};
 
 export type Participation = InferSelectModel<typeof participations>;
 export type NewParticipation = InferInsertModel<typeof participations>;

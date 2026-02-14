@@ -1,6 +1,7 @@
 import { db } from "@/db";
 import { events, users, props } from "@/db/schema";
 import { desc, eq } from "drizzle-orm";
+import { alias } from "drizzle-orm/pg-core";
 import {
   Table,
   TableBody,
@@ -44,6 +45,10 @@ export async function EventsList() {
     }
   }
 
+  // Create aliases for lastUpdatedBy and approvedBy user joins
+  const lastUpdatedByUser = alias(users, "lastUpdatedByUser");
+  const approvedByUser = alias(users, "approvedByUser");
+
   const eventsList = await db
     .select({
       id: events.id,
@@ -64,6 +69,8 @@ export async function EventsList() {
       recurringUntil: events.recurringUntil,
       recapVideoId: events.recapVideoId,
       createdAt: events.createdAt,
+      lastUpdatedBy: events.lastUpdatedBy,
+      approvedBy: events.approvedBy,
       instructorProfile: {
         id: users.id,
         displayName: users.displayName,
@@ -77,14 +84,26 @@ export async function EventsList() {
         availableForPerformances: users.availableForPerformances,
         location: users.location,
       },
+      lastUpdatedByUser: {
+        id: lastUpdatedByUser.id,
+        username: lastUpdatedByUser.username,
+        displayName: lastUpdatedByUser.displayName,
+      },
+      approvedByUser: {
+        id: approvedByUser.id,
+        username: approvedByUser.username,
+        displayName: approvedByUser.displayName,
+      },
       prop: {
         id: props.id,
         name: props.name,
       },
     })
     .from(events)
-    .leftJoin(users, eq(events.instructorId, users.id))
-    .leftJoin(props, eq(events.propId, props.id))
+      .leftJoin(users, eq(events.instructorId, users.id))
+      .leftJoin(lastUpdatedByUser, eq(events.lastUpdatedBy, lastUpdatedByUser.id))
+      .leftJoin(approvedByUser, eq(events.approvedBy, approvedByUser.id))
+      .leftJoin(props, eq(events.propId, props.id))
     .orderBy(desc(events.date), desc(events.startTime));
 
   if (eventsList.length === 0) {
@@ -239,6 +258,22 @@ export async function EventsList() {
                               isRecurring: event.isRecurring,
                               recurringUntil: event.recurringUntil ?? undefined,
                               createdAt: event.createdAt,
+                              lastUpdatedBy: event.lastUpdatedBy ?? null,
+                              lastUpdatedByUser: event.lastUpdatedBy && event.lastUpdatedByUser?.id
+                                ? {
+                                    id: event.lastUpdatedByUser.id,
+                                    username: event.lastUpdatedByUser.username || "",
+                                    displayName: event.lastUpdatedByUser.displayName,
+                                  }
+                                : null,
+                              approvedBy: event.approvedBy ?? null,
+                              approvedByUser: event.approvedBy && event.approvedByUser?.id
+                                ? {
+                                    id: event.approvedByUser.id,
+                                    username: event.approvedByUser.username || "",
+                                    displayName: event.approvedByUser.displayName,
+                                  }
+                                : null,
                             }}
                           />
                           <DeleteEventButton

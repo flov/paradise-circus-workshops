@@ -1,6 +1,7 @@
 import { db } from "@/db";
 import { events, users } from "@/db/schema";
 import { and, gte, lte, asc, eq, or } from "drizzle-orm";
+import { alias } from "drizzle-orm/pg-core";
 import type { NextRequest } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 
@@ -68,6 +69,10 @@ export async function GET(request: NextRequest) {
       publishCondition = eq(events.isPublished, true);
     }
 
+    // Create aliases for lastUpdatedBy and approvedBy user joins
+    const lastUpdatedByUser = alias(users, "lastUpdatedByUser");
+    const approvedByUser = alias(users, "approvedByUser");
+
     const eventsData = await db
       .select({
         id: events.id,
@@ -89,6 +94,8 @@ export async function GET(request: NextRequest) {
         recurringUntil: events.recurringUntil,
         recapVideoId: events.recapVideoId,
         createdAt: events.createdAt,
+        lastUpdatedBy: events.lastUpdatedBy,
+        approvedBy: events.approvedBy,
         instructorProfile: {
           id: users.id,
           displayName: users.displayName,
@@ -102,9 +109,21 @@ export async function GET(request: NextRequest) {
           availableForPerformances: users.availableForPerformances,
           location: users.location,
         },
+        lastUpdatedByUser: {
+          id: lastUpdatedByUser.id,
+          username: lastUpdatedByUser.username,
+          displayName: lastUpdatedByUser.displayName,
+        },
+        approvedByUser: {
+          id: approvedByUser.id,
+          username: approvedByUser.username,
+          displayName: approvedByUser.displayName,
+        },
       })
       .from(events)
       .leftJoin(users, eq(events.instructorId, users.id))
+      .leftJoin(lastUpdatedByUser, eq(events.lastUpdatedBy, lastUpdatedByUser.id))
+      .leftJoin(approvedByUser, eq(events.approvedBy, approvedByUser.id))
       .where(
         publishCondition
           ? and(dateConditions, publishCondition)

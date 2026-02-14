@@ -18,11 +18,13 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Loader2, Trash2 } from "lucide-react";
+import Link from "next/link";
 import {
   getAllProps,
   getCurrentUserProfile,
   getAllInstructors,
 } from "@/app/profile/actions";
+import type { UserDisplayInfo } from "@/db/schema";
 
 export type EventFormInitialValues = {
   id?: number;
@@ -41,6 +43,8 @@ export type EventFormInitialValues = {
   isRecurring?: boolean;
   recurringUntil?: string;
   createdAt?: string | Date;
+  lastUpdatedByUser?: UserDisplayInfo | null;
+  approvedByUser?: UserDisplayInfo | null;
 };
 
 type EventFormProps = {
@@ -457,6 +461,30 @@ export function EventForm({
         <div className="rounded-md bg-muted/50 border border-border px-3 py-2 text-sm text-muted-foreground">
           <span className="font-medium text-foreground">Created: </span>
           {formatCreatedAt(initialValues.createdAt)}
+          {initialValues?.lastUpdatedByUser?.username && (
+            <>
+              {" • "}
+              <span className="font-medium text-foreground">Last Updated By: </span>
+              <Link
+                href={`/artists/${initialValues.lastUpdatedByUser.username}`}
+                className="text-primary hover:underline"
+              >
+                {initialValues.lastUpdatedByUser.displayName || initialValues.lastUpdatedByUser.username}
+              </Link>
+            </>
+          )}
+          {initialValues?.approvedByUser?.username && (
+            <>
+              {" • "}
+              <span className="font-medium text-foreground">Approved By: </span>
+              <Link
+                href={`/artists/${initialValues.approvedByUser.username}`}
+                className="text-primary hover:underline"
+              >
+                {initialValues.approvedByUser.displayName || initialValues.approvedByUser.username}
+              </Link>
+            </>
+          )}
         </div>
       )}
       <div className="grid gap-4 md:grid-cols-2">

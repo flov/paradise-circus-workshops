@@ -17,6 +17,12 @@ import { AddEventButton } from "@/components/admin/add-event-button";
 import { MobileLandscapeHint } from "@/components/mobile-landscape-hint";
 import Link from "next/link";
 
+type UserDisplayInfo = {
+  id: number;
+  username: string | null;
+  displayName: string | null;
+};
+
 type TimeSlot = {
   id: number;
   title: string;
@@ -37,6 +43,10 @@ type TimeSlot = {
   recurringUntil: string | null;
   createdAt?: string; // ISO date string from API
   isBlocked?: boolean; // Indicates this slot is blocked by an event starting in a previous hour
+  lastUpdatedBy?: number | null;
+  approvedBy?: number | null;
+  lastUpdatedByUser?: UserDisplayInfo | null;
+  approvedByUser?: UserDisplayInfo | null;
 };
 
 type TimetableData = {
@@ -274,6 +284,10 @@ export function WeeklyTimetable({
           recurringSeriesId: (event as any).recurringSeriesId || null,
           recurringUntil: (event as any).recurringUntil || null,
           createdAt: (event as any).createdAt,
+          lastUpdatedBy: (event as any).lastUpdatedBy ?? null,
+          approvedBy: (event as any).approvedBy ?? null,
+          lastUpdatedByUser: (event as any).lastUpdatedByUser ?? null,
+          approvedByUser: (event as any).approvedByUser ?? null,
         });
 
         // For each subsequent hour slot, add a blocked entry
@@ -307,6 +321,10 @@ export function WeeklyTimetable({
               isRecurring: (event as any).isRecurring ?? false,
               recurringSeriesId: (event as any).recurringSeriesId || null,
               createdAt: (event as any).createdAt,
+              lastUpdatedBy: (event as any).lastUpdatedBy ?? null,
+              approvedBy: (event as any).approvedBy ?? null,
+              lastUpdatedByUser: (event as any).lastUpdatedByUser ?? null,
+              approvedByUser: (event as any).approvedByUser ?? null,
               isBlocked: true,
             });
           }
@@ -320,8 +338,6 @@ export function WeeklyTimetable({
       setIsLoading(false);
     }
   }, [currentWeek, userId]);
-
-  console.log({ timetableData });
 
   useEffect(() => {
     loadWeekData();
@@ -808,6 +824,12 @@ export function WeeklyTimetable({
                                             recurringSeriesId:
                                               slot.recurringSeriesId ||
                                               undefined,
+                                            recurringUntil:
+                                              slot.recurringUntil || undefined,
+                                            lastUpdatedBy: slot.lastUpdatedBy ?? null,
+                                            approvedBy: slot.approvedBy ?? null,
+                                            lastUpdatedByUser: slot.lastUpdatedByUser ?? null,
+                                            approvedByUser: slot.approvedByUser ?? null,
                                             createdAt: slot.createdAt
                                               ? new Date(slot.createdAt)
                                               : undefined,
@@ -1061,6 +1083,10 @@ export function WeeklyTimetable({
                                           isRecurring: slot.isRecurring,
                                           recurringUntil:
                                             slot.recurringUntil || undefined,
+                                          lastUpdatedBy: slot.lastUpdatedBy ?? null,
+                                          approvedBy: slot.approvedBy ?? null,
+                                          lastUpdatedByUser: slot.lastUpdatedByUser ?? null,
+                                          approvedByUser: slot.approvedByUser ?? null,
                                           createdAt: slot.createdAt
                                             ? new Date(slot.createdAt)
                                             : undefined,

@@ -18,14 +18,12 @@ import {
   deleteEventAndFutureInstructorEvents,
 } from "@/app/admin/actions";
 import { useRouter } from "next/navigation";
-import type { Event } from "@/db/schema";
+import type { EventWithUserRelations } from "@/db/schema";
 import { EventForm, type EventFormInitialValues } from "./event-form";
 
-export function EditEventButton({
-  event,
-}: {
+type EditEventButtonProps = {
   event: Pick<
-    Event,
+    EventWithUserRelations,
     | "id"
     | "title"
     | "description"
@@ -41,8 +39,15 @@ export function EditEventButton({
     | "propId"
     | "isRecurring"
     | "recurringUntil"
-  > & { createdAt?: Date };
-}) {
+    | "lastUpdatedBy"
+    | "approvedBy"
+    | "createdAt"
+    | "lastUpdatedByUser"
+    | "approvedByUser"
+  >;
+};
+
+export function EditEventButton({ event }: EditEventButtonProps) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -146,6 +151,8 @@ export function EditEventButton({
     isRecurring: event.isRecurring ?? false,
     recurringUntil: formattedRecurringUntil,
     createdAt: event.createdAt,
+    lastUpdatedByUser: event.lastUpdatedByUser ?? null,
+    approvedByUser: event.approvedByUser ?? null,
   }), [event, formattedDate, formattedRecurringUntil]);
 
   return (

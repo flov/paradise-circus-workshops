@@ -83,6 +83,15 @@ export async function createEvent(formData: FormData) {
   }
 
   try {
+    // Get current user's database ID for lastUpdatedBy
+    const currentUserResult = await db
+      .select({ id: users.id })
+      .from(users)
+      .where(eq(users.clerkUserId, userId))
+      .limit(1);
+
+    const currentUserId = currentUserResult.length > 0 ? currentUserResult[0].id : null;
+
     // Parse propId if provided
     const propId = propIdInput ? parseInt(propIdInput, 10) : null;
 
@@ -116,18 +125,12 @@ export async function createEvent(formData: FormData) {
 
     // If user is instructor (not admin), ensure instructorId matches their user id
     if (!userIsAdmin && userIsInstructor) {
-      const currentUserResult = await db
-        .select({ id: users.id })
-        .from(users)
-        .where(eq(users.clerkUserId, userId))
-        .limit(1);
-
-      if (currentUserResult.length === 0) {
+      if (currentUserId === null) {
         return { success: false, error: "User record not found" };
       }
 
       // Force instructorId to be the current user's id
-      instructorId = currentUserResult[0].id;
+      instructorId = currentUserId;
 
       // Fetch user's displayName || username
       const userResult = await db
@@ -214,6 +217,8 @@ export async function createEvent(formData: FormData) {
         recurringSeriesId,
         isRecurring: true,
         recurringUntil: recurringUntil || null,
+        lastUpdatedBy: currentUserId,
+        approvedBy: isPublished && currentUserId ? currentUserId : null,
       }));
 
       const newEvents = await db
@@ -246,9 +251,6 @@ export async function createEvent(formData: FormData) {
                   instructorName: instructorDisplayName,
                   instructorEmail,
                 });
-                console.log(
-                  `Recurring workshop info email sent to: ${instructorEmail}`,
-                );
               } catch (emailError) {
                 console.error(
                   `Failed to send recurring workshop info email to ${instructorEmail}:`,
@@ -307,9 +309,6 @@ export async function createEvent(formData: FormData) {
                   eventLocation: location,
                   eventSlug,
                 });
-                console.log(
-                  `Instructor assignment email sent to: ${instructorEmail}`,
-                );
               } catch (emailError) {
                 console.error(
                   `Failed to send instructor assignment email to ${instructorEmail}:`,
@@ -363,9 +362,6 @@ export async function createEvent(formData: FormData) {
                   eventEndTime: end_time,
                   eventLocation: location,
                 });
-                console.log(
-                  `Pending approval email sent to instructor: ${instructorEmail}`,
-                );
               } catch (emailError) {
                 console.error(
                   `Failed to send pending approval email to instructor ${instructorEmail}:`,
@@ -441,6 +437,8 @@ export async function createEvent(formData: FormData) {
         isPublished,
         propId: propId || null,
         isRecurring: false,
+        lastUpdatedBy: currentUserId,
+        approvedBy: isPublished && currentUserId ? currentUserId : null,
       })
       .returning({ id: events.id });
 
@@ -484,9 +482,6 @@ export async function createEvent(formData: FormData) {
                 eventLocation: location,
                 eventSlug,
               });
-              console.log(
-                `Instructor assignment email sent to: ${instructorEmail}`,
-              );
             } catch (emailError) {
               console.error(
                 `Failed to send instructor assignment email to ${instructorEmail}:`,
@@ -540,9 +535,6 @@ export async function createEvent(formData: FormData) {
                 eventEndTime: end_time,
                 eventLocation: location,
               });
-              console.log(
-                `Pending approval email sent to instructor: ${instructorEmail}`,
-              );
             } catch (emailError) {
               console.error(
                 `Failed to send pending approval email to instructor ${instructorEmail}:`,
@@ -628,6 +620,15 @@ export async function approveEvent(eventId: number) {
   }
 
   try {
+    // Get current user's database ID for approvedBy
+    const currentUserResult = await db
+      .select({ id: users.id })
+      .from(users)
+      .where(eq(users.clerkUserId, userId))
+      .limit(1);
+
+    const currentUserId = currentUserResult.length > 0 ? currentUserResult[0].id : null;
+
     // Fetch event details
     const eventResult = await db
       .select({
@@ -656,10 +657,14 @@ export async function approveEvent(eventId: number) {
       return { success: true, message: "Event is already published." };
     }
 
-    // Update event to published
+    // Update event to published and set approvedBy
     await db
       .update(events)
-      .set({ isPublished: true, updatedAt: sql`CURRENT_TIMESTAMP` })
+      .set({ 
+        isPublished: true, 
+        updatedAt: sql`CURRENT_TIMESTAMP`,
+        approvedBy: currentUserId,
+      })
       .where(eq(events.id, eventId));
 
     // Send approval email to instructor
@@ -696,9 +701,6 @@ export async function approveEvent(eventId: number) {
                 eventLocation: event.location || "",
                 eventId: event.id,
               });
-              console.log(
-                `Approval email sent to instructor: ${instructorEmail}`,
-              );
             } catch (emailError) {
               console.error(
                 `Failed to send approval email to instructor ${instructorEmail}:`,
@@ -715,10 +717,6 @@ export async function approveEvent(eventId: number) {
         console.error("Error sending approval email:", error);
         // Don't fail the approval if email fails
       }
-    } else {
-      console.log(
-        `Skipping approval email: event ${eventId} has no instructorId`,
-      );
     }
 
     revalidatePath("/admin");
@@ -817,11 +815,10 @@ export async function updateEvent(formData: FormData) {
     return { success: false, error: "Event not found." };
   }
 
-  const currentEvent = currentEventResult[0];
-  const wasPublished = currentEvent.isPublished;
-  const isBeingPublished = isPublished && !wasPublished && userIsAdmin;
-  const isRecurringEvent =
-    currentEvent.recurringSeriesId !== null && currentEvent.isRecurring;
+    const currentEvent = currentEventResult[0];
+    const wasPublished = currentEvent.isPublished;
+    const isRecurringEvent =
+      currentEvent.recurringSeriesId !== null && currentEvent.isRecurring;
 
   // Instructors can update their own recurring events, but only single instances
   // Admins can update all instances in a recurring series
@@ -890,6 +887,15 @@ export async function updateEvent(formData: FormData) {
   }
 
   try {
+    // Get current user's database ID for lastUpdatedBy
+    const currentUserResult = await db
+      .select({ id: users.id })
+      .from(users)
+      .where(eq(users.clerkUserId, userId))
+      .limit(1);
+
+    const currentUserId = currentUserResult.length > 0 ? currentUserResult[0].id : null;
+
     // Parse propId if provided
     const propId = propIdInput ? parseInt(propIdInput, 10) : null;
 
@@ -923,18 +929,12 @@ export async function updateEvent(formData: FormData) {
 
     // If user is instructor (not admin), ensure instructorId matches their user id
     if (!userIsAdmin && userIsInstructor) {
-      const currentUserResult = await db
-        .select({ id: users.id })
-        .from(users)
-        .where(eq(users.clerkUserId, userId))
-        .limit(1);
-
-      if (currentUserResult.length === 0) {
+      if (currentUserId === null) {
         return { success: false, error: "User record not found" };
       }
 
       // Force instructorId to be the current user's id
-      instructorId = currentUserResult[0].id;
+      instructorId = currentUserId;
 
       // Fetch user's displayName || username
       const userResult = await db
@@ -962,6 +962,8 @@ export async function updateEvent(formData: FormData) {
       isWorkshop: boolean;
       propId: number | null;
       updatedAt: ReturnType<typeof sql>;
+      lastUpdatedBy: number | null;
+      approvedBy?: number | null;
       isPublished?: boolean;
       isRecurring?: boolean;
       recurringSeriesId?: string | null;
@@ -979,11 +981,20 @@ export async function updateEvent(formData: FormData) {
       isWorkshop,
       propId: propId || null,
       updatedAt: sql`CURRENT_TIMESTAMP`,
+      lastUpdatedBy: currentUserId,
     };
+
+    // Check if event is being published (changing from unpublished to published)
+    const wasPublished = currentEvent.isPublished;
+    const isBeingPublished = isPublished && !wasPublished && userIsAdmin;
 
     // Only update isPublished if user is admin
     if (userIsAdmin) {
       updateData.isPublished = isPublished;
+      // Set approvedBy when publishing an event (changing from unpublished to published)
+      if (isBeingPublished && currentUserId !== null) {
+        updateData.approvedBy = currentUserId;
+      }
     }
     // Both admins and instructors can update isRecurring
     // Only update isRecurring if not converting to recurring (that's handled separately)
@@ -1198,6 +1209,8 @@ export async function updateEvent(formData: FormData) {
           recurringSeriesId,
           isRecurring: true,
           recurringUntil: recurringUntil || null,
+          lastUpdatedBy: currentUserId,
+          approvedBy: isPublished && currentUserId ? currentUserId : null,
         }));
 
         await db.insert(events).values(additionalEventValues);
@@ -1228,9 +1241,6 @@ export async function updateEvent(formData: FormData) {
                   instructorName: instructorDisplayName,
                   instructorEmail,
                 });
-                console.log(
-                  `Recurring workshop info email sent to: ${instructorEmail}`,
-                );
               } catch (emailError) {
                 console.error(
                   `Failed to send recurring workshop info email to ${instructorEmail}:`,
@@ -1390,9 +1400,10 @@ export async function updateEvent(formData: FormData) {
     const oldInstructorId = currentEvent.instructorId;
     const instructorIdChanged =
       oldInstructorId !== instructorId && instructorId !== null;
-    if (userIsAdmin && instructorIdChanged) {
+    if (userIsAdmin && instructorIdChanged && instructorId !== null) {
       try {
         // Fetch instructor details for email
+        // instructorId is guaranteed to be non-null here due to the condition above
         const instructorResult = await db
           .select({
             email: users.email,
@@ -1400,7 +1411,7 @@ export async function updateEvent(formData: FormData) {
             username: users.username,
           })
           .from(users)
-          .where(eq(users.id, instructorId))
+          .where(eq(users.id, instructorId!))
           .limit(1);
 
         if (instructorResult.length > 0) {
@@ -1425,9 +1436,6 @@ export async function updateEvent(formData: FormData) {
                 eventLocation: location,
                 eventSlug,
               });
-              console.log(
-                `Instructor assignment email sent to: ${instructorEmail}`,
-              );
             } catch (emailError) {
               console.error(
                 `Failed to send instructor assignment email to ${instructorEmail}:`,
@@ -1480,9 +1488,6 @@ export async function updateEvent(formData: FormData) {
                 eventLocation: currentEvent.location || "",
                 eventId: eventId,
               });
-              console.log(
-                `Approval email sent to instructor: ${instructorEmail}`,
-              );
             } catch (emailError) {
               console.error(
                 `Failed to send approval email to instructor ${instructorEmail}:`,
@@ -2067,9 +2072,6 @@ export async function extendRecurringEvents() {
           if (eventsToCreate.length > 0) {
             await db.insert(events).values(eventsToCreate);
             totalEventsCreated += eventsToCreate.length;
-            console.log(
-              `Extended recurring series ${series.recurringSeriesId}: created ${eventsToCreate.length} event(s) up to ${recurringUntil}`,
-            );
           }
         }
         continue; // Skip the default extension logic for series with recurringUntil
@@ -2155,9 +2157,6 @@ export async function extendRecurringEvents() {
         if (eventsToCreate.length > 0) {
           await db.insert(events).values(eventsToCreate);
           totalEventsCreated += eventsToCreate.length;
-          console.log(
-            `Extended recurring series ${series.recurringSeriesId}: created ${eventsToCreate.length} event(s)`,
-          );
         }
       }
     }
@@ -2757,7 +2756,6 @@ export async function promoteUserToAdmin(userId: number) {
           adminName,
           adminEmail: user.email,
         });
-        console.log(`Admin promotion email sent to: ${user.email}`);
       } catch (emailError) {
         console.error(
           `Failed to send admin promotion email to ${user.email}:`,
@@ -2924,7 +2922,6 @@ export async function deleteUser(userId: number) {
 
     if (userEvents.length > 0) {
       await db.delete(events).where(eq(events.instructorId, userId));
-      console.log(`Deleted ${userEvents.length} event(s) where user was instructor`);
     }
 
     // Find all participations for this user in remaining events (events they didn't create)

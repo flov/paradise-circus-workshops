@@ -1,6 +1,7 @@
 import { db } from "@/db";
-import { events } from "@/db/schema";
+import { events, users } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
+import { alias } from "drizzle-orm/pg-core";
 import { notFound, redirect } from "next/navigation";
 import { parseEventSlug } from "@/lib/utils";
 import { auth } from "@clerk/nextjs/server";
@@ -29,7 +30,10 @@ export default async function EditEventPage({
     notFound();
   }
 
-  // Fetch the event
+  // Fetch the event with lastUpdatedBy and approvedBy user relations
+  const lastUpdatedByUser = alias(users, "lastUpdatedByUser");
+  const approvedByUser = alias(users, "approvedByUser");
+
   const eventResults = await db
     .select({
       id: events.id,
@@ -49,8 +53,22 @@ export default async function EditEventPage({
       recurringUntil: events.recurringUntil,
       recapVideoId: events.recapVideoId,
       createdAt: events.createdAt,
+      lastUpdatedBy: events.lastUpdatedBy,
+      lastUpdatedByUser: {
+        id: lastUpdatedByUser.id,
+        username: lastUpdatedByUser.username,
+        displayName: lastUpdatedByUser.displayName,
+      },
+      approvedBy: events.approvedBy,
+      approvedByUser: {
+        id: approvedByUser.id,
+        username: approvedByUser.username,
+        displayName: approvedByUser.displayName,
+      },
     })
     .from(events)
+    .leftJoin(lastUpdatedByUser, eq(events.lastUpdatedBy, lastUpdatedByUser.id))
+    .leftJoin(approvedByUser, eq(events.approvedBy, approvedByUser.id))
     .where(eq(events.id, eventId))
     .limit(1);
 
@@ -115,6 +133,20 @@ export default async function EditEventPage({
     isRecurring: event.isRecurring ?? false,
     recurringUntil: formattedRecurringUntil,
     createdAt: event.createdAt,
+    lastUpdatedByUser: event.lastUpdatedByUser?.id
+      ? {
+          id: event.lastUpdatedByUser.id,
+          username: event.lastUpdatedByUser.username || "",
+          displayName: event.lastUpdatedByUser.displayName,
+        }
+      : null,
+    approvedByUser: event.approvedByUser?.id
+      ? {
+          id: event.approvedByUser.id,
+          username: event.approvedByUser.username || "",
+          displayName: event.approvedByUser.displayName,
+        }
+      : null,
   };
 
   return (
