@@ -14,13 +14,11 @@ import {
 
 type EditEventPageClientProps = {
   initialValues: EventFormInitialValues
-  eventTitle: string
   eventSlug: string
 }
 
 export function EditEventPageClient({
   initialValues,
-  eventTitle,
   eventSlug,
 }: EditEventPageClientProps) {
   const router = useRouter()
@@ -73,7 +71,7 @@ export function EditEventPageClient({
       <CardHeader>
         <CardTitle>Edit Event</CardTitle>
         <CardDescription>
-          Update the details for "{eventTitle}"
+          Update the details for "{initialValues.title || "this event"}"
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -86,7 +84,6 @@ export function EditEventPageClient({
           submitButtonText="Update Event"
           submittingText="Updating..."
           onDelete={handleDelete}
-          eventTitle={eventTitle}
         />
       </CardContent>
     </Card>

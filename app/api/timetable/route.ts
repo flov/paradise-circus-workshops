@@ -1,68 +1,71 @@
-import { db } from "@/db"
-import { events, users } from "@/db/schema"
-import { and, gte, lte, asc, eq, or } from "drizzle-orm"
-import type { NextRequest } from "next/server"
-import { auth } from "@clerk/nextjs/server"
+import { db } from "@/db";
+import { events, users } from "@/db/schema";
+import { and, gte, lte, asc, eq, or } from "drizzle-orm";
+import type { NextRequest } from "next/server";
+import { auth } from "@clerk/nextjs/server";
 
 export async function GET(request: NextRequest) {
-  const searchParams = request.nextUrl.searchParams
-  const startDate = searchParams.get("start")
-  const endDate = searchParams.get("end")
-  const userId = searchParams.get("userId")
+  const searchParams = request.nextUrl.searchParams;
+  const startDate = searchParams.get("start");
+  const endDate = searchParams.get("end");
+  const userId = searchParams.get("userId");
 
   if (!startDate || !endDate) {
-    return Response.json({ error: "Start and end dates are required" }, { status: 400 })
+    return Response.json(
+      { error: "Start and end dates are required" },
+      { status: 400 },
+    );
   }
 
   try {
     // Check if user is admin or instructor
-    const { userId: clerkUserId } = await auth()
-    let userIsAdmin = false
-    let userIsInstructor = false
-    
+    const { userId: clerkUserId } = await auth();
+    let userIsAdmin = false;
+    let userIsInstructor = false;
+
     if (clerkUserId) {
       const userResult = await db
         .select({ isAdmin: users.isAdmin, isInstructor: users.isInstructor })
         .from(users)
         .where(eq(users.clerkUserId, clerkUserId))
-        .limit(1)
-      
+        .limit(1);
+
       if (userResult.length > 0) {
-        userIsAdmin = userResult[0].isAdmin === true
-        userIsInstructor = userResult[0].isInstructor === true
+        userIsAdmin = userResult[0].isAdmin === true;
+        userIsInstructor = userResult[0].isInstructor === true;
       }
     }
 
     // Build where conditions
     const dateConditions = and(
-      gte(events.date, startDate), 
-      lte(events.date, endDate)
-    )
+      gte(events.date, startDate),
+      lte(events.date, endDate),
+    );
 
     // Build publish condition:
     // - If user is admin: show all events (published and unpublished)
     // - If user is instructor: show all events (published and unpublished) - same as admin
     // - If userId is provided and valid: show published events + unpublished events for that instructor
     // - Otherwise: only show published events
-    const parsedUserId = userId ? Number.parseInt(userId, 10) : null
-    const isValidUserId = parsedUserId !== null && !Number.isNaN(parsedUserId)
-    
-    let publishCondition
+    const parsedUserId = userId ? Number.parseInt(userId, 10) : null;
+    const isValidUserId = parsedUserId !== null && !Number.isNaN(parsedUserId);
+
+    let publishCondition;
     if (userIsAdmin || userIsInstructor) {
       // Admins and instructors see all events (published and unpublished)
-      publishCondition = undefined // No filter needed
+      publishCondition = undefined; // No filter needed
     } else if (isValidUserId) {
       // If userId is provided but user is not an instructor, show published events + their own unpublished events
       publishCondition = or(
         eq(events.isPublished, true),
         and(
           eq(events.isPublished, false),
-          eq(events.instructorId, parsedUserId)
-        )
-      )
+          eq(events.instructorId, parsedUserId),
+        ),
+      );
     } else {
       // Regular users only see published events
-      publishCondition = eq(events.isPublished, true)
+      publishCondition = eq(events.isPublished, true);
     }
 
     const eventsData = await db
@@ -83,6 +86,7 @@ export async function GET(request: NextRequest) {
         isPublished: events.isPublished,
         isRecurring: events.isRecurring,
         recurringSeriesId: events.recurringSeriesId,
+        recurringUntil: events.recurringUntil,
         recapVideoId: events.recapVideoId,
         createdAt: events.createdAt,
         instructorProfile: {
@@ -101,20 +105,28 @@ export async function GET(request: NextRequest) {
       })
       .from(events)
       .leftJoin(users, eq(events.instructorId, users.id))
-      .where(publishCondition ? and(dateConditions, publishCondition) : dateConditions)
-      .orderBy(asc(events.date), asc(events.startTime))
+      .where(
+        publishCondition
+          ? and(dateConditions, publishCondition)
+          : dateConditions,
+      )
+      .orderBy(asc(events.date), asc(events.startTime));
 
     // Return events with computed instructorDisplayName field
     return Response.json(
-      eventsData.map(event => ({
+      eventsData.map((event) => ({
         ...event,
         instructorDisplayName: event.instructorProfile
-          ? (event.instructorProfile.displayName || event.instructorProfile.username)
+          ? event.instructorProfile.displayName ||
+            event.instructorProfile.username
           : null,
-      }))
-    )
+      })),
+    );
   } catch (error) {
-    console.error("Database error:", error)
-    return Response.json({ error: "Failed to fetch timetable" }, { status: 500 })
+    console.error("Database error:", error);
+    return Response.json(
+      { error: "Failed to fetch timetable" },
+      { status: 500 },
+    );
   }
 }

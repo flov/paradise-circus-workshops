@@ -169,6 +169,13 @@
       "when": 1770071135607,
       "tag": "0023_optimize_timetable_indexes",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1771032839441,
+      "tag": "0024_adds_recurring_until_to_events",
+      "breakpoints": true
     }
   ]
 }

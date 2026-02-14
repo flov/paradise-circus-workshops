@@ -8,6 +8,7 @@ import {
   Plus,
   Repeat,
   Instagram,
+  Calendar,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { createEventSlug } from "@/lib/utils";
@@ -33,6 +34,7 @@ type TimeSlot = {
   isPublished: boolean;
   isRecurring: boolean;
   recurringSeriesId: string | null;
+  recurringUntil: string | null;
   createdAt?: string; // ISO date string from API
   isBlocked?: boolean; // Indicates this slot is blocked by an event starting in a previous hour
 };
@@ -270,6 +272,7 @@ export function WeeklyTimetable({
             event.isPublished !== undefined ? event.isPublished : true,
           isRecurring: (event as any).isRecurring ?? false,
           recurringSeriesId: (event as any).recurringSeriesId || null,
+          recurringUntil: (event as any).recurringUntil || null,
           createdAt: (event as any).createdAt,
         });
 
@@ -317,6 +320,8 @@ export function WeeklyTimetable({
       setIsLoading(false);
     }
   }, [currentWeek, userId]);
+
+  console.log({ timetableData });
 
   useEffect(() => {
     loadWeekData();
@@ -750,14 +755,23 @@ export function WeeklyTimetable({
                                             slot.instructor ||
                                             ""}
                                         </div>
-                                        {isAdmin && slot.isRecurring && (
+                                        {slot.isRecurring && (
                                           <span
                                             className="inline-flex items-center gap-0.5 text-xs font-normal text-muted-foreground"
-                                            title="Recurring event"
+                                            title={
+                                              slot.recurringUntil
+                                                ? `Recurring event until ${new Date(slot.recurringUntil).toLocaleDateString()}`
+                                                : "Recurring event"
+                                            }
                                           >
                                             <Repeat className="h-3 w-3" />
+                                            {slot.recurringUntil && (
+                                              <Calendar className="h-3 w-3" />
+                                            )}
                                             <span className="sr-only">
-                                              Recurring
+                                              {slot.recurringUntil
+                                                ? "Recurring event with end date"
+                                                : "Recurring event"}
                                             </span>
                                           </span>
                                         )}
@@ -941,7 +955,7 @@ export function WeeklyTimetable({
                                 isAdmin &&
                                 (slot.instructorId === null ||
                                   slot.instructorId === undefined);
-                              
+
                               const getMobileColorClasses = () => {
                                 // Pending events get yellow/orange styling
                                 if (isPending) {
@@ -971,27 +985,41 @@ export function WeeklyTimetable({
                                     <div className="space-y-1.5">
                                       <div className="font-medium text-foreground flex items-center justify-between gap-1.5">
                                         <span className="flex items-center gap-1.5 min-w-0 flex-wrap">
-                                          <span className="min-w-0">{slot.title}</span>
+                                          <span className="min-w-0">
+                                            {slot.title}
+                                          </span>
                                           {isPending && (
                                             <span className="text-xs font-normal text-yellow-600 dark:text-yellow-400 whitespace-nowrap">
                                               (Pending Approval)
                                             </span>
                                           )}
-                                          {isAdmin && slot.isRecurring && (
+                                          {slot.isRecurring && (
                                             <span
                                               className="inline-flex items-center gap-0.5 text-xs font-normal text-muted-foreground"
-                                              title="Recurring event"
+                                              title={
+                                                slot.recurringUntil
+                                                  ? `Recurring event until ${new Date(slot.recurringUntil).toLocaleDateString()}`
+                                                  : "Recurring event"
+                                              }
                                             >
                                               <Repeat className="h-3 w-3" />
+                                              {slot.recurringUntil && (
+                                                <Calendar className="h-3 w-3" />
+                                              )}
                                               <span className="sr-only">
-                                                Recurring
+                                                {slot.recurringUntil
+                                                  ? "Recurring event with end date"
+                                                  : "Recurring event"}
                                               </span>
                                             </span>
                                           )}
                                         </span>
                                         <span className="text-sm font-normal text-muted-foreground whitespace-nowrap">
                                           {formatTime(slot.startTime)}
-                                          {!isExactlyOneHour(slot.startTime, slot.endTime) && (
+                                          {!isExactlyOneHour(
+                                            slot.startTime,
+                                            slot.endTime,
+                                          ) && (
                                             <> - {formatTime(slot.endTime)}</>
                                           )}
                                         </span>
@@ -1003,46 +1031,46 @@ export function WeeklyTimetable({
                                       </div>
                                     </div>
                                   </a>
-                                {(isAdmin ||
-                                  (isInstructor &&
-                                    slot.instructorId !== null &&
-                                    slot.instructorId === userId)) && (
-                                  <div
-                                    className="absolute top-2 right-2 z-10"
-                                    onClick={(e) => e.stopPropagation()}
-                                  >
-                                    <EditEventButton
-                                      event={{
-                                        id: slot.id,
-                                        title: slot.title,
-                                        description: slot.description,
-                                        instructor: slot.instructor || "",
-                                        instructorId:
-                                          slot.instructorId !== null &&
-                                          slot.instructorId !== undefined
-                                            ? slot.instructorId
-                                            : null,
-                                        date: slot.date,
-                                        startTime: slot.startTime,
-                                        endTime: slot.endTime,
-                                        location: slot.location,
-                                        whatToBring: slot.whatToBring,
-                                        isWorkshop: slot.isWorkshop,
-                                        propId: slot.propId,
-                                        isPublished: slot.isPublished,
-                                        isRecurring: slot.isRecurring,
-                                        recurringSeriesId:
-                                          slot.recurringSeriesId || undefined,
-                                        createdAt: slot.createdAt
-                                          ? new Date(slot.createdAt)
-                                          : undefined,
-                                      }}
-                                    />
-                                  </div>
-                                )}
-                              </div>
-                            );
-                          })}
+                                  {(isAdmin ||
+                                    (isInstructor &&
+                                      slot.instructorId !== null &&
+                                      slot.instructorId === userId)) && (
+                                    <div
+                                      className="absolute top-2 right-2 z-10"
+                                      onClick={(e) => e.stopPropagation()}
+                                    >
+                                      <EditEventButton
+                                        event={{
+                                          id: slot.id,
+                                          title: slot.title,
+                                          description: slot.description,
+                                          instructor: slot.instructor || "",
+                                          instructorId:
+                                            slot.instructorId !== null &&
+                                            slot.instructorId !== undefined
+                                              ? slot.instructorId
+                                              : null,
+                                          date: slot.date,
+                                          startTime: slot.startTime,
+                                          endTime: slot.endTime,
+                                          location: slot.location,
+                                          whatToBring: slot.whatToBring,
+                                          isWorkshop: slot.isWorkshop,
+                                          propId: slot.propId,
+                                          isPublished: slot.isPublished,
+                                          isRecurring: slot.isRecurring,
+                                          recurringUntil:
+                                            slot.recurringUntil || undefined,
+                                          createdAt: slot.createdAt
+                                            ? new Date(slot.createdAt)
+                                            : undefined,
+                                        }}
+                                      />
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            })}
                         </div>
                       );
                     })

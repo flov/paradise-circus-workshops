@@ -14,6 +14,7 @@ interface AdminNavProps {
 const navLinks = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
   { href: "/admin/events", label: "Events", icon: Calendar },
+  { href: "/admin/recurring_events", label: "Recurring Events", icon: Calendar },
   { href: "/admin/participations", label: "Participations", icon: UserCheck },
   { href: "/admin/pending-approval", label: "Pending Approval", icon: Clock },
   { href: "/admin/users", label: "Users", icon: Users },

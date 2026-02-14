@@ -1,16 +1,16 @@
-import { db } from "@/db"
-import { events, users } from "@/db/schema"
-import { and, gte, lte, asc, eq } from "drizzle-orm"
-import type { NextRequest } from "next/server"
-import { unstable_cache } from "next/cache"
+import { db } from "@/db";
+import { events, users } from "@/db/schema";
+import { and, gte, lte, asc, eq } from "drizzle-orm";
+import type { NextRequest } from "next/server";
+import { unstable_cache } from "next/cache";
 
 async function getPublicTimetableData(startDate: string, endDate: string) {
   const dateConditions = and(
-    gte(events.date, startDate), 
-    lte(events.date, endDate)
-  )
+    gte(events.date, startDate),
+    lte(events.date, endDate),
+  );
 
-  const publishCondition = eq(events.isPublished, true)
+  const publishCondition = eq(events.isPublished, true);
 
   const eventsData = await db
     .select({
@@ -30,6 +30,7 @@ async function getPublicTimetableData(startDate: string, endDate: string) {
       isPublished: events.isPublished,
       isRecurring: events.isRecurring,
       recurringSeriesId: events.recurringSeriesId,
+      recurringUntil: events.recurringUntil,
       recapVideoId: events.recapVideoId,
       createdAt: events.createdAt,
       instructorProfile: {
@@ -49,23 +50,26 @@ async function getPublicTimetableData(startDate: string, endDate: string) {
     .from(events)
     .leftJoin(users, eq(events.instructorId, users.id))
     .where(and(dateConditions, publishCondition))
-    .orderBy(asc(events.date), asc(events.startTime))
+    .orderBy(asc(events.date), asc(events.startTime));
 
-  return eventsData.map(event => ({
+  return eventsData.map((event) => ({
     ...event,
     instructorDisplayName: event.instructorProfile
-      ? (event.instructorProfile.displayName || event.instructorProfile.username)
+      ? event.instructorProfile.displayName || event.instructorProfile.username
       : null,
-  }))
+  }));
 }
 
 export async function GET(request: NextRequest) {
-  const searchParams = request.nextUrl.searchParams
-  const startDate = searchParams.get("start")
-  const endDate = searchParams.get("end")
+  const searchParams = request.nextUrl.searchParams;
+  const startDate = searchParams.get("start");
+  const endDate = searchParams.get("end");
 
   if (!startDate || !endDate) {
-    return Response.json({ error: "Start and end dates are required" }, { status: 400 })
+    return Response.json(
+      { error: "Start and end dates are required" },
+      { status: 400 },
+    );
   }
 
   try {
@@ -78,14 +82,17 @@ export async function GET(request: NextRequest) {
       {
         revalidate: process.env.NODE_ENV === "development" ? 60 : 300,
         tags: ["timetable-public"],
-      }
-    )
+      },
+    );
 
-    const eventsData = await cachedData()
+    const eventsData = await cachedData();
 
-    return Response.json(eventsData)
+    return Response.json(eventsData);
   } catch (error) {
-    console.error("Database error:", error)
-    return Response.json({ error: "Failed to fetch timetable" }, { status: 500 })
+    console.error("Database error:", error);
+    return Response.json(
+      { error: "Failed to fetch timetable" },
+      { status: 500 },
+    );
   }
 }

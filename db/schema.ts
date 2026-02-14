@@ -21,6 +21,7 @@ export const events = pgTable(
     propId: integer("prop_id").references(() => props.id, { onDelete: "set null" }),
     recurringSeriesId: varchar("recurring_series_id", { length: 36 }),
     isRecurring: boolean("is_recurring").notNull().default(false),
+    recurringUntil: date("recurring_until"),
     recapVideoId: varchar("recap_video_id", { length: 50 }),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at").defaultNow().notNull(),

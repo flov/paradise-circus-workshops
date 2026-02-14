@@ -61,6 +61,7 @@ export async function EventsList() {
       propId: events.propId,
       isRecurring: events.isRecurring,
       recurringSeriesId: events.recurringSeriesId,
+      recurringUntil: events.recurringUntil,
       recapVideoId: events.recapVideoId,
       createdAt: events.createdAt,
       instructorProfile: {
@@ -236,6 +237,7 @@ export async function EventsList() {
                               isPublished: event.isPublished,
                               propId: event.propId,
                               isRecurring: event.isRecurring,
+                              recurringUntil: event.recurringUntil ?? undefined,
                               createdAt: event.createdAt,
                             }}
                           />

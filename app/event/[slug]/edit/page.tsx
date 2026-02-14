@@ -46,6 +46,7 @@ export default async function EditEventPage({
       isPublished: events.isPublished,
       propId: events.propId,
       isRecurring: events.isRecurring,
+      recurringUntil: events.recurringUntil,
       recapVideoId: events.recapVideoId,
       createdAt: events.createdAt,
     })
@@ -77,6 +78,24 @@ export default async function EditEventPage({
 
   // Format date for form
   const formattedDate = new Date(event.date).toISOString().split("T")[0];
+  
+  // Format recurringUntil date for form (if it exists)
+  // recurringUntil from database is already in YYYY-MM-DD format, but ensure it's properly formatted
+  let formattedRecurringUntil: string | undefined;
+  if (event.recurringUntil) {
+    if (typeof event.recurringUntil === "string") {
+      if (event.recurringUntil.includes("T") || event.recurringUntil.includes(" ")) {
+        // Has time component, extract date part
+        formattedRecurringUntil = new Date(event.recurringUntil).toISOString().split("T")[0];
+      } else {
+        // Already in YYYY-MM-DD format, use directly
+        formattedRecurringUntil = event.recurringUntil;
+      }
+    } else {
+      // Date object, format it
+      formattedRecurringUntil = new Date(event.recurringUntil).toISOString().split("T")[0];
+    }
+  }
 
   // Convert event to EventFormInitialValues format
   const formInitialValues = {
@@ -94,6 +113,7 @@ export default async function EditEventPage({
     isPublished: event.isPublished ?? true,
     propId: event.propId,
     isRecurring: event.isRecurring ?? false,
+    recurringUntil: formattedRecurringUntil,
     createdAt: event.createdAt,
   };
 
@@ -118,7 +138,6 @@ export default async function EditEventPage({
       <main className="mx-auto max-w-3xl px-4 py-8 sm:px-6 lg:px-8">
         <EditEventPageClient
           initialValues={formInitialValues}
-          eventTitle={event.title}
           eventSlug={slug}
         />
       </main>

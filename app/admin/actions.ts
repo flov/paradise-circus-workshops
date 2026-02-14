@@ -2,7 +2,7 @@
 
 import { db } from "@/db";
 import { events, participations, props, users, userProps, comments } from "@/db/schema";
-import { eq, sql, inArray, asc, desc, isNotNull, and, gte } from "drizzle-orm";
+import { eq, sql, inArray, asc, desc, isNotNull, isNull, and, gte, lte } from "drizzle-orm";
 import { revalidatePath, revalidateTag } from "next/cache";
 import { createEventSlug, getUserEmail } from "@/lib/utils";
 import { auth, currentUser } from "@clerk/nextjs/server";
@@ -56,6 +56,9 @@ export async function createEvent(formData: FormData) {
     formData.get("isWorkshop") === "true";
   const isRecurringInput = formData.get("isRecurring") as string;
   const isRecurring = isRecurringInput === "on" || isRecurringInput === "true";
+  const recurringUntilInput = formData.get("recurringUntil") as string | null;
+  // For createEvent, if recurringUntil is provided, use it (empty string becomes null)
+  const recurringUntil = recurringUntilInput || null;
 
   // Validate required fields
   if (
@@ -141,6 +144,25 @@ export async function createEvent(formData: FormData) {
     // Determine isPublished: true for admins, false for instructors
     const isPublished = userIsAdmin;
 
+    // Validate recurringUntil for instructors
+    if (isRecurring && !userIsAdmin && userIsInstructor) {
+      if (!recurringUntil) {
+        return {
+          success: false,
+          error: "Please specify an end date for recurring events.",
+        };
+      }
+      // Validate that recurringUntil is after the start date
+      const startDateObj = new Date(date);
+      const endDateObj = new Date(recurringUntil);
+      if (endDateObj < startDateObj) {
+        return {
+          success: false,
+          error: "End date must be after the start date.",
+        };
+      }
+    }
+
     // Handle recurring events
     if (isRecurring) {
       // Generate UUID for recurring series
@@ -149,12 +171,24 @@ export async function createEvent(formData: FormData) {
       const startDate = new Date(date);
       const eventDates: string[] = [];
 
-      // Create only 1 week ahead (initial event + next week = 2 events total)
-      // Events will be automatically extended weekly
-      eventDates.push(startDate.toISOString().split("T")[0]);
-      const nextWeekDate = new Date(startDate);
-      nextWeekDate.setDate(nextWeekDate.getDate() + 7);
-      eventDates.push(nextWeekDate.toISOString().split("T")[0]);
+      if (!userIsAdmin && userIsInstructor && recurringUntil) {
+        // For instructors: create all events up to recurringUntil
+        const endDate = new Date(recurringUntil);
+        let currentDate = new Date(startDate);
+        
+        while (currentDate <= endDate) {
+          eventDates.push(currentDate.toISOString().split("T")[0]);
+          currentDate = new Date(currentDate);
+          currentDate.setDate(currentDate.getDate() + 7);
+        }
+      } else {
+        // For admins: create only 1 week ahead (initial event + next week = 2 events total)
+        // Events will be automatically extended weekly
+        eventDates.push(startDate.toISOString().split("T")[0]);
+        const nextWeekDate = new Date(startDate);
+        nextWeekDate.setDate(nextWeekDate.getDate() + 7);
+        eventDates.push(nextWeekDate.toISOString().split("T")[0]);
+      }
 
       if (eventDates.length === 0) {
         return {
@@ -179,6 +213,7 @@ export async function createEvent(formData: FormData) {
         propId: propId || null,
         recurringSeriesId,
         isRecurring: true,
+        recurringUntil: recurringUntil || null,
       }));
 
       const newEvents = await db
@@ -726,6 +761,12 @@ export async function updateEvent(formData: FormData) {
   const isPublished = isPublishedInput === "on" || isPublishedInput === "true";
   const isRecurringInput = formData.get("isRecurring") as string;
   const isRecurring = isRecurringInput === "on" || isRecurringInput === "true";
+  const recurringUntilInput = formData.get("recurringUntil") as string | null;
+  // If recurringUntil is in formData, use it (even if empty string - will become null)
+  // If not in formData, it means the event is not recurring, so don't update the field
+  const recurringUntil = recurringUntilInput !== null 
+    ? (recurringUntilInput || null) 
+    : undefined;
 
   if (
     !id ||
@@ -924,6 +965,7 @@ export async function updateEvent(formData: FormData) {
       isPublished?: boolean;
       isRecurring?: boolean;
       recurringSeriesId?: string | null;
+      recurringUntil?: string | null;
     } = {
       title,
       description,
@@ -952,6 +994,14 @@ export async function updateEvent(formData: FormData) {
     } else {
       // Preserve isRecurring for existing recurring events
       updateData.isRecurring = true;
+    }
+    
+    // Update recurringUntil if it was provided in the form
+    // If recurringUntil is undefined, it means the field wasn't in the form (non-recurring event)
+    // If recurringUntil is null, it means user cleared it (set to null)
+    // If recurringUntil has a value, use it
+    if (recurringUntil !== undefined) {
+      updateData.recurringUntil = recurringUntil;
     }
 
     // CRITICAL: Check if event has recurringSeriesId BEFORE any conversion logic
@@ -1016,6 +1066,25 @@ export async function updateEvent(formData: FormData) {
     // IMPORTANT: Do NOT convert if event already has a recurringSeriesId (even if isRecurring is false)
     // This prevents duplicate creation when updating events that are part of a series
     if (!isRecurringEvent && isRecurring && !hasRecurringSeriesId) {
+      // Validate recurringUntil for instructors
+      if (!userIsAdmin && userIsInstructor) {
+        if (!recurringUntil) {
+          return {
+            success: false,
+            error: "Please specify an end date for recurring events.",
+          };
+        }
+        // Validate that recurringUntil is after the start date
+        const startDateObj = new Date(date);
+        const endDateObj = new Date(recurringUntil);
+        if (endDateObj < startDateObj) {
+          return {
+            success: false,
+            error: "End date must be after the start date.",
+          };
+        }
+      }
+
       // Double-check: Make sure this event is truly not part of a recurring series
       // This prevents accidentally creating duplicates if there's a data inconsistency
       const verifyEvent = await db
@@ -1055,12 +1124,24 @@ export async function updateEvent(formData: FormData) {
       const startDate = new Date(date);
       const eventDates: string[] = [];
 
-      // Create only 1 week ahead (initial event + next week = 2 events total)
-      // Events will be automatically extended weekly
-      eventDates.push(startDate.toISOString().split("T")[0]);
-      const nextWeekDate = new Date(startDate);
-      nextWeekDate.setDate(nextWeekDate.getDate() + 7);
-      eventDates.push(nextWeekDate.toISOString().split("T")[0]);
+      if (!userIsAdmin && userIsInstructor && recurringUntil) {
+        // For instructors: create all events up to recurringUntil
+        const endDate = new Date(recurringUntil);
+        let currentDate = new Date(startDate);
+        
+        while (currentDate <= endDate) {
+          eventDates.push(currentDate.toISOString().split("T")[0]);
+          currentDate = new Date(currentDate);
+          currentDate.setDate(currentDate.getDate() + 7);
+        }
+      } else {
+        // For admins: create only 1 week ahead (initial event + next week = 2 events total)
+        // Events will be automatically extended weekly
+        eventDates.push(startDate.toISOString().split("T")[0]);
+        const nextWeekDate = new Date(startDate);
+        nextWeekDate.setDate(nextWeekDate.getDate() + 7);
+        eventDates.push(nextWeekDate.toISOString().split("T")[0]);
+      }
 
       if (eventDates.length === 0) {
         return {
@@ -1092,6 +1173,7 @@ export async function updateEvent(formData: FormData) {
           ...updateData,
           recurringSeriesId,
           isRecurring: true,
+          recurringUntil: recurringUntil || null,
         })
         .where(eq(events.id, eventId));
 
@@ -1115,6 +1197,7 @@ export async function updateEvent(formData: FormData) {
           propId: propId || null,
           recurringSeriesId,
           isRecurring: true,
+          recurringUntil: recurringUntil || null,
         }));
 
         await db.insert(events).values(additionalEventValues);
@@ -1792,6 +1875,40 @@ function getNextWeekSundayUTC(todayUTC: Date): Date {
 }
 
 /**
+ * Returns the Monday-Sunday range for current week and previous week in UTC.
+ * Returns: { previousWeekMonday: string, currentWeekSunday: string }
+ * Dates are formatted as YYYY-MM-DD strings.
+ */
+function getCurrentAndPreviousWeekRange(): { previousWeekMonday: string; currentWeekSunday: string } {
+  const today = new Date();
+  const todayUTC = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate()));
+  
+  // Calculate current week Monday
+  const dayOfWeek = todayUTC.getUTCDay(); // 0=Sun, 1=Mon, ..., 6=Sat
+  const daysSinceMonday = (dayOfWeek + 6) % 7; // Mon=0, Tue=1, ..., Sun=6
+  const currentWeekMonday = new Date(Date.UTC(todayUTC.getUTCFullYear(), todayUTC.getUTCMonth(), todayUTC.getUTCDate() - daysSinceMonday));
+  
+  // Calculate current week Sunday
+  const currentWeekSunday = new Date(Date.UTC(currentWeekMonday.getUTCFullYear(), currentWeekMonday.getUTCMonth(), currentWeekMonday.getUTCDate() + 6));
+  
+  // Calculate previous week Monday (7 days before current week Monday)
+  const previousWeekMonday = new Date(Date.UTC(currentWeekMonday.getUTCFullYear(), currentWeekMonday.getUTCMonth(), currentWeekMonday.getUTCDate() - 7));
+  
+  // Format as YYYY-MM-DD
+  const formatDate = (date: Date): string => {
+    const year = date.getUTCFullYear();
+    const month = String(date.getUTCMonth() + 1).padStart(2, "0");
+    const day = String(date.getUTCDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  };
+  
+  return {
+    previousWeekMonday: formatDate(previousWeekMonday),
+    currentWeekSunday: formatDate(currentWeekSunday),
+  };
+}
+
+/**
  * Extends recurring events to ensure there's always events up to the Sunday of the next week.
  * This function is called by the cron job to automatically extend recurring event series.
  */
@@ -1832,6 +1949,7 @@ export async function extendRecurringEvents() {
           isPublished: events.isPublished,
           propId: events.propId,
           recapVideoId: events.recapVideoId,
+          recurringUntil: events.recurringUntil,
         })
         .from(events)
         .where(
@@ -1847,6 +1965,107 @@ export async function extendRecurringEvents() {
       // Get the latest event (first in descending order)
       const latestEvent = seriesEvents[0];
       
+      // Check if this series has a recurringUntil date
+      const recurringUntil = latestEvent.recurringUntil;
+      
+      // If recurringUntil exists, check if we've already reached or passed it
+      if (recurringUntil) {
+        const [endYear, endMonth, endDay] = recurringUntil.split("-").map(Number);
+        const recurringUntilDate = new Date(Date.UTC(endYear, endMonth - 1, endDay));
+        
+        // If recurringUntil is in the past or today, don't extend
+        if (recurringUntilDate < todayUTC) {
+          continue; // Skip this series, it has ended
+        }
+        
+        // Use recurringUntil as the target date if it's earlier than the default target
+        const effectiveTargetDate = recurringUntilDate < targetDate ? recurringUntilDate : targetDate;
+        
+        // Parse date string (YYYY-MM-DD) and work with UTC to avoid timezone issues
+        const latestEventDateStr = latestEvent.date;
+        const [year, month, day] = latestEventDateStr.split("-").map(Number);
+        const latestEventDate = new Date(Date.UTC(year, month - 1, day));
+        
+        // Check if we need to extend (latest event date is before effective target date)
+        if (latestEventDate < effectiveTargetDate) {
+          // Get ALL existing dates in the series (including non-recurring events) to avoid duplicates
+          const allSeriesEvents = await db
+            .select({ date: events.date })
+            .from(events)
+            .where(eq(events.recurringSeriesId, series.recurringSeriesId));
+          const existingDates = new Set(allSeriesEvents.map((e) => e.date));
+
+          // Create events until the effective target date is covered
+          const eventsToCreate: Array<{
+            title: string;
+            description: string | null;
+            instructor: string | null;
+            instructorId: number | null;
+            date: string;
+            startTime: string;
+            endTime: string;
+            location: string | null;
+            whatToBring: string | null;
+            isWorkshop: boolean;
+            isPublished: boolean;
+            propId: number | null;
+            recurringSeriesId: string;
+            isRecurring: boolean;
+            recapVideoId: string | null;
+            recurringUntil: string | null;
+          }> = [];
+
+          // Start from 7 days after the latest event date
+          let currentDate = new Date(Date.UTC(year, month - 1, day + 7));
+
+          // Create events until we've reached the effective target date
+          while (currentDate <= effectiveTargetDate) {
+            // Format as YYYY-MM-DD using UTC methods to avoid timezone shifts
+            const dateStr = `${currentDate.getUTCFullYear()}-${String(currentDate.getUTCMonth() + 1).padStart(2, "0")}-${String(currentDate.getUTCDate()).padStart(2, "0")}`;
+
+            // Only create if it doesn't already exist
+            if (!existingDates.has(dateStr)) {
+              eventsToCreate.push({
+                title: latestEvent.title,
+                description: latestEvent.description,
+                instructor: latestEvent.instructor,
+                instructorId: latestEvent.instructorId,
+                date: dateStr,
+                startTime: latestEvent.startTime,
+                endTime: latestEvent.endTime,
+                location: latestEvent.location,
+                whatToBring: latestEvent.whatToBring,
+                isWorkshop: latestEvent.isWorkshop,
+                isPublished: latestEvent.isPublished,
+                propId: latestEvent.propId,
+                recurringSeriesId: series.recurringSeriesId,
+                isRecurring: true,
+                recapVideoId: latestEvent.recapVideoId,
+                recurringUntil: recurringUntil,
+              });
+            }
+
+            // Add 7 days using UTC date arithmetic
+            currentDate = new Date(Date.UTC(
+              currentDate.getUTCFullYear(),
+              currentDate.getUTCMonth(),
+              currentDate.getUTCDate() + 7
+            ));
+          }
+
+          // Insert new events if any
+          if (eventsToCreate.length > 0) {
+            await db.insert(events).values(eventsToCreate);
+            totalEventsCreated += eventsToCreate.length;
+            console.log(
+              `Extended recurring series ${series.recurringSeriesId}: created ${eventsToCreate.length} event(s) up to ${recurringUntil}`,
+            );
+          }
+        }
+        continue; // Skip the default extension logic for series with recurringUntil
+      }
+      
+      // For series without recurringUntil (indefinite), use default extension logic
       // Parse date string (YYYY-MM-DD) and work with UTC to avoid timezone issues
       // Date strings from database are in YYYY-MM-DD format
       const latestEventDateStr = latestEvent.date;
@@ -1880,6 +2099,7 @@ export async function extendRecurringEvents() {
           recurringSeriesId: string;
           isRecurring: boolean;
           recapVideoId: string | null;
+          recurringUntil: string | null;
         }> = [];
 
         // Start from 7 days after the latest event date
@@ -1891,26 +2111,27 @@ export async function extendRecurringEvents() {
           // Format as YYYY-MM-DD using UTC methods to avoid timezone shifts
           const dateStr = `${currentDate.getUTCFullYear()}-${String(currentDate.getUTCMonth() + 1).padStart(2, "0")}-${String(currentDate.getUTCDate()).padStart(2, "0")}`;
 
-          // Only create if it doesn't already exist
-          if (!existingDates.has(dateStr)) {
-            eventsToCreate.push({
-              title: latestEvent.title,
-              description: latestEvent.description,
-              instructor: latestEvent.instructor,
-              instructorId: latestEvent.instructorId,
-              date: dateStr,
-              startTime: latestEvent.startTime,
-              endTime: latestEvent.endTime,
-              location: latestEvent.location,
-              whatToBring: latestEvent.whatToBring,
-              isWorkshop: latestEvent.isWorkshop,
-              isPublished: latestEvent.isPublished,
-              propId: latestEvent.propId,
-              recurringSeriesId: series.recurringSeriesId,
-              isRecurring: true,
-              recapVideoId: latestEvent.recapVideoId,
-            });
-          }
+            // Only create if it doesn't already exist
+            if (!existingDates.has(dateStr)) {
+              eventsToCreate.push({
+                title: latestEvent.title,
+                description: latestEvent.description,
+                instructor: latestEvent.instructor,
+                instructorId: latestEvent.instructorId,
+                date: dateStr,
+                startTime: latestEvent.startTime,
+                endTime: latestEvent.endTime,
+                location: latestEvent.location,
+                whatToBring: latestEvent.whatToBring,
+                isWorkshop: latestEvent.isWorkshop,
+                isPublished: latestEvent.isPublished,
+                propId: latestEvent.propId,
+                recurringSeriesId: series.recurringSeriesId,
+                isRecurring: true,
+                recapVideoId: latestEvent.recapVideoId,
+                recurringUntil: null, // Indefinite recurring events have null recurringUntil
+              });
+            }
 
           // Add 7 days using UTC date arithmetic
           currentDate = new Date(Date.UTC(
@@ -1951,6 +2172,300 @@ export async function extendRecurringEvents() {
       seriesProcessed: 0,
     };
   }
+}
+
+/**
+ * Get recurring events from specified date range that are candidates for copying.
+ * Only returns published recurring events without a recurringUntil date.
+ * @param dateFrom - Start date (YYYY-MM-DD format)
+ * @param dateTo - End date (YYYY-MM-DD format)
+ */
+export async function getRecurringEventsCopyCandidates(
+  dateFrom?: string,
+  dateTo?: string,
+) {
+  try {
+    // Check authentication
+    const { userId } = await auth();
+
+    if (!userId) {
+      return {
+        success: false,
+        error: "Unauthorized. You must be signed in.",
+      };
+    }
+
+    // Check admin authorization
+    const userIsAdmin = await isAdmin();
+    if (!userIsAdmin) {
+      return {
+        success: false,
+        error: "Unauthorized. Only admins can access this function.",
+      };
+    }
+
+    // Use provided date range or calculate default (current and previous week)
+    let startDate: string;
+    let endDate: string;
+    
+    if (dateFrom && dateTo) {
+      startDate = dateFrom;
+      endDate = dateTo;
+    } else {
+      // Fallback to default range if not provided
+      const { previousWeekMonday, currentWeekSunday } = getCurrentAndPreviousWeekRange();
+      startDate = previousWeekMonday;
+      endDate = currentWeekSunday;
+    }
+
+    // Validate date range
+    if (startDate > endDate) {
+      return {
+        success: false,
+        error: "Start date must be before end date",
+      };
+    }
+
+    // Query events
+    const candidateEvents = await db
+      .select({
+        id: events.id,
+        title: events.title,
+        date: events.date,
+        startTime: events.startTime,
+        endTime: events.endTime,
+        instructor: events.instructor,
+        location: events.location,
+        recurringSeriesId: events.recurringSeriesId,
+      })
+      .from(events)
+      .where(
+        and(
+          eq(events.isPublished, true),
+          eq(events.isRecurring, true),
+          isNull(events.recurringUntil),
+          gte(events.date, startDate),
+          lte(events.date, endDate),
+        ),
+      )
+      .orderBy(asc(events.date), asc(events.startTime));
+
+    return {
+      success: true,
+      events: candidateEvents,
+    };
+  } catch (error) {
+    console.error("Error fetching recurring events candidates:", error);
+    return {
+      success: false,
+      error: "Failed to fetch recurring events candidates",
+    };
+  }
+}
+
+/**
+ * Copy selected recurring events to the next calendar week.
+ * Skips duplicates based on recurringSeriesId, date, startTime, and endTime.
+ */
+export async function copySelectedRecurringEventsToNextWeek(
+  selectedEventIds: number[],
+) {
+  try {
+    // Check authentication
+    const { userId } = await auth();
+
+    if (!userId) {
+      return {
+        success: false,
+        error: "Unauthorized. You must be signed in.",
+        copied: 0,
+        skipped: 0,
+        skippedItems: [],
+      };
+    }
+
+    // Check admin authorization
+    const userIsAdmin = await isAdmin();
+    if (!userIsAdmin) {
+      return {
+        success: false,
+        error: "Unauthorized. Only admins can copy events.",
+        copied: 0,
+        skipped: 0,
+        skippedItems: [],
+      };
+    }
+
+    if (selectedEventIds.length === 0) {
+      return {
+        success: false,
+        error: "No events selected for copying.",
+        copied: 0,
+        skipped: 0,
+        skippedItems: [],
+      };
+    }
+
+    // Load selected source events
+    const sourceEvents = await db
+      .select({
+        id: events.id,
+        title: events.title,
+        description: events.description,
+        instructor: events.instructor,
+        instructorId: events.instructorId,
+        date: events.date,
+        startTime: events.startTime,
+        endTime: events.endTime,
+        location: events.location,
+        whatToBring: events.whatToBring,
+        isWorkshop: events.isWorkshop,
+        isPublished: events.isPublished,
+        propId: events.propId,
+        recurringSeriesId: events.recurringSeriesId,
+        isRecurring: events.isRecurring,
+        recurringUntil: events.recurringUntil,
+        recapVideoId: events.recapVideoId,
+        maxCapacity: events.maxCapacity,
+      })
+      .from(events)
+      .where(inArray(events.id, selectedEventIds));
+
+    if (sourceEvents.length === 0) {
+      return {
+        success: false,
+        error: "No valid events found for the selected IDs.",
+        copied: 0,
+        skipped: 0,
+        skippedItems: [],
+      };
+    }
+
+    let copiedCount = 0;
+    let skippedCount = 0;
+    const skippedItems: Array<{ eventId: number; reason: string }> = [];
+    const eventsToInsert: Array<{
+      title: string;
+      description: string | null;
+      instructor: string | null;
+      instructorId: number | null;
+      date: string;
+      startTime: string;
+      endTime: string;
+      location: string | null;
+      whatToBring: string | null;
+      isWorkshop: boolean;
+      isPublished: boolean;
+      propId: number | null;
+      recurringSeriesId: string | null;
+      isRecurring: boolean;
+      recurringUntil: string | null;
+      recapVideoId: string | null;
+      maxCapacity: number;
+      currentBookings: number;
+    }> = [];
+
+    for (const sourceEvent of sourceEvents) {
+      // Calculate target date: same weekday in next calendar week (7 days after)
+      const sourceDate = new Date(sourceEvent.date);
+      const targetDate = new Date(sourceDate);
+      targetDate.setUTCDate(sourceDate.getUTCDate() + 7);
+      const targetDateStr = targetDate.toISOString().split("T")[0];
+
+      // Check for duplicate
+      const duplicateConditions = [
+        eq(events.date, targetDateStr),
+        eq(events.startTime, sourceEvent.startTime),
+        eq(events.endTime, sourceEvent.endTime),
+      ];
+      
+      // Only add recurringSeriesId condition if it exists
+      if (sourceEvent.recurringSeriesId) {
+        duplicateConditions.push(eq(events.recurringSeriesId, sourceEvent.recurringSeriesId));
+      }
+      
+      const existingEvents = await db
+        .select({ id: events.id })
+        .from(events)
+        .where(and(...duplicateConditions))
+        .limit(1);
+
+      if (existingEvents.length > 0) {
+        skippedCount++;
+        skippedItems.push({
+          eventId: sourceEvent.id,
+          reason: "Duplicate event already exists for target date",
+        });
+        continue;
+      }
+
+      // Prepare event for insertion
+      eventsToInsert.push({
+        title: sourceEvent.title,
+        description: sourceEvent.description,
+        instructor: sourceEvent.instructor,
+        instructorId: sourceEvent.instructorId,
+        date: targetDateStr,
+        startTime: sourceEvent.startTime,
+        endTime: sourceEvent.endTime,
+        location: sourceEvent.location,
+        whatToBring: sourceEvent.whatToBring,
+        isWorkshop: sourceEvent.isWorkshop,
+        isPublished: sourceEvent.isPublished,
+        propId: sourceEvent.propId,
+        recurringSeriesId: sourceEvent.recurringSeriesId,
+        isRecurring: sourceEvent.isRecurring,
+        recurringUntil: sourceEvent.recurringUntil,
+        recapVideoId: sourceEvent.recapVideoId,
+        maxCapacity: sourceEvent.maxCapacity,
+        currentBookings: 0, // Reset booking counter
+      });
+    }
+
+    // Insert all events in a single transaction
+    if (eventsToInsert.length > 0) {
+      await db.insert(events).values(eventsToInsert);
+      copiedCount = eventsToInsert.length;
+    }
+
+    // Revalidate paths
+    revalidatePath("/admin");
+    revalidatePath("/admin/recurring_events");
+    revalidatePath("/api/timetable");
+    revalidateTag("timetable-public");
+
+    return {
+      success: true,
+      copied: copiedCount,
+      skipped: skippedCount,
+      skippedItems,
+    };
+  } catch (error) {
+    console.error("Error copying recurring events:", error);
+    return {
+      success: false,
+      error:
+        error instanceof Error
+          ? error.message
+          : "Failed to copy recurring events",
+      copied: 0,
+      skipped: 0,
+      skippedItems: [],
+    };
+  }
+}
+
+/**
+ * Form action wrapper for copying recurring events.
+ * Extracts selectedEventIds from FormData and calls copySelectedRecurringEventsToNextWeek.
+ */
+export async function copyRecurringEventsAction(formData: FormData) {
+  const selectedEventIds = formData
+    .getAll("selectedEventIds")
+    .map((id) => Number.parseInt(id.toString(), 10))
+    .filter((id) => !Number.isNaN(id));
+
+  return await copySelectedRecurringEventsToNextWeek(selectedEventIds);
 }
 
 /**

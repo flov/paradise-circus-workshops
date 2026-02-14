@@ -13,25 +13,6 @@ export const metadata: Metadata = {
 };
 
 export default async function TimetablePage() {
-  // Fetch upcoming events ordered by date and time
-  const today = new Date().toISOString().split("T")[0]; // Get today's date in YYYY-MM-DD format
-
-  const events = await db
-    .select({
-      id: eventsTable.id,
-      title: eventsTable.title,
-      description: eventsTable.description,
-      instructor: eventsTable.instructor,
-      date: eventsTable.date,
-      startTime: eventsTable.startTime,
-      endTime: eventsTable.endTime,
-      currentBookings: eventsTable.currentBookings,
-      location: eventsTable.location,
-    })
-    .from(eventsTable)
-    .where(and(gte(eventsTable.date, today), eq(eventsTable.isPublished, true)))
-    .orderBy(asc(eventsTable.date), asc(eventsTable.startTime));
-
   // Fetch current user profile to check instructor and admin status
   const userProfile = await getCurrentUserProfile();
   const isInstructor = userProfile?.isInstructor ?? false;

@@ -39,6 +39,7 @@ export type EventFormInitialValues = {
   isPublished?: boolean;
   propId?: number | null;
   isRecurring?: boolean;
+  recurringUntil?: string;
   createdAt?: string | Date;
 };
 
@@ -58,7 +59,6 @@ type EventFormProps = {
     eventId: number,
     cancellationMessage?: string | null,
   ) => Promise<void>;
-  eventTitle?: string;
 };
 
 export function EventForm({
@@ -71,7 +71,6 @@ export function EventForm({
   submittingText = "Saving...",
   onDelete,
   onDeleteAllFuture,
-  eventTitle,
 }: EventFormProps) {
   const [availableProps, setAvailableProps] = useState<
     Array<{ id: number; name: string }>
@@ -93,6 +92,24 @@ export function EventForm({
   const [isRecurring, setIsRecurring] = useState<boolean>(
     initialValues?.isRecurring ?? false,
   );
+  // Initialize recurringUntil - handle both string and undefined/null
+  const getInitialRecurringUntil = (): string => {
+    if (!initialValues?.recurringUntil) return "";
+    if (typeof initialValues.recurringUntil === "string") {
+      // If it has time component, extract date part
+      if (initialValues.recurringUntil.includes("T") || initialValues.recurringUntil.includes(" ")) {
+        return new Date(initialValues.recurringUntil).toISOString().split("T")[0];
+      }
+      // Already in YYYY-MM-DD format
+      return initialValues.recurringUntil;
+    }
+    // Date object
+    return new Date(initialValues.recurringUntil).toISOString().split("T")[0];
+  };
+  const [recurringUntil, setRecurringUntil] = useState<string>(getInitialRecurringUntil());
+  const [recurringValidationError, setRecurringValidationError] = useState<
+    string | null
+  >(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [isDeletingAllFuture, setIsDeletingAllFuture] = useState(false);
@@ -189,6 +206,39 @@ export function EventForm({
     }
   }, [initialValues?.location]);
 
+  // Update recurringUntil state when initialValues.recurringUntil changes
+  useEffect(() => {
+    // Always update when initialValues changes, even if recurringUntil is undefined/null
+    // This ensures the form resets when switching between events
+    if (initialValues?.recurringUntil) {
+      // recurringUntil from database is already in YYYY-MM-DD format (date type)
+      // Only parse if it contains a time component (T) or is a Date object
+      let recurringUntilDate: string;
+      if (typeof initialValues.recurringUntil === "string") {
+        // Check if it's already in YYYY-MM-DD format (10 characters, no T)
+        if (initialValues.recurringUntil.includes("T") || initialValues.recurringUntil.includes(" ")) {
+          // Has time component or space, extract date part
+          recurringUntilDate = new Date(initialValues.recurringUntil).toISOString().split("T")[0];
+        } else {
+          // Already in YYYY-MM-DD format, use directly
+          recurringUntilDate = initialValues.recurringUntil;
+        }
+      } else {
+        // Date object, format it
+        recurringUntilDate = new Date(initialValues.recurringUntil).toISOString().split("T")[0];
+      }
+      setRecurringUntil(recurringUntilDate);
+    } else {
+      // Explicitly set to empty string if not provided
+      setRecurringUntil("");
+    }
+  }, [initialValues?.recurringUntil, initialValues?.id]);
+
+  // Update isRecurring state when initialValues.isRecurring changes
+  useEffect(() => {
+    setIsRecurring(initialValues?.isRecurring ?? false);
+  }, [initialValues?.isRecurring]);
+
   // Reset form state when switching to create mode
   useEffect(() => {
     if (!initialValues?.id) {
@@ -230,6 +280,34 @@ export function EventForm({
 
     // Add recurring fields - always send isRecurring value (true or false)
     formData.append("isRecurring", isRecurring ? "true" : "false");
+
+    // Validate recurringUntil for instructors
+    if (
+      isRecurring &&
+      userProfile &&
+      userProfile.isInstructor &&
+      !userProfile.isAdmin
+    ) {
+      if (!recurringUntil) {
+        setRecurringValidationError(
+          "Please specify an end date for recurring events",
+        );
+        return;
+      }
+      // Validate that recurringUntil is after the start date
+      if (date && recurringUntil && new Date(recurringUntil) < new Date(date)) {
+        setRecurringValidationError("End date must be after the start date");
+        return;
+      }
+    }
+    setRecurringValidationError(null);
+
+    // Always add recurringUntil to formData (even if empty) so we can distinguish
+    // between "not provided" and "cleared" in the server action
+    // For instructors, if isRecurring is true, recurringUntil will be validated above
+    if (isRecurring) {
+      formData.append("recurringUntil", recurringUntil || "");
+    }
 
     await onSubmit(formData);
   }
@@ -294,6 +372,84 @@ export function EventForm({
       year: "numeric",
     });
   };
+
+  // Calculate number of recurring events
+  function calculateRecurringEventCount(
+    startDate: string,
+    endDate: string,
+  ): number {
+    if (!startDate || !endDate) return 0;
+
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+
+    if (end < start) return 0;
+
+    let count = 0;
+    let currentDate = new Date(start);
+
+    while (currentDate <= end) {
+      count++;
+      currentDate = new Date(currentDate);
+      currentDate.setDate(currentDate.getDate() + 7);
+    }
+
+    return count;
+  }
+
+  // Calculate dates that will be created for recurring events
+  function calculateRecurringEventDates(
+    startDate: string,
+    endDate: string,
+    excludeFirst: boolean = false,
+  ): string[] {
+    if (!startDate || !endDate) return [];
+
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+
+    if (end < start) return [];
+
+    const dates: string[] = [];
+    let currentDate = new Date(start);
+    let isFirst = true;
+
+    while (currentDate <= end) {
+      if (!excludeFirst || !isFirst) {
+        dates.push(currentDate.toISOString().split("T")[0]);
+      }
+      isFirst = false;
+      currentDate = new Date(currentDate);
+      currentDate.setDate(currentDate.getDate() + 7);
+    }
+
+    return dates;
+  }
+
+  // Format date for display (e.g., "Mon, 14 Feb 2026")
+  function formatEventDate(dateStr: string): string {
+    const date = new Date(dateStr);
+    const weekdays = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+    const weekday = weekdays[date.getDay()];
+    const day = date.getDate();
+    const month = date.toLocaleDateString("en-US", { month: "short" });
+    const year = date.getFullYear();
+    return `${weekday}, ${day} ${month} ${year}`;
+  }
+
+  // Calculate event count: when editing, exclude the event being updated (it's updated, not created)
+  const totalEventCount =
+    isRecurring && date && recurringUntil
+      ? calculateRecurringEventCount(date, recurringUntil)
+      : 0;
+  // When editing, subtract 1 since the event at the new date is being updated, not created
+  const eventCount = isEditMode && totalEventCount > 0 ? totalEventCount - 1 : totalEventCount;
+  
+  // Calculate dates that will be created (exclude first date if editing)
+  const eventDatesToCreate =
+    isRecurring && date && recurringUntil
+      ? calculateRecurringEventDates(date, recurringUntil, isEditMode)
+      : [];
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
@@ -563,7 +719,13 @@ export function EventForm({
                 id="isRecurring"
                 name="isRecurring"
                 checked={isRecurring}
-                onChange={(e) => setIsRecurring(e.target.checked)}
+                onChange={(e) => {
+                  setIsRecurring(e.target.checked);
+                  if (!e.target.checked) {
+                    setRecurringUntil("");
+                    setRecurringValidationError(null);
+                  }
+                }}
                 disabled={isSubmitting}
                 className="h-4 w-4 rounded border-gray-300"
               />
@@ -572,14 +734,102 @@ export function EventForm({
               </Label>
             </label>
             <p className="text-xs text-muted-foreground">
-              Check this box to create this event weekly. Events will be
-              automatically extended weekly, creating 1 event 1 week ahead.
-              {userProfile.isInstructor && !userProfile.isAdmin && (
-                <span className="block mt-1">
-                  Your recurring events will be submitted for admin approval.
-                </span>
+              {userProfile.isAdmin ? (
+                <>
+                  Check this box to create this event weekly. Events will be
+                  automatically extended weekly, creating 1 event 1 week ahead.
+                </>
+              ) : (
+                <>
+                  Check this box to create this event weekly. You must specify
+                  an end date for recurring events.
+                  <span className="block mt-1">
+                    Your recurring events will be submitted for admin approval.
+                  </span>
+                </>
               )}
             </p>
+            {isRecurring && (
+              <div className="space-y-2 mt-3">
+                {userProfile.isInstructor && !userProfile.isAdmin ? (
+                  <>
+                    <Label htmlFor="recurringUntil">
+                      Recurring Until (End Date) *
+                    </Label>
+                    <Input
+                      id="recurringUntil"
+                      name="recurringUntil"
+                      type="date"
+                      value={recurringUntil}
+                      onChange={(e) => {
+                        setRecurringUntil(e.target.value);
+                        setRecurringValidationError(null);
+                      }}
+                      min={date || undefined}
+                      required
+                      disabled={isSubmitting}
+                      className={
+                        recurringValidationError ? "border-destructive" : ""
+                      }
+                    />
+                    {recurringUntil && eventCount > 0 && (
+                      <div className="text-xs text-muted-foreground space-y-1">
+                        <p>
+                          This will create {eventCount} {isEditMode ? "additional " : ""}event
+                          {eventCount !== 1 ? "s" : ""}.
+                        </p>
+                        {eventDatesToCreate.length > 0 && (
+                          <ul className="list-disc list-inside ml-2 space-y-0.5">
+                            {eventDatesToCreate.map((dateStr) => (
+                              <li key={dateStr}>{formatEventDate(dateStr)}</li>
+                            ))}
+                          </ul>
+                        )}
+                      </div>
+                    )}
+                    {recurringValidationError && (
+                      <p className="text-xs text-destructive">
+                        {recurringValidationError}
+                      </p>
+                    )}
+                  </>
+                ) : (
+                  <>
+                    <Label htmlFor="recurringUntil">
+                      Recurring Until (End Date) (Optional)
+                    </Label>
+                    <Input
+                      id="recurringUntil"
+                      name="recurringUntil"
+                      type="date"
+                      value={recurringUntil}
+                      onChange={(e) => setRecurringUntil(e.target.value)}
+                      min={date || undefined}
+                      disabled={isSubmitting}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Optionally specify an end date. If left empty, events will
+                      recur indefinitely.
+                    </p>
+                    {recurringUntil && eventCount > 0 && (
+                      <div className="text-xs text-muted-foreground space-y-1">
+                        <p>
+                          This will create {eventCount} {isEditMode ? "additional " : ""}event
+                          {eventCount !== 1 ? "s" : ""}.
+                        </p>
+                        {eventDatesToCreate.length > 0 && (
+                          <ul className="list-disc list-inside ml-2 space-y-0.5">
+                            {eventDatesToCreate.map((dateStr) => (
+                              <li key={dateStr}>{formatEventDate(dateStr)}</li>
+                            ))}
+                          </ul>
+                        )}
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -622,10 +872,9 @@ export function EventForm({
                   <AlertDialogTitle>Delete Event</AlertDialogTitle>
                   <AlertDialogDescription>
                     Are you sure you want to delete "
-                    {eventTitle || initialValues.title || "this event"}"? This
-                    will also delete all associated participations and send
-                    cancellation emails to all participants. This action cannot
-                    be undone.
+                    {initialValues.title || "this event"}"? This will also
+                    delete all associated participations and send cancellation
+                    emails to all participants. This action cannot be undone.
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <div className="space-y-2 py-4">
@@ -700,11 +949,10 @@ export function EventForm({
                   </AlertDialogTitle>
                   <AlertDialogDescription>
                     Are you sure you want to delete "
-                    {eventTitle || initialValues.title || "this event"}" and all
-                    future events for this instructor? This will delete all
-                    events from this date onwards for the same instructor and
-                    send cancellation emails to all participants. This action
-                    cannot be undone.
+                    {initialValues.title || "this event"}" and all future events
+                    for this instructor? This will delete all events from this
+                    date onwards for the same instructor and send cancellation
+                    emails to all participants. This action cannot be undone.
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <div className="space-y-2 py-4">

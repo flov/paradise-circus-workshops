@@ -1,7 +1,7 @@
 "use client";
 
 import type React from "react";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -40,6 +40,7 @@ export function EditEventButton({
     | "isPublished"
     | "propId"
     | "isRecurring"
+    | "recurringUntil"
   > & { createdAt?: Date };
 }) {
   const router = useRouter();
@@ -102,10 +103,33 @@ export function EditEventButton({
   }
 
   // Format date for input
-  const formattedDate = new Date(event.date).toISOString().split("T")[0];
+  const formattedDate = useMemo(() => {
+    return new Date(event.date).toISOString().split("T")[0];
+  }, [event.date]);
+  
+  // Format recurringUntil date for input (if it exists)
+  // recurringUntil from database is already in YYYY-MM-DD format (date type)
+  // Use it directly if it's a string, otherwise format it
+  const formattedRecurringUntil = useMemo(() => {
+    if (!event.recurringUntil) return undefined;
+    
+    if (typeof event.recurringUntil === "string") {
+      // Check if it has time component (T) or space
+      if (event.recurringUntil.includes("T") || event.recurringUntil.includes(" ")) {
+        // Has time component, extract date part
+        return new Date(event.recurringUntil).toISOString().split("T")[0];
+      } else {
+        // Already in YYYY-MM-DD format, use directly
+        return event.recurringUntil;
+      }
+    } else {
+      // Date object, format it
+      return new Date(event.recurringUntil).toISOString().split("T")[0];
+    }
+  }, [event.recurringUntil]);
 
   // Convert event to EventFormInitialValues format
-  const formInitialValues: EventFormInitialValues = {
+  const formInitialValues: EventFormInitialValues = useMemo(() => ({
     id: event.id,
     title: event.title,
     description: event.description || "",
@@ -120,8 +144,9 @@ export function EditEventButton({
     isPublished: event.isPublished ?? true,
     propId: event.propId,
     isRecurring: event.isRecurring ?? false,
+    recurringUntil: formattedRecurringUntil,
     createdAt: event.createdAt,
-  };
+  }), [event, formattedDate, formattedRecurringUntil]);
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -136,6 +161,7 @@ export function EditEventButton({
           <DialogDescription>Update event details</DialogDescription>
         </DialogHeader>
         <EventForm
+          key={`event-${event.id}-${event.recurringUntil || 'no-recurring'}`}
           initialValues={formInitialValues}
           isSubmitting={isSubmitting}
           onSubmit={handleSubmit}
@@ -145,7 +171,6 @@ export function EditEventButton({
           submittingText="Updating..."
           onDelete={handleDelete}
           onDeleteAllFuture={handleDeleteAllFuture}
-          eventTitle={event.title}
         />
       </DialogContent>
     </Dialog>
