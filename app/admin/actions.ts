@@ -1700,6 +1700,8 @@ export async function deleteEventAndFutureInstructorEvents(
         location: events.location,
         instructor: events.instructor,
         instructorId: events.instructorId,
+        recurringSeriesId: events.recurringSeriesId,
+        isRecurring: events.isRecurring,
         instructorProfile: {
           displayName: users.displayName,
           username: users.username,
@@ -1810,6 +1812,14 @@ export async function deleteEventAndFutureInstructorEvents(
 
       // Delete the event (this will cascade delete participations due to foreign key constraint)
       await db.delete(events).where(eq(events.id, eventToDelete.id));
+    }
+
+    // If the event was part of a recurring series, unset isRecurring for all events in that series
+    if (currentEvent.recurringSeriesId) {
+      await db
+        .update(events)
+        .set({ isRecurring: false })
+        .where(eq(events.recurringSeriesId, currentEvent.recurringSeriesId));
     }
 
     revalidatePath("/admin");
