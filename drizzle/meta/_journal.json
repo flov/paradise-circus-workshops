@@ -2,180 +2,32 @@
   "version": "7",
   "dialect": "postgresql",
   "entries": [
-    {
-      "idx": 0,
-      "version": "7",
-      "when": 1767603473706,
-      "tag": "0000_optimal_rage",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "7",
-      "when": 1767682754189,
-      "tag": "0001_abandoned_starfox",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "7",
-      "when": 1767802574366,
-      "tag": "0002_broad_wild_pack",
-      "breakpoints": true
-    },
-    {
-      "idx": 3,
-      "version": "7",
-      "when": 1767841670279,
-      "tag": "0003_bouncy_gwen_stacy",
-      "breakpoints": true
-    },
-    {
-      "idx": 4,
-      "version": "7",
-      "when": 1768133458414,
-      "tag": "0004_workable_randall_flagg",
-      "breakpoints": true
-    },
-    {
-      "idx": 5,
-      "version": "7",
-      "when": 1768238084613,
-      "tag": "0005_glorious_captain_cross",
-      "breakpoints": true
-    },
-    {
-      "idx": 6,
-      "version": "7",
-      "when": 1768242670607,
-      "tag": "0006_keen_rumiko_fujikawa",
-      "breakpoints": true
-    },
-    {
-      "idx": 7,
-      "version": "7",
-      "when": 1768548355950,
-      "tag": "0007_panoramic_roughhouse",
-      "breakpoints": true
-    },
-    {
-      "idx": 8,
-      "version": "7",
-      "when": 1768549987667,
-      "tag": "0008_freezing_mandroid",
-      "breakpoints": true
-    },
-    {
-      "idx": 9,
-      "version": "7",
-      "when": 1768554866262,
-      "tag": "0009_nosy_boomer",
-      "breakpoints": true
-    },
-    {
-      "idx": 10,
-      "version": "7",
-      "when": 1768653882605,
-      "tag": "0010_left_the_hand",
-      "breakpoints": true
-    },
-    {
-      "idx": 11,
-      "version": "7",
-      "when": 1768654285307,
-      "tag": "0011_lively_chronomancer",
-      "breakpoints": true
-    },
-    {
-      "idx": 12,
-      "version": "7",
-      "when": 1768721734660,
-      "tag": "0012_white_living_mummy",
-      "breakpoints": true
-    },
-    {
-      "idx": 13,
-      "version": "7",
-      "when": 1768722616957,
-      "tag": "0013_unknown_garia",
-      "breakpoints": true
-    },
-    {
-      "idx": 14,
-      "version": "7",
-      "when": 1768723674855,
-      "tag": "0014_daffy_karnak",
-      "breakpoints": true
-    },
-    {
-      "idx": 15,
-      "version": "7",
-      "when": 1768744870083,
-      "tag": "0015_illegal_dagger",
-      "breakpoints": true
-    },
-    {
-      "idx": 16,
-      "version": "7",
-      "when": 1768792620901,
-      "tag": "0016_messy_christian_walker",
-      "breakpoints": true
-    },
-    {
-      "idx": 17,
-      "version": "7",
-      "when": 1768754189311,
-      "tag": "0017_brainy_nova",
-      "breakpoints": true
-    },
-    {
-      "idx": 18,
-      "version": "7",
-      "when": 1768881576834,
-      "tag": "0018_typical_wraith",
-      "breakpoints": true
-    },
-    {
-      "idx": 19,
-      "version": "7",
-      "when": 1768896678214,
-      "tag": "0019_aspiring_iron_patriot",
-      "breakpoints": true
-    },
-    {
-      "idx": 20,
-      "version": "7",
-      "when": 1768904415295,
-      "tag": "0020_rename_bookings_to_participations",
-      "breakpoints": true
-    },
-    {
-      "idx": 21,
-      "version": "7",
-      "when": 1768968902768,
-      "tag": "0021_adds_website_to_profile",
-      "breakpoints": true
-    },
-    {
-      "idx": 22,
-      "version": "7",
-      "when": 1769272879479,
-      "tag": "0022_adds_recap_video_id_to_events",
-      "breakpoints": true
-    },
-    {
-      "idx": 23,
-      "version": "7",
-      "when": 1770071135607,
-      "tag": "0023_optimize_timetable_indexes",
-      "breakpoints": true
-    },
-    {
-      "idx": 24,
-      "version": "7",
-      "when": 1771032839441,
-      "tag": "0024_adds_recurring_until_to_events",
-      "breakpoints": true
-    }
+    { "idx": 0, "version": "7", "when": 1767603473706, "tag": "0000_optimal_rage", "breakpoints": true },
+    { "idx": 1, "version": "7", "when": 1767682754189, "tag": "0001_abandoned_starfox", "breakpoints": true },
+    { "idx": 2, "version": "7", "when": 1767802574366, "tag": "0002_broad_wild_pack", "breakpoints": true },
+    { "idx": 3, "version": "7", "when": 1767841670279, "tag": "0003_bouncy_gwen_stacy", "breakpoints": true },
+    { "idx": 4, "version": "7", "when": 1768133458414, "tag": "0004_workable_randall_flagg", "breakpoints": true },
+    { "idx": 5, "version": "7", "when": 1768238084613, "tag": "0005_glorious_captain_cross", "breakpoints": true },
+    { "idx": 6, "version": "7", "when": 1768242670607, "tag": "0006_keen_rumiko_fujikawa", "breakpoints": true },
+    { "idx": 7, "version": "7", "when": 1768548355950, "tag": "0007_panoramic_roughhouse", "breakpoints": true },
+    { "idx": 8, "version": "7", "when": 1768549987667, "tag": "0008_freezing_mandroid", "breakpoints": true },
+    { "idx": 9, "version": "7", "when": 1768554866262, "tag": "0009_nosy_boomer", "breakpoints": true },
+    { "idx": 10, "version": "7", "when": 1768653882605, "tag": "0010_left_the_hand", "breakpoints": true },
+    { "idx": 11, "version": "7", "when": 1768654285307, "tag": "0011_lively_chronomancer", "breakpoints": true },
+    { "idx": 12, "version": "7", "when": 1768721734660, "tag": "0012_white_living_mummy", "breakpoints": true },
+    { "idx": 13, "version": "7", "when": 1768722616957, "tag": "0013_unknown_garia", "breakpoints": true },
+    { "idx": 14, "version": "7", "when": 1768723674855, "tag": "0014_daffy_karnak", "breakpoints": true },
+    { "idx": 15, "version": "7", "when": 1768744870083, "tag": "0015_illegal_dagger", "breakpoints": true },
+    { "idx": 16, "version": "7", "when": 1768792620901, "tag": "0016_messy_christian_walker", "breakpoints": true },
+    { "idx": 17, "version": "7", "when": 1768754189311, "tag": "0017_brainy_nova", "breakpoints": true },
+    { "idx": 18, "version": "7", "when": 1768881576834, "tag": "0018_typical_wraith", "breakpoints": true },
+    { "idx": 19, "version": "7", "when": 1768896678214, "tag": "0019_aspiring_iron_patriot", "breakpoints": true },
+    { "idx": 20, "version": "7", "when": 1768904415295, "tag": "0020_rename_bookings_to_participations", "breakpoints": true },
+    { "idx": 21, "version": "7", "when": 1768968902768, "tag": "0021_adds_website_to_profile", "breakpoints": true },
+    { "idx": 22, "version": "7", "when": 1769272879479, "tag": "0022_adds_recap_video_id_to_events", "breakpoints": true },
+    { "idx": 23, "version": "7", "when": 1770071135607, "tag": "0023_optimize_timetable_indexes", "breakpoints": true },
+    { "idx": 24, "version": "7", "when": 1771032839441, "tag": "0024_adds_recurring_until_to_events", "breakpoints": true },
+    { "idx": 25, "version": "7", "when": 1771100000000, "tag": "0025_adds_last_updated_by_to_events", "breakpoints": true },
+    { "idx": 26, "version": "7", "when": 1771100001000, "tag": "0026_adds_approved_by_to_events", "breakpoints": true }
   ]
 }
