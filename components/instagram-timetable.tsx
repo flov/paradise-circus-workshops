@@ -421,6 +421,22 @@ function EventCell({
     );
   }
 
+  const titleLength = event.name.length;
+  const isVeryLongTitle = titleLength > 40;
+  const isLongTitle = titleLength > 27;
+  
+  let titleClassName: string;
+  if (isVeryLongTitle) {
+    // Even smaller font for very long titles (>40 chars)
+    titleClassName = "text-white font-bold text-[8px] sm:text-[10px] md:text-[11px] lg:text-[13px] leading-tight line-clamp-2";
+  } else if (isLongTitle) {
+    // Smaller font for long titles (28-40 chars)
+    titleClassName = "text-white font-bold text-[9px] sm:text-[12px] md:text-[13px] lg:text-[15px] leading-tight line-clamp-2";
+  } else {
+    // Default font for normal titles (≤27 chars)
+    titleClassName = "text-white font-bold text-[10px] sm:text-[13px] md:text-[14px] lg:text-base leading-tight line-clamp-2";
+  }
+
   // For half-hour starts, position in bottom half of the slot
   if (needsHalfHourPositioning) {
     return (
@@ -442,7 +458,7 @@ function EventCell({
                 className="hover:underline"
               >
                 <p
-                  className="text-white font-bold text-[10px] sm:text-[13px] md:text-[14px] lg:text-base leading-tight line-clamp-2"
+                  className={titleClassName}
                   style={{
                     fontFamily: "'Arial Black', 'Arial Bold', Arial, sans-serif",
                   }}
@@ -452,7 +468,7 @@ function EventCell({
               </Link>
             ) : (
               <p
-                className="text-white font-bold text-[10px] sm:text-[13px] md:text-[14px] lg:text-base leading-tight line-clamp-2"
+                className={titleClassName}
                 style={{
                   fontFamily: "'Arial Black', 'Arial Bold', Arial, sans-serif",
                 }}
@@ -500,7 +516,7 @@ function EventCell({
             className="hover:underline"
           >
             <p
-              className="text-white font-bold text-[10px] sm:text-[13px] md:text-[14px] lg:text-base leading-tight line-clamp-2"
+              className={titleClassName}
               style={{
                 fontFamily: "'Arial Black', 'Arial Bold', Arial, sans-serif",
               }}
@@ -510,7 +526,7 @@ function EventCell({
           </Link>
         ) : (
           <p
-            className="text-white font-bold text-[10px] sm:text-[13px] md:text-[14px] lg:text-base leading-tight line-clamp-2"
+            className={titleClassName}
             style={{
               fontFamily: "'Arial Black', 'Arial Bold', Arial, sans-serif",
             }}
