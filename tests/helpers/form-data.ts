@@ -47,6 +47,7 @@ export function createEventFormData(overrides: Partial<{
   propId: string
   isWorkshop: string
   isRecurring: string
+  recurringUntil: string
 }> = {}): FormData {
   const tomorrow = new Date()
   tomorrow.setDate(tomorrow.getDate() + 1)

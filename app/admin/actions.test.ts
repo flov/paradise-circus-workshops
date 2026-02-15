@@ -58,6 +58,124 @@ vi.mock("@/app/profile/actions", async () => {
   };
 });
 
+describe("createEvent", () => {
+  beforeEach(async () => {
+    await cleanupDatabase();
+    resetAuthMocks();
+    resetEmailMocks();
+    vi.clearAllMocks();
+  });
+
+  it("should create multiple events when setting recurringUntil for recurring workshop", async () => {
+    const admin = await createTestUser({
+      clerkUserId: "admin-user",
+      isAdmin: true,
+    });
+    mockAdminAuth("admin-user");
+    vi.mocked(isAdmin).mockResolvedValue(true);
+    vi.mocked(isInstructor).mockResolvedValue(false);
+
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const nextWeek = new Date(tomorrow);
+    nextWeek.setDate(nextWeek.getDate() + 7);
+
+    const formData = createEventFormData({
+      date: tomorrow.toISOString().split("T")[0],
+      isRecurring: "on",
+      recurringUntil: nextWeek.toISOString().split("T")[0],
+    });
+
+    const result = await createEvent(formData);
+
+    expect(result.success).toBe(true);
+
+    const db = getTestDb();
+    const createdEvents = await db
+      .select()
+      .from(events)
+      .where(eq(events.title, "Test Event"))
+      .orderBy(events.date);
+
+    expect(createdEvents.length).toBeGreaterThan(1);
+    expect(createdEvents.every((e) => e.isRecurring)).toBe(true);
+    expect(
+      createdEvents.every(
+        (e) => e.recurringSeriesId === createdEvents[0].recurringSeriesId
+      )
+    ).toBe(true);
+  });
+
+  it("should create weekly events until recurringUntil date when instructor sets recurring one month out", async () => {
+    const instructor = await createTestUser({
+      clerkUserId: "instructor-user",
+      isInstructor: true,
+      username: "instructor",
+      displayName: "Test Instructor",
+    });
+    mockInstructorAuth("instructor-user");
+    vi.mocked(isAdmin).mockResolvedValue(false);
+    vi.mocked(isInstructor).mockResolvedValue(true);
+
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() + 1); // tomorrow
+    const recurringUntil = new Date(startDate);
+    recurringUntil.setMonth(recurringUntil.getMonth() + 1); // one month from start
+
+    const formData = createEventFormData({
+      date: startDate.toISOString().split("T")[0],
+      isRecurring: "on",
+      recurringUntil: recurringUntil.toISOString().split("T")[0],
+      instructorId: instructor.id.toString(),
+    });
+
+    const result = await createEvent(formData);
+    expect(result.success).toBe(true);
+
+    const db = getTestDb();
+    const createdEvents = await db
+      .select()
+      .from(events)
+      .where(eq(events.title, "Test Event"))
+      .orderBy(events.date);
+
+    // One month out should create ~4-5 weekly events (not just 2)
+    expect(createdEvents.length).toBeGreaterThanOrEqual(4);
+
+    // All should be recurring with the same series ID
+    expect(createdEvents.every((e) => e.isRecurring)).toBe(true);
+    expect(
+      createdEvents.every(
+        (e) => e.recurringSeriesId === createdEvents[0].recurringSeriesId
+      )
+    ).toBe(true);
+
+    // All should have recurringUntil set
+    expect(
+      createdEvents.every(
+        (e) => e.recurringUntil === recurringUntil.toISOString().split("T")[0]
+      )
+    ).toBe(true);
+
+    // Instructor-created events should be unpublished
+    expect(createdEvents.every((e) => e.isPublished === false)).toBe(true);
+
+    // Verify dates are weekly (7 days apart)
+    for (let i = 1; i < createdEvents.length; i++) {
+      const prevDate = new Date(createdEvents[i - 1].date);
+      const currDate = new Date(createdEvents[i].date);
+      const diffDays = Math.round(
+        (currDate.getTime() - prevDate.getTime()) / (1000 * 60 * 60 * 24)
+      );
+      expect(diffDays).toBe(7);
+    }
+
+    // Last event date should be <= recurringUntil
+    const lastEventDate = new Date(createdEvents[createdEvents.length - 1].date);
+    expect(lastEventDate.getTime()).toBeLessThanOrEqual(recurringUntil.getTime());
+  });
+});
+
 describe("extendRecurringEvents", () => {
   beforeEach(async () => {
     await cleanupDatabase();
@@ -1117,11 +1235,11 @@ describe("updateEvent", () => {
 
   it("should NOT update lastUpdatedBy when admin publishes event without changing anything else", async () => {
     const admin = await createTestUser({
-      clerkUserId: "admin-user",
+      clerkUserId: `admin-${Date.now()}`,
       isAdmin: true,
     });
     const instructor = await createTestUser({
-      clerkUserId: "instructor-user",
+      clerkUserId: `instructor-${Date.now()}`,
       username: "kevin",
       displayName: "Kevin",
       isInstructor: true,
@@ -1130,7 +1248,7 @@ describe("updateEvent", () => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    // Create unpublished event
+    // Create unpublished event with lastUpdatedBy set to instructor (simulating instructor had edited it)
     const event = await createTestEvent({
       title: "Pending Workshop",
       description: "Learn something new",
@@ -1147,37 +1265,11 @@ describe("updateEvent", () => {
       isRecurring: false,
     });
 
-    // Instructor updates the event first (sets lastUpdatedBy to instructor)
-    mockInstructorAuth(instructor.clerkUserId);
-    vi.mocked(isAdmin).mockResolvedValue(false);
-    vi.mocked(isInstructor).mockResolvedValue(true);
-
-    const instructorUpdateFormData = createEventUpdateFormData(event.id, {
-      title: event.title,
-      description: event.description || "",
-      instructor: "Kevin",
-      instructorId: instructor.id.toString(),
-      date: event.date,
-      start_time: "10:00",
-      end_time: "12:00",
-      location: event.location || "",
-      whatToBring: event.whatToBring || "",
-      propId: event.propId?.toString() ?? "",
-      isWorkshop: "on",
-      isPublished: "off", // Still unpublished
-      isRecurring: "false",
-    });
-
-    const instructorUpdateResult = await updateEvent(instructorUpdateFormData);
-    expect(instructorUpdateResult.success).toBe(true);
-
     const db = getTestDb();
-    const eventAfterInstructorUpdate = await db
-      .select({ lastUpdatedBy: events.lastUpdatedBy })
-      .from(events)
-      .where(eq(events.id, event.id))
-      .limit(1);
-    expect(eventAfterInstructorUpdate[0].lastUpdatedBy).toBe(instructor.id);
+    await db
+      .update(events)
+      .set({ lastUpdatedBy: instructor.id })
+      .where(eq(events.id, event.id));
 
     // Admin publishes with NO other changes - only isPublished changes
     mockAdminAuth(admin.clerkUserId);

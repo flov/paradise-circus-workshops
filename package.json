@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "build": "next build",
+    "build": "BASELINE_BROWSER_MAPPING_IGNORE_OLD_DATA=1 next build",
     "dev": "next dev",
     "lint": "eslint .",
     "start": "next start",
@@ -11,10 +11,10 @@
     "seed:river": "tsx scripts/seed-river-workshops.ts",
     "merge:props": "tsx scripts/merge-props.ts",
     "email:dev": "email dev --port 3001",
-    "test": "vitest",
-    "test:ui": "vitest --ui",
-    "test:coverage": "vitest --coverage",
-    "test:run": "vitest run"
+    "test": "dotenv -e .env.test -- vitest",
+    "test:ui": "dotenv -e .env.test -- vitest --ui",
+    "test:coverage": "dotenv -e .env.test -- vitest --coverage",
+    "test:run": "dotenv -e .env.test -- vitest run"
   },
   "dependencies": {
     "@clerk/nextjs": "^6.36.5",

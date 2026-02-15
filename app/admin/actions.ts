@@ -14,10 +14,40 @@ import {
   sendEventCancelledEmail,
   sendInstructorAssignedEmail,
   sendRecapAddedEmail,
-  sendRecurringWorkshopInfoEmail,
   sendAdminPromotedEmail,
 } from "@/lib/email";
 import { randomUUID } from "crypto";
+
+/**
+ * Generate weekly date strings from startDate to endDate (inclusive) using UTC.
+ * Avoids timezone bugs when server runs in different timezone than user.
+ * Dates must be in YYYY-MM-DD format.
+ */
+function getWeeklyDatesUntil(startDateStr: string, endDateStr: string): string[] {
+  const [startYear, startMonth, startDay] = startDateStr.split("-").map(Number);
+  const [endYear, endMonth, endDay] = endDateStr.split("-").map(Number);
+
+  const startDate = new Date(Date.UTC(startYear, startMonth - 1, startDay));
+  const endDate = new Date(Date.UTC(endYear, endMonth - 1, endDay));
+
+  const dates: string[] = [];
+  let currentDate = new Date(startDate);
+
+  while (currentDate <= endDate) {
+    dates.push(
+      `${currentDate.getUTCFullYear()}-${String(currentDate.getUTCMonth() + 1).padStart(2, "0")}-${String(currentDate.getUTCDate()).padStart(2, "0")}`
+    );
+    currentDate = new Date(
+      Date.UTC(
+        currentDate.getUTCFullYear(),
+        currentDate.getUTCMonth(),
+        currentDate.getUTCDate() + 7
+      )
+    );
+  }
+
+  return dates;
+}
 
 export async function createEvent(formData: FormData) {
   // Check authentication
@@ -174,19 +204,12 @@ export async function createEvent(formData: FormData) {
       const startDate = new Date(date);
       const eventDates: string[] = [];
 
-      if (!userIsAdmin && userIsInstructor && recurringUntil) {
-        // For instructors: create all events up to recurringUntil
-        const endDate = new Date(recurringUntil);
-        let currentDate = new Date(startDate);
-        
-        while (currentDate <= endDate) {
-          eventDates.push(currentDate.toISOString().split("T")[0]);
-          currentDate = new Date(currentDate);
-          currentDate.setDate(currentDate.getDate() + 7);
-        }
+      if (recurringUntil) {
+        // If recurringUntil is set, create all weekly events up to that date
+        eventDates.push(...getWeeklyDatesUntil(date, recurringUntil));
       } else {
-        // For admins: create only 1 week ahead (initial event + next week = 2 events total)
-        // Events will be automatically extended weekly
+        // No recurringUntil: create only 1 week ahead (initial event + next week = 2 events total)
+        // Events will be automatically extended weekly by the cron job
         eventDates.push(startDate.toISOString().split("T")[0]);
         const nextWeekDate = new Date(startDate);
         nextWeekDate.setDate(nextWeekDate.getDate() + 7);
@@ -225,49 +248,6 @@ export async function createEvent(formData: FormData) {
         .insert(events)
         .values(eventValues)
         .returning({ id: events.id });
-
-      // Send recurring workshop info email to instructor when they set up a recurring event
-      if (instructorId && newEvents.length > 0) {
-        try {
-          // Fetch instructor details for email
-          const instructorResult = await db
-            .select({
-              email: users.email,
-              displayName: users.displayName,
-              username: users.username,
-            })
-            .from(users)
-            .where(eq(users.id, instructorId))
-            .limit(1);
-
-          if (instructorResult.length > 0) {
-            const instructorEmail = instructorResult[0].email;
-            const instructorDisplayName =
-              instructorResult[0].displayName || instructorResult[0].username;
-
-            if (instructorEmail) {
-              try {
-                await sendRecurringWorkshopInfoEmail({
-                  instructorName: instructorDisplayName,
-                  instructorEmail,
-                });
-              } catch (emailError) {
-                console.error(
-                  `Failed to send recurring workshop info email to ${instructorEmail}:`,
-                  emailError,
-                );
-                // Don't fail the event creation if email fails
-              }
-            }
-          }
-        } catch (error) {
-          console.error(
-            "Error sending recurring workshop info email:",
-            error,
-          );
-          // Don't fail the event creation if email fails
-        }
-      }
 
       // Send instructor assignment email if admin assigned an instructorId (for recurring events, send for first event)
       if (userIsAdmin && instructorId && newEvents.length > 0) {
@@ -968,7 +948,7 @@ export async function updateEvent(formData: FormData) {
       isWorkshop: boolean;
       propId: number | null;
       updatedAt: ReturnType<typeof sql>;
-      lastUpdatedBy: number | null;
+      lastUpdatedBy?: number | null;
       approvedBy?: number | null;
       isPublished?: boolean;
       isRecurring?: boolean;
@@ -1170,19 +1150,12 @@ export async function updateEvent(formData: FormData) {
       const startDate = new Date(date);
       const eventDates: string[] = [];
 
-      if (!userIsAdmin && userIsInstructor && recurringUntil) {
-        // For instructors: create all events up to recurringUntil
-        const endDate = new Date(recurringUntil);
-        let currentDate = new Date(startDate);
-        
-        while (currentDate <= endDate) {
-          eventDates.push(currentDate.toISOString().split("T")[0]);
-          currentDate = new Date(currentDate);
-          currentDate.setDate(currentDate.getDate() + 7);
-        }
+      if (recurringUntil) {
+        // If recurringUntil is set, create all weekly events up to that date
+        eventDates.push(...getWeeklyDatesUntil(date, recurringUntil));
       } else {
-        // For admins: create only 1 week ahead (initial event + next week = 2 events total)
-        // Events will be automatically extended weekly
+        // No recurringUntil: create only 1 week ahead (initial event + next week = 2 events total)
+        // Events will be automatically extended weekly by the cron job
         eventDates.push(startDate.toISOString().split("T")[0]);
         const nextWeekDate = new Date(startDate);
         nextWeekDate.setDate(nextWeekDate.getDate() + 7);
@@ -1249,49 +1222,6 @@ export async function updateEvent(formData: FormData) {
         }));
 
         await db.insert(events).values(additionalEventValues);
-      }
-
-      // Send recurring workshop info email to instructor when converting to recurring
-      if (instructorId) {
-        try {
-          // Fetch instructor details for email
-          const instructorResult = await db
-            .select({
-              email: users.email,
-              displayName: users.displayName,
-              username: users.username,
-            })
-            .from(users)
-            .where(eq(users.id, instructorId))
-            .limit(1);
-
-          if (instructorResult.length > 0) {
-            const instructorEmail = instructorResult[0].email;
-            const instructorDisplayName =
-              instructorResult[0].displayName || instructorResult[0].username;
-
-            if (instructorEmail) {
-              try {
-                await sendRecurringWorkshopInfoEmail({
-                  instructorName: instructorDisplayName,
-                  instructorEmail,
-                });
-              } catch (emailError) {
-                console.error(
-                  `Failed to send recurring workshop info email to ${instructorEmail}:`,
-                  emailError,
-                );
-                // Don't fail the update if email fails
-              }
-            }
-          }
-        } catch (error) {
-          console.error(
-            "Error sending recurring workshop info email:",
-            error,
-          );
-          // Don't fail the update if email fails
-        }
       }
 
       revalidatePath("/admin");
