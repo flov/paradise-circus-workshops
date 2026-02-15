@@ -84,6 +84,9 @@ const getArtistsCount = unstable_cache(
   }
 );
 
+// ISR: Revalidate homepage every hour - serves from CDN, avoids function invocations
+export const revalidate = 3600;
+
 export default async function Home() {
   const [workshopsThisWeek, artistsCount] = await Promise.all([
     getWorkshopsThisWeekCount(),

@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
-import { SignedIn, SignedOut, SignInButton } from "@clerk/nextjs";
+import { SignedIn, SignedOut, SignInButton, useAuth } from "@clerk/nextjs";
 import { Button } from "@/components/ui/button";
 import { Menu, X } from "lucide-react";
 import { CustomUserButton } from "@/components/custom-user-button";
@@ -16,12 +16,22 @@ const navItems = [
   { href: "/faq", label: "FAQ" },
 ];
 
-interface NavigationProps {
-  isAdmin?: boolean;
-}
-
-export function Navigation({ isAdmin = false }: NavigationProps) {
+export function Navigation() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const { isSignedIn } = useAuth();
+
+  // Fetch admin status client-side when signed in (avoids blocking static layout)
+  useEffect(() => {
+    if (!isSignedIn) {
+      setIsAdmin(false);
+      return;
+    }
+    fetch("/api/auth/me")
+      .then((res) => res.json())
+      .then((data) => setIsAdmin(data.isAdmin ?? false))
+      .catch(() => setIsAdmin(false));
+  }, [isSignedIn]);
 
   const allNavItems = [
     ...navItems,
