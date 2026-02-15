@@ -7,6 +7,7 @@
     "dev": "next dev",
     "lint": "eslint .",
     "start": "next start",
+    "db:migrate": "tsx scripts/migrate.ts",
     "seed:river": "tsx scripts/seed-river-workshops.ts",
     "merge:props": "tsx scripts/merge-props.ts",
     "email:dev": "email dev --port 3001",

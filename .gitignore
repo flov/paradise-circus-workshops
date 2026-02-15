@@ -25,6 +25,9 @@ scripts/import-schedules.ts
 # vercel
 .vercel
 
+# data backups
+backup.sql
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts
