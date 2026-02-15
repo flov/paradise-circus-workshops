@@ -87,6 +87,7 @@ export function createEventUpdateFormData(
     isWorkshop: string
     isPublished: string
     isRecurring: string
+    recurringUntil: string
   }> = {}
 ): FormData {
   const tomorrow = new Date()

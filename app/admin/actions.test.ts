@@ -1104,3 +1104,113 @@ describe("deleteEventAndFutureInstructorEvents", () => {
     });
   });
 });
+
+describe("updateEvent", () => {
+  beforeEach(async () => {
+    await cleanupDatabase();
+    resetAuthMocks();
+    resetEmailMocks();
+    vi.clearAllMocks();
+    vi.mocked(isAdmin).mockResolvedValue(false);
+    vi.mocked(isInstructor).mockResolvedValue(false);
+  });
+
+  it("should NOT update lastUpdatedBy when admin publishes event without changing anything else", async () => {
+    const admin = await createTestUser({
+      clerkUserId: "admin-user",
+      isAdmin: true,
+    });
+    const instructor = await createTestUser({
+      clerkUserId: "instructor-user",
+      username: "kevin",
+      displayName: "Kevin",
+      isInstructor: true,
+    });
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    // Create unpublished event
+    const event = await createTestEvent({
+      title: "Pending Workshop",
+      description: "Learn something new",
+      instructor: "Kevin",
+      instructorId: instructor.id,
+      date: today.toISOString().split("T")[0],
+      startTime: "10:00:00",
+      endTime: "12:00:00",
+      location: "Studio A",
+      whatToBring: null,
+      propId: null,
+      isWorkshop: true,
+      isPublished: false,
+      isRecurring: false,
+    });
+
+    // Instructor updates the event first (sets lastUpdatedBy to instructor)
+    mockInstructorAuth(instructor.clerkUserId);
+    vi.mocked(isAdmin).mockResolvedValue(false);
+    vi.mocked(isInstructor).mockResolvedValue(true);
+
+    const instructorUpdateFormData = createEventUpdateFormData(event.id, {
+      title: event.title,
+      description: event.description || "",
+      instructor: "Kevin",
+      instructorId: instructor.id.toString(),
+      date: event.date,
+      start_time: "10:00",
+      end_time: "12:00",
+      location: event.location || "",
+      whatToBring: event.whatToBring || "",
+      propId: event.propId?.toString() ?? "",
+      isWorkshop: "on",
+      isPublished: "off", // Still unpublished
+      isRecurring: "false",
+    });
+
+    const instructorUpdateResult = await updateEvent(instructorUpdateFormData);
+    expect(instructorUpdateResult.success).toBe(true);
+
+    const db = getTestDb();
+    const eventAfterInstructorUpdate = await db
+      .select({ lastUpdatedBy: events.lastUpdatedBy })
+      .from(events)
+      .where(eq(events.id, event.id))
+      .limit(1);
+    expect(eventAfterInstructorUpdate[0].lastUpdatedBy).toBe(instructor.id);
+
+    // Admin publishes with NO other changes - only isPublished changes
+    mockAdminAuth(admin.clerkUserId);
+    vi.mocked(isAdmin).mockResolvedValue(true);
+    vi.mocked(isInstructor).mockResolvedValue(false);
+
+    const publishOnlyFormData = createEventUpdateFormData(event.id, {
+      title: event.title,
+      description: event.description || "",
+      instructor: "Kevin",
+      instructorId: instructor.id.toString(),
+      date: event.date,
+      start_time: "10:00",
+      end_time: "12:00",
+      location: event.location || "",
+      whatToBring: event.whatToBring || "",
+      propId: event.propId?.toString() ?? "",
+      isWorkshop: "on",
+      isPublished: "on", // Admin publishes
+      isRecurring: "false",
+    });
+
+    const publishResult = await updateEvent(publishOnlyFormData);
+    expect(publishResult.success).toBe(true);
+
+    // lastUpdatedBy should NOT have changed - should still be instructor, not admin
+    const eventAfterPublish = await db
+      .select({ lastUpdatedBy: events.lastUpdatedBy, isPublished: events.isPublished })
+      .from(events)
+      .where(eq(events.id, event.id))
+      .limit(1);
+
+    expect(eventAfterPublish[0].isPublished).toBe(true);
+    expect(eventAfterPublish[0].lastUpdatedBy).toBe(instructor.id);
+  });
+});

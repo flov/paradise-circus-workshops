@@ -800,12 +800,18 @@ export async function updateEvent(formData: FormData) {
       isPublished: events.isPublished,
       instructorId: events.instructorId,
       title: events.title,
+      description: events.description,
       date: events.date,
       startTime: events.startTime,
       endTime: events.endTime,
       location: events.location,
+      whatToBring: events.whatToBring,
+      propId: events.propId,
+      isWorkshop: events.isWorkshop,
+      instructor: events.instructor,
       recurringSeriesId: events.recurringSeriesId,
       isRecurring: events.isRecurring,
+      recurringUntil: events.recurringUntil,
     })
     .from(events)
     .where(eq(events.id, eventId))
@@ -995,6 +1001,29 @@ export async function updateEvent(formData: FormData) {
       if (isBeingPublished && currentUserId !== null) {
         updateData.approvedBy = currentUserId;
       }
+    }
+
+    // When admin publishes without changing anything else, don't update lastUpdatedBy
+    const normalizeTime = (t: string | null) =>
+      t ? (t.length === 5 ? `${t}:00` : t) : null;
+    const isPublishOnly =
+      isBeingPublished &&
+      title === currentEvent.title &&
+      (description || null) === (currentEvent.description || null) &&
+      (instructorName || null) === (currentEvent.instructor || null) &&
+      (instructorId ?? null) === (currentEvent.instructorId ?? null) &&
+      date === currentEvent.date &&
+      normalizeTime(start_time) === normalizeTime(currentEvent.startTime) &&
+      normalizeTime(end_time) === normalizeTime(currentEvent.endTime) &&
+      (location || null) === (currentEvent.location || null) &&
+      (whatToBring || null) === (currentEvent.whatToBring || null) &&
+      isWorkshop === currentEvent.isWorkshop &&
+      (propId ?? null) === (currentEvent.propId ?? null) &&
+      isRecurring === currentEvent.isRecurring &&
+      (recurringUntil ?? null) === (currentEvent.recurringUntil ?? null);
+
+    if (isPublishOnly) {
+      delete updateData.lastUpdatedBy;
     }
     // Both admins and instructors can update isRecurring
     // Only update isRecurring if not converting to recurring (that's handled separately)
