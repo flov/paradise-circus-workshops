@@ -1,6 +1,7 @@
 import { db } from "@/db";
 import { events, participations, comments, props, users, type Event } from "@/db/schema";
 import { eq, asc, and } from "drizzle-orm";
+import { unstable_cache } from "next/cache";
 import { BookEventButton } from "@/components/book-event-button";
 import { CancelBookingButton } from "@/components/cancel-booking-button";
 import {
@@ -51,49 +52,66 @@ export default async function BookEventPage({
     notFound();
   }
 
-  const eventResults = await db
-    .select({
-      id: events.id,
-      title: events.title,
-      description: events.description,
-      instructor: events.instructor,
-      instructorId: events.instructorId,
-      date: events.date,
-      startTime: events.startTime,
-      endTime: events.endTime,
-      maxCapacity: events.maxCapacity,
-      currentBookings: events.currentBookings,
-      location: events.location,
-      whatToBring: events.whatToBring,
-      isWorkshop: events.isWorkshop,
-      propId: events.propId,
-      recapVideoId: events.recapVideoId,
-      isRecurring: events.isRecurring,
-      createdAt: events.createdAt,
-      updatedAt: events.updatedAt,
-      instructorProfile: {
-        id: users.id,
-        displayName: users.displayName,
-        username: users.username,
-        bio: users.bio,
-        instagramHandle: users.instagramHandle,
-        youtubeVideos: users.youtubeVideos,
-        vimeoVideos: users.vimeoVideos,
-        experienceStartDate: users.experienceStartDate,
-        performanceStyle: users.performanceStyle,
-        availableForPerformances: users.availableForPerformances,
-        location: users.location,
-      },
-    })
-    .from(events)
-    .leftJoin(users, eq(events.instructorId, users.id))
-    .where(and(eq(events.id, eventId), eq(events.isPublished, true)));
+  const getEventData = unstable_cache(
+    async (id: number) => {
+      const results = await db
+        .select({
+          id: events.id,
+          title: events.title,
+          description: events.description,
+          instructor: events.instructor,
+          instructorId: events.instructorId,
+          date: events.date,
+          startTime: events.startTime,
+          endTime: events.endTime,
+          maxCapacity: events.maxCapacity,
+          currentBookings: events.currentBookings,
+          location: events.location,
+          whatToBring: events.whatToBring,
+          isWorkshop: events.isWorkshop,
+          propId: events.propId,
+          recapVideoId: events.recapVideoId,
+          isRecurring: events.isRecurring,
+          createdAt: events.createdAt,
+          updatedAt: events.updatedAt,
+          instructorProfile: {
+            id: users.id,
+            displayName: users.displayName,
+            username: users.username,
+            bio: users.bio,
+            instagramHandle: users.instagramHandle,
+            youtubeVideos: users.youtubeVideos,
+            vimeoVideos: users.vimeoVideos,
+            experienceStartDate: users.experienceStartDate,
+            performanceStyle: users.performanceStyle,
+            availableForPerformances: users.availableForPerformances,
+            location: users.location,
+          },
+        })
+        .from(events)
+        .leftJoin(users, eq(events.instructorId, users.id))
+        .where(and(eq(events.id, id), eq(events.isPublished, true)));
+      if (results.length === 0) return null;
+      const eventResult = results[0];
+      let eventProp: { id: number; name: string } | null = null;
+      if (eventResult.propId) {
+        const propResults = await db
+          .select({ id: props.id, name: props.name })
+          .from(props)
+          .where(eq(props.id, eventResult.propId))
+          .limit(1);
+        if (propResults.length > 0) eventProp = propResults[0];
+      }
+      return { eventResult, eventProp };
+    },
+    [`event-${eventId}`],
+    { revalidate: 300, tags: ["events", `event-${eventId}`] }
+  );
 
-  if (eventResults.length === 0) {
-    notFound();
-  }
+  const cached = await getEventData(eventId);
+  if (!cached) notFound();
+  const { eventResult, eventProp } = cached;
 
-  const eventResult = eventResults[0];
   const event = {
     id: eventResult.id,
     title: eventResult.title,
@@ -117,23 +135,6 @@ export default async function BookEventPage({
 
   // Get instructor display name from joined profile
   const instructorDisplayName = eventResult.instructorProfile?.displayName || eventResult.instructorProfile?.username || null;
-
-  // Get event prop (single prop now)
-  let eventProp: { id: number; name: string } | null = null;
-  if (event.propId) {
-    const propResults = await db
-      .select({
-        id: props.id,
-        name: props.name,
-      })
-      .from(props)
-      .where(eq(props.id, event.propId))
-      .limit(1);
-    
-    if (propResults.length > 0) {
-      eventProp = propResults[0];
-    }
-  }
 
   // If the slug is in old format (numeric only), redirect to new format for SEO
   if (/^\d+$/.test(slug)) {

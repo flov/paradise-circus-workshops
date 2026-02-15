@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useAuth } from "@clerk/nextjs";
 import {
   ChevronLeft,
   ChevronRight,
@@ -70,21 +71,41 @@ const TIME_SLOTS = [
   "10pm",
 ];
 
-export function WeeklyTimetable({
-  isInstructor = false,
-  isAdmin = false,
-  userId,
-}: {
-  isInstructor?: boolean;
-  isAdmin?: boolean;
-  userId?: number | null;
-}) {
+type AuthContext = {
+  isAdmin: boolean;
+  isInstructor: boolean;
+  userId: number | null;
+};
+
+export function WeeklyTimetable() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { isSignedIn } = useAuth();
+  const [authContext, setAuthContext] = useState<AuthContext | null>(null);
   const [currentWeek, setCurrentWeek] = useState(0); // 0 = current week
   const [timetableData, setTimetableData] = useState<TimetableData>({});
   const [weekDates, setWeekDates] = useState<Date[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+
+  // Fetch auth context client-side (keeps timetable page static)
+  useEffect(() => {
+    if (!isSignedIn) {
+      setAuthContext({ isAdmin: false, isInstructor: false, userId: null });
+      return;
+    }
+    fetch("/api/auth/me")
+      .then((res) => res.json())
+      .then((data) =>
+        setAuthContext({
+          isAdmin: data.isAdmin ?? false,
+          isInstructor: data.isInstructor ?? false,
+          userId: data.userId ?? null,
+        })
+      )
+      .catch(() =>
+        setAuthContext({ isAdmin: false, isInstructor: false, userId: null })
+      );
+  }, [isSignedIn]);
   const [shouldScrollToNow, setShouldScrollToNow] = useState(false);
   const [addEventOpen, setAddEventOpen] = useState(false);
   const [prefillValues, setPrefillValues] = useState<{
@@ -207,6 +228,7 @@ export function WeeklyTimetable({
       const endDate = formatLocalDate(dates[6]);
 
       // Build API URL - use public route for logged-out users, authenticated route for logged-in users
+      const userId = authContext?.userId;
       const apiUrl = userId
         ? `/api/timetable?start=${startDate}&end=${endDate}&userId=${userId}`
         : `/api/timetable/public?start=${startDate}&end=${endDate}`;
@@ -337,7 +359,7 @@ export function WeeklyTimetable({
     } finally {
       setIsLoading(false);
     }
-  }, [currentWeek, userId]);
+  }, [currentWeek, authContext]);
 
   useEffect(() => {
     loadWeekData();
@@ -708,7 +730,7 @@ export function WeeklyTimetable({
                                   !isParadiseStage && !isParadiseLake;
                                 const isPending = !slot.isPublished;
                                 const hasNoInstructorId =
-                                  isAdmin &&
+                                  authContext?.isAdmin &&
                                   (slot.instructorId === null ||
                                     slot.instructorId === undefined);
                                 const isBlocked = slot.isBlocked === true;
@@ -793,10 +815,10 @@ export function WeeklyTimetable({
                                         )}
                                       </div>
                                     </a>
-                                    {(isAdmin ||
-                                      (isInstructor &&
+                                    {(authContext?.isAdmin ||
+                                      (authContext?.isInstructor &&
                                         slot.instructorId !== null &&
-                                        slot.instructorId === userId)) && (
+                                        slot.instructorId === authContext?.userId)) && (
                                       <div
                                         className="absolute top-1 right-1 z-10"
                                         onClick={(e) => e.stopPropagation()}
@@ -842,7 +864,7 @@ export function WeeklyTimetable({
                               })}
                               {/* Show "+" button if less than 4 events and user is instructor or admin */}
                               {slots.length < 4 &&
-                                (isInstructor || isAdmin) && (
+                                (authContext?.isInstructor || authContext?.isAdmin) && (
                                   <Button
                                     variant="ghost"
                                     size="icon"
@@ -858,7 +880,7 @@ export function WeeklyTimetable({
                             </div>
                           ) : (
                             <div className="p-2 h-full min-h-[60px] bg-muted/20 rounded relative group">
-                              {(isInstructor || isAdmin) && (
+                              {(authContext?.isInstructor || authContext?.isAdmin) && (
                                 <Button
                                   variant="ghost"
                                   size="icon"
@@ -974,7 +996,7 @@ export function WeeklyTimetable({
                                 !isParadiseStage && !isParadiseLake;
                               const isPending = !slot.isPublished;
                               const hasNoInstructorId =
-                                isAdmin &&
+                                authContext?.isAdmin &&
                                 (slot.instructorId === null ||
                                   slot.instructorId === undefined);
 
@@ -1053,10 +1075,10 @@ export function WeeklyTimetable({
                                       </div>
                                     </div>
                                   </a>
-                                  {(isAdmin ||
-                                    (isInstructor &&
+                                  {(authContext?.isAdmin ||
+                                    (authContext?.isInstructor &&
                                       slot.instructorId !== null &&
-                                      slot.instructorId === userId)) && (
+                                      slot.instructorId === authContext?.userId)) && (
                                     <div
                                       className="absolute top-2 right-2 z-10"
                                       onClick={(e) => e.stopPropagation()}
@@ -1106,7 +1128,7 @@ export function WeeklyTimetable({
                     </div>
                   )}
                   {/* Single Add Event button per day (mobile view) */}
-                  {(isInstructor || isAdmin) && (
+                  {(authContext?.isInstructor || authContext?.isAdmin) && (
                     <Button
                       variant="outline"
                       className="w-full h-16 border-dashed border-2 hover:border-solid mt-2"

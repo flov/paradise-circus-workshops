@@ -301,6 +301,8 @@ export async function createProfile(formData: FormData) {
     const normalizedUsername = username.trim().toLowerCase();
     revalidatePath(`/artists/${normalizedUsername}`);
     revalidatePath("/artists");
+    revalidateTag("artists");
+    revalidateTag(`artist-${normalizedUsername}`);
     revalidatePath("/profile/edit");
     revalidatePath("/onboarding");
     // Invalidate props stats cache when user props are modified
@@ -528,6 +530,47 @@ export async function getCurrentUserProfile(): Promise<UserProfile | null> {
     return normalizedUser;
   } catch (error: unknown) {
     console.error("Get current user profile error:", error);
+    return null;
+  }
+}
+
+/**
+ * Get minimal auth context for timetable/navigation (single DB query).
+ * Returns null when not signed in.
+ */
+export async function getAuthContext(): Promise<{
+  isAdmin: boolean;
+  isInstructor: boolean;
+  userId: number;
+} | null> {
+  const { userId } = await auth();
+
+  if (!userId) {
+    return null;
+  }
+
+  try {
+    const result = await db
+      .select({
+        id: users.id,
+        isAdmin: users.isAdmin,
+        isInstructor: users.isInstructor,
+      })
+      .from(users)
+      .where(eq(users.clerkUserId, userId))
+      .limit(1);
+
+    if (result.length === 0) {
+      return null;
+    }
+
+    return {
+      isAdmin: result[0].isAdmin === true,
+      isInstructor: result[0].isInstructor === true,
+      userId: result[0].id,
+    };
+  } catch (error: unknown) {
+    console.error("Get auth context error:", error);
     return null;
   }
 }

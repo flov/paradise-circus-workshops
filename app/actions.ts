@@ -4,7 +4,7 @@ import { randomUUID } from "crypto";
 import { db } from "@/db";
 import { events, participations } from "@/db/schema";
 import { eq, sql, and } from "drizzle-orm";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag, unstable_cache } from "next/cache";
 import {
   sendBookingConfirmationEmail,
   sendAdminNotificationEmail,
@@ -160,6 +160,8 @@ export async function createBooking(formData: FormData) {
     revalidatePath(
       `/event/${createEventSlug(parseInt(eventId), event.title, event.instructor)}`,
     );
+    revalidateTag("events");
+    revalidateTag(`event-${eventId}`);
 
     return { success: true, participationId, confirmationToken: token };
   } catch (error) {
@@ -225,6 +227,8 @@ export async function cancelBooking(participationId: number) {
 
     // Revalidate relevant pages
     revalidatePath("/");
+    revalidateTag("events");
+    revalidateTag(`event-${participation.eventId}`);
     if (eventResults.length > 0) {
       revalidatePath(
         `/event/${createEventSlug(participation.eventId, eventResults[0].title, eventResults[0].instructor)}`,
@@ -291,6 +295,8 @@ export async function cancelBookingByEvent(eventId: number) {
 
     // Revalidate relevant pages
     revalidatePath("/");
+    revalidateTag("events");
+    revalidateTag(`event-${eventId}`);
     if (eventResults.length > 0) {
       revalidatePath(
         `/event/${createEventSlug(eventId, eventResults[0].title, eventResults[0].instructor)}`,
@@ -386,6 +392,8 @@ export async function addComment(eventId: number, content: string) {
     // Revalidate event page
     const eventSlug = createEventSlug(eventId, event.title, event.instructor);
     revalidatePath(`/event/${eventSlug}`);
+    revalidateTag("events");
+    revalidateTag(`event-${eventId}`);
 
     // Send notification emails to participants and instructor
     try {
@@ -574,23 +582,24 @@ export async function getInstagramTimetableData(
 ) {
   "use server";
 
+  // Compute week range for cache key (Monday-Sunday)
+  const today = startDate ? new Date(startDate) : new Date();
+  const dayOfWeek = today.getDay();
+  const daysFromMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+  const monday = new Date(today);
+  monday.setDate(today.getDate() - daysFromMonday);
+  const startDateStr = monday.toISOString().split("T")[0];
+  const cacheKey = ["instagram-timetable", startDateStr, location];
+
+  return unstable_cache(
+    async () => {
   try {
     const { events } = await import("@/db/schema");
     const { and, gte, lte, eq, asc, or, sql } = await import("drizzle-orm");
 
-    // Calculate week start (Monday) and end (Sunday)
-    const today = startDate ? new Date(startDate) : new Date();
-    const dayOfWeek = today.getDay(); // 0 = Sunday, 1 = Monday, etc.
-    const daysFromMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1; // Convert Sunday (0) to 6 days from Monday
-    const monday = new Date(today);
-    monday.setDate(today.getDate() - daysFromMonday);
-    monday.setHours(0, 0, 0, 0);
-
     const sunday = new Date(monday);
     sunday.setDate(monday.getDate() + 6);
     sunday.setHours(23, 59, 59, 999);
-
-    const startDateStr = monday.toISOString().split("T")[0];
     const endDateStr = sunday.toISOString().split("T")[0];
 
     // First, check if there are any events in the date range (for debugging)
@@ -850,4 +859,8 @@ export async function getInstagramTimetableData(
     console.error("Error fetching Instagram timetable data:", error);
     throw error;
   }
+    },
+    cacheKey,
+    { revalidate: 300, tags: ["timetable-public", "instagram-timetable"] }
+  )();
 }

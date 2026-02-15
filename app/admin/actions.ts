@@ -1067,6 +1067,8 @@ export async function updateEvent(formData: FormData) {
       revalidatePath("/");
       revalidatePath("/api/timetable");
       revalidateTag("timetable-public");
+      revalidateTag("events");
+      revalidateTag(`event-${eventId}`);
 
       // Ensure title and instructorName are not null before creating slug
       if (title && instructorName) {
@@ -1094,6 +1096,8 @@ export async function updateEvent(formData: FormData) {
       revalidatePath("/");
       revalidatePath("/api/timetable");
       revalidateTag("timetable-public");
+      revalidateTag("events");
+      revalidateTag(`event-${eventId}`);
       
       if (title && instructorName) {
         revalidatePath(`/event/${createEventSlug(eventId, title, instructorName)}`);
@@ -1150,6 +1154,8 @@ export async function updateEvent(formData: FormData) {
         revalidatePath("/");
         revalidatePath("/api/timetable");
         revalidateTag("timetable-public");
+        revalidateTag("events");
+        revalidateTag(`event-${eventId}`);
         
         if (title && instructorName) {
           revalidatePath(`/event/${createEventSlug(eventId, title, instructorName)}`);
@@ -1323,6 +1329,8 @@ export async function updateEvent(formData: FormData) {
         revalidatePath("/");
         revalidatePath("/api/timetable");
         revalidateTag("timetable-public");
+        revalidateTag("events");
+        revalidateTag(`event-${eventId}`);
         
         if (title && instructorName) {
           revalidatePath(`/event/${createEventSlug(eventId, title, instructorName)}`);
@@ -1696,6 +1704,8 @@ export async function deleteEvent(
     revalidatePath("/");
     revalidatePath("/api/timetable");
     revalidateTag("timetable-public");
+    revalidateTag("events");
+    revalidateTag(`event-${eventId}`);
   } catch (error) {
     console.error("Error deleting workshop:", error);
     throw error;
@@ -3143,6 +3153,7 @@ export async function normalizeProps() {
     // Revalidate paths
     revalidatePath("/admin");
     revalidatePath("/artists");
+    revalidateTag("artists");
     revalidatePath("/profile/edit");
 
     return {

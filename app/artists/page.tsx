@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { db } from "@/db";
 import { users, userProps, props, events } from "@/db/schema";
 import { eq, sql, asc, and, inArray } from "drizzle-orm";
+import { unstable_cache } from "next/cache";
 import { ArtistList } from "@/components/artist-list";
 
 export const metadata: Metadata = {
@@ -10,7 +11,10 @@ export const metadata: Metadata = {
   },
 };
 
-async function getAllArtists() {
+// ISR: Revalidate every hour
+export const revalidate = 3600;
+
+async function getAllArtistsUncached() {
   // Get all users with their props and workshop counts
   const artistsData = await db
     .select({
@@ -116,6 +120,12 @@ async function getAllArtists() {
 
   return artists;
 }
+
+const getAllArtists = unstable_cache(
+  getAllArtistsUncached,
+  ["artists-list"],
+  { revalidate: 3600, tags: ["artists"] }
+);
 
 export default async function ArtistsPage() {
   const artists = await getAllArtists();

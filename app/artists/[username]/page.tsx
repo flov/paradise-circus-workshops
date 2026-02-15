@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
+import { unstable_cache } from "next/cache";
 import {
   getUserByUsername,
   getUserProps,
@@ -27,13 +28,29 @@ import {
   Clock,
 } from "lucide-react";
 
+const getCachedArtistProfile = (username: string) =>
+  unstable_cache(
+    async () => {
+      const user = await getUserByUsername(username);
+      if (!user) return null;
+      const [userProps, workshops] = await Promise.all([
+        getUserProps(user.id),
+        getUserWorkshops(user.id),
+      ]);
+      return { user, props: userProps, workshops };
+    },
+    [`artist-${username}`],
+    { revalidate: 3600, tags: ["artists", `artist-${username}`] }
+  )();
+
 export async function generateMetadata({
   params,
 }: {
   params: Promise<{ username: string }>;
 }): Promise<Metadata> {
   const { username } = await params;
-  const user = await getUserByUsername(username);
+  const cached = await getCachedArtistProfile(username);
+  const user = cached?.user;
 
   if (!user) {
     return {
@@ -50,23 +67,22 @@ export async function generateMetadata({
   };
 }
 
+// ISR: Revalidate every hour
+export const revalidate = 3600;
+
 export default async function ArtistProfilePage({
   params,
 }: {
   params: Promise<{ username: string }>;
 }) {
   const { username } = await params;
-  const user = await getUserByUsername(username);
+  const cached = await getCachedArtistProfile(username);
 
-  if (!user) {
+  if (!cached) {
     notFound();
   }
 
-  // Get props
-  const props = await getUserProps(user.id);
-
-  // Get workshops
-  const workshops = await getUserWorkshops(user.id);
+  const { user, props, workshops } = cached;
 
   // Get profile image from database
   const profileImageUrl = user.avatarImageUrl || null;
