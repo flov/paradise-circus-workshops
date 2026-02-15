@@ -2,8 +2,6 @@
 
 A full-stack social network and workshop booking platform for flow artists, built with Next.js 16. Connect with fellow artists, discover workshops, share your skills, and be part of the Paradise Circus community in Pai, Thailand.
 
-## Features
-
 ### Social Network for Flow Artists
 
 - 👤 **Artist Profiles**: Create and customize your profile with bio, photos, and social links
