@@ -2242,6 +2242,69 @@ export async function getRecurringEventsCopyCandidates(
 }
 
 /**
+ * Get recurring workshops (isWorkshop=true) without a recurringUntil date
+ * that fall within the specified week. Used in admin to identify workshops
+ * that need an end date set.
+ * @param weekStart - Monday of the week in YYYY-MM-DD format
+ */
+export async function getRecurringWorkshopsWithoutEndDate(weekStart: string) {
+  try {
+    const { userId } = await auth();
+    if (!userId) {
+      return { success: false, error: "Unauthorized", events: [] };
+    }
+    const userIsAdmin = await isAdmin();
+    if (!userIsAdmin) {
+      return { success: false, error: "Unauthorized", events: [] };
+    }
+
+    // Validate and parse week start (Monday)
+    const [year, month, day] = weekStart.split("-").map(Number);
+    const monday = new Date(Date.UTC(year, month - 1, day));
+    if (isNaN(monday.getTime())) {
+      return { success: false, error: "Invalid week start date", events: [] };
+    }
+
+    // Calculate Sunday (6 days after Monday)
+    const sunday = new Date(monday);
+    sunday.setUTCDate(sunday.getUTCDate() + 6);
+    const weekEnd = `${sunday.getUTCFullYear()}-${String(sunday.getUTCMonth() + 1).padStart(2, "0")}-${String(sunday.getUTCDate()).padStart(2, "0")}`;
+
+    const workshopEvents = await db
+      .select({
+        id: events.id,
+        title: events.title,
+        date: events.date,
+        startTime: events.startTime,
+        endTime: events.endTime,
+        instructor: events.instructor,
+        location: events.location,
+        recurringSeriesId: events.recurringSeriesId,
+      })
+      .from(events)
+      .where(
+        and(
+          eq(events.isWorkshop, true),
+          eq(events.isRecurring, true),
+          isNull(events.recurringUntil),
+          gte(events.date, weekStart),
+          lte(events.date, weekEnd),
+        ),
+      )
+      .orderBy(asc(events.date), asc(events.startTime));
+
+    return { success: true, events: workshopEvents, weekStart, weekEnd };
+  } catch (error) {
+    console.error("Error fetching recurring workshops without end date:", error);
+    return {
+      success: false,
+      error: "Failed to fetch recurring workshops",
+      events: [],
+    };
+  }
+}
+
+/**
  * Copy selected recurring events to the next calendar week.
  * Skips duplicates based on recurringSeriesId, date, startTime, and endTime.
  */
