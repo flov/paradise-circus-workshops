@@ -58,6 +58,7 @@ type TimetableData = {
 
 const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 const TIME_SLOTS = [
+  "11am",
   "12pm",
   "1pm",
   "2pm",
@@ -501,13 +502,14 @@ export function WeeklyTimetable() {
     const hour = now.getHours();
 
     // Map hours to time slots
-    // 12pm = hour 12, 1pm = hour 13, ..., 10pm = hour 22
+    // 11am = hour 11, 12pm = hour 12, 1pm = hour 13, ..., 10pm = hour 22
+    if (hour === 11) return "11am";
     if (hour >= 12 && hour <= 22) {
       if (hour === 12) return "12pm";
       return `${hour - 12}pm`;
     }
 
-    // For times before 12pm or after 10pm, return null to just scroll to day
+    // For times before 11am or after 10pm, return null to just scroll to day
     return null;
   };
 

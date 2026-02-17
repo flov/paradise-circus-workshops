@@ -714,6 +714,7 @@ export async function getInstagramTimetableData(
     // If no events, use default time slots
     if (timeSlots.length === 0) {
       timeSlots.push(
+        "11am",
         "12pm",
         "1pm",
         "2pm",
