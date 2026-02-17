@@ -340,13 +340,14 @@ export function WeeklyTimetable() {
               propId: event.propId || null,
               isPublished:
                 event.isPublished !== undefined ? event.isPublished : true,
-              isRecurring: (event as any).isRecurring ?? false,
-              recurringSeriesId: (event as any).recurringSeriesId || null,
-              createdAt: (event as any).createdAt,
-              lastUpdatedBy: (event as any).lastUpdatedBy ?? null,
-              approvedBy: (event as any).approvedBy ?? null,
-              lastUpdatedByUser: (event as any).lastUpdatedByUser ?? null,
-              approvedByUser: (event as any).approvedByUser ?? null,
+              isRecurring: event.isRecurring ?? false,
+              recurringSeriesId: event.recurringSeriesId || null,
+              recurringUntil: event.recurringUntil || null,
+              createdAt: event.createdAt,
+              lastUpdatedBy: event.lastUpdatedBy ?? null,
+              approvedBy: event.approvedBy ?? null,
+              lastUpdatedByUser: event.lastUpdatedByUser ?? null,
+              approvedByUser: event.approvedByUser ?? null,
               isBlocked: true,
             });
           }
