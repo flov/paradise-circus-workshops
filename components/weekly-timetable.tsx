@@ -17,12 +17,21 @@ import { EditEventButton } from "@/components/admin/edit-event-button";
 import { AddEventButton } from "@/components/admin/add-event-button";
 import { MobileLandscapeHint } from "@/components/mobile-landscape-hint";
 import Link from "next/link";
+import type { UserDisplayInfo as SchemaUserDisplayInfo } from "@/db/schema";
 
 type UserDisplayInfo = {
   id: number;
   username: string | null;
   displayName: string | null;
 };
+
+/** Normalize API user data to schema's UserDisplayInfo (username must be string) */
+function toSchemaUserDisplayInfo(
+  user: UserDisplayInfo | null | undefined
+): SchemaUserDisplayInfo | null {
+  if (!user) return null;
+  return { ...user, username: user.username ?? "" };
+}
 
 type TimeSlot = {
   id: number;
@@ -846,18 +855,19 @@ export function WeeklyTimetable() {
                                             propId: slot.propId,
                                             isPublished: slot.isPublished,
                                             isRecurring: slot.isRecurring,
-                                            recurringSeriesId:
-                                              slot.recurringSeriesId ||
-                                              undefined,
                                             recurringUntil:
-                                              slot.recurringUntil,
+                                              slot.recurringUntil ?? null,
                                             lastUpdatedBy: slot.lastUpdatedBy ?? null,
                                             approvedBy: slot.approvedBy ?? null,
-                                            lastUpdatedByUser: slot.lastUpdatedByUser ?? null,
-                                            approvedByUser: slot.approvedByUser ?? null,
+                                            lastUpdatedByUser: toSchemaUserDisplayInfo(
+                                              slot.lastUpdatedByUser
+                                            ),
+                                            approvedByUser: toSchemaUserDisplayInfo(
+                                              slot.approvedByUser
+                                            ),
                                             createdAt: slot.createdAt
                                               ? new Date(slot.createdAt)
-                                              : undefined,
+                                              : new Date(),
                                           }}
                                         />
                                       </div>
@@ -1107,14 +1117,18 @@ export function WeeklyTimetable() {
                                           isPublished: slot.isPublished,
                                           isRecurring: slot.isRecurring,
                                           recurringUntil:
-                                            slot.recurringUntil || undefined,
+                                            slot.recurringUntil ?? null,
                                           lastUpdatedBy: slot.lastUpdatedBy ?? null,
                                           approvedBy: slot.approvedBy ?? null,
-                                          lastUpdatedByUser: slot.lastUpdatedByUser ?? null,
-                                          approvedByUser: slot.approvedByUser ?? null,
+                                          lastUpdatedByUser: toSchemaUserDisplayInfo(
+                                            slot.lastUpdatedByUser
+                                          ),
+                                          approvedByUser: toSchemaUserDisplayInfo(
+                                            slot.approvedByUser
+                                          ),
                                           createdAt: slot.createdAt
                                             ? new Date(slot.createdAt)
-                                            : undefined,
+                                            : new Date(),
                                         }}
                                       />
                                     </div>
