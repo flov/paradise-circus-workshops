@@ -49,6 +49,71 @@ function getWeeklyDatesUntil(startDateStr: string, endDateStr: string): string[]
   return dates;
 }
 
+/**
+ * Check if an event would collide with existing events at the same location.
+ * Two events collide when they have the same date, same location (case-insensitive),
+ * and overlapping time ranges (startA < endB AND endA > startB).
+ */
+async function findLocationCollision(
+  date: string,
+  startTime: string,
+  endTime: string,
+  location: string,
+  excludeEventId?: number
+) {
+  const conditions = [
+    eq(events.date, date),
+    sql`LOWER(TRIM(COALESCE(${events.location}, ''))) = LOWER(TRIM(${location}))`,
+    sql`${events.startTime} < ${endTime}::time`,
+    sql`${events.endTime} > ${startTime}::time`,
+  ];
+  if (excludeEventId !== undefined) {
+    conditions.push(sql`${events.id} != ${excludeEventId}`);
+  }
+  const colliding = await db
+    .select({
+      id: events.id,
+      title: events.title,
+      date: events.date,
+      startTime: events.startTime,
+      endTime: events.endTime,
+    })
+    .from(events)
+    .where(and(...conditions))
+    .limit(1);
+  return colliding[0] ?? null;
+}
+
+/** Returns an error object if a location collision exists, null otherwise. */
+async function getLocationCollisionError(
+  date: string,
+  startTime: string,
+  endTime: string,
+  location: string,
+  excludeEventId: number | undefined,
+  context: "create" | "update" | "convert" = "update"
+): Promise<{ success: false; error: string } | null> {
+  const collision = await findLocationCollision(
+    date,
+    startTime,
+    endTime,
+    location,
+    excludeEventId
+  );
+  if (!collision) return null;
+  const collisionTime = `${collision.startTime}–${collision.endTime}`;
+  const prefix =
+    context === "create"
+      ? "This event would collide"
+      : context === "update"
+        ? "This update would collide"
+        : "This would collide";
+  return {
+    success: false,
+    error: `${prefix} with "${collision.title}" at ${collision.date} (${collisionTime}) in the same location. Please choose a different time or location.`,
+  };
+}
+
 export async function createEvent(formData: FormData) {
   // Check authentication
   const { userId } = await auth();
@@ -221,6 +286,19 @@ export async function createEvent(formData: FormData) {
           success: false,
           error: "No valid dates found for recurring event.",
         };
+      }
+
+      // Check for location collisions before creating recurring events
+      for (const eventDate of eventDates) {
+        const err = await getLocationCollisionError(
+          eventDate,
+          start_time,
+          end_time,
+          location,
+          undefined,
+          "create"
+        );
+        if (err) return err;
       }
 
       // Create all events in a transaction
@@ -399,6 +477,17 @@ export async function createEvent(formData: FormData) {
 
       return { success: true };
     }
+
+    // Check for location collision before creating single event
+    const createErr = await getLocationCollisionError(
+      date,
+      start_time,
+      end_time,
+      location,
+      undefined,
+      "create"
+    );
+    if (createErr) return createErr;
 
     // Insert single event (non-recurring)
     const [newEvent] = await db
@@ -1028,10 +1117,19 @@ export async function updateEvent(formData: FormData) {
     // This prevents accidentally triggering conversion when event is already part of a series
     // even if isRecurring flag is temporarily false
     const hasRecurringSeriesId = currentEvent.recurringSeriesId !== null;
-    
+
     // Handle converting recurring event to non-recurring (admins and instructors)
     // Note: This only converts the current event, not the entire series
     if (isRecurringEvent && !isRecurring) {
+      const err = await getLocationCollisionError(
+        date,
+        start_time,
+        end_time,
+        location,
+        eventId,
+        "update"
+      );
+      if (err) return err;
       // Convert only the current event to non-recurring
       // Other events in the series remain as recurring events
       await db
@@ -1063,6 +1161,15 @@ export async function updateEvent(formData: FormData) {
     // Handle case where event has recurringSeriesId but isRecurring is false
     // This can happen due to data inconsistencies - just update the event and restore isRecurring flag
     if (hasRecurringSeriesId && !isRecurringEvent && isRecurring) {
+      const err = await getLocationCollisionError(
+        date,
+        start_time,
+        end_time,
+        location,
+        eventId,
+        "update"
+      );
+      if (err) return err;
       // Event is part of a series but isRecurring flag was false - restore it
       await db
         .update(events)
@@ -1126,6 +1233,15 @@ export async function updateEvent(formData: FormData) {
 
       // If event already has a recurringSeriesId, don't convert (it's already part of a series)
       if (verifyEvent[0].recurringSeriesId !== null) {
+        const err = await getLocationCollisionError(
+          date,
+          start_time,
+          end_time,
+          location,
+          eventId,
+          "update"
+        );
+        if (err) return err;
         // Event is already part of a recurring series, just update it normally
         // This prevents duplicate creation when updating recurring events
         await db.update(events).set(updateData).where(eq(events.id, eventId));
@@ -1167,6 +1283,20 @@ export async function updateEvent(formData: FormData) {
           success: false,
           error: "No valid dates found for recurring event.",
         };
+      }
+
+      // Check for location collisions before converting to recurring
+      for (const eventDate of eventDates) {
+        const excludeId = eventDate === date ? eventId : undefined;
+        const err = await getLocationCollisionError(
+          eventDate,
+          start_time,
+          end_time,
+          location,
+          excludeId,
+          "convert"
+        );
+        if (err) return err;
       }
 
       // Check if events with these dates already exist to prevent duplicates
@@ -1253,6 +1383,15 @@ export async function updateEvent(formData: FormData) {
       // If event is no longer part of a recurring series, just update the single event
       if (verifySeriesEvent[0].recurringSeriesId !== currentEvent.recurringSeriesId || 
           !verifySeriesEvent[0].isRecurring) {
+        const err = await getLocationCollisionError(
+          date,
+          start_time,
+          end_time,
+          location,
+          eventId,
+          "update"
+        );
+        if (err) return err;
         await db.update(events).set(updateData).where(eq(events.id, eventId));
         
         revalidatePath("/admin");
@@ -1316,6 +1455,21 @@ export async function updateEvent(formData: FormData) {
 
           const existingDates = new Set(existingEvents.map((e) => e.date));
 
+          // Check for location collisions before updating
+          for (const seriesEvent of seriesEvents) {
+            const newDateStr = newDates.get(seriesEvent.id);
+            if (!newDateStr) continue;
+            const err = await getLocationCollisionError(
+              newDateStr,
+              start_time,
+              end_time,
+              location,
+              seriesEvent.id,
+              "update"
+            );
+            if (err) return err;
+          }
+
           // Update all events in the series with new dates, but skip if date already exists
           for (const seriesEvent of seriesEvents) {
             const newDateStr = newDates.get(seriesEvent.id);
@@ -1337,7 +1491,22 @@ export async function updateEvent(formData: FormData) {
           }
         }
       } else {
-        // Start date didn't change
+        // Start date didn't change - check for collisions before updating time/location
+        const seriesEvents = await db
+          .select({ id: events.id, date: events.date })
+          .from(events)
+          .where(eq(events.recurringSeriesId, currentEvent.recurringSeriesId));
+        for (const seriesEvent of seriesEvents) {
+          const err = await getLocationCollisionError(
+            seriesEvent.date,
+            start_time,
+            end_time,
+            location,
+            seriesEvent.id,
+            "update"
+          );
+          if (err) return err;
+        }
         // First, update the specific event being edited with all fields (including date)
         await db
           .update(events)
@@ -1360,6 +1529,15 @@ export async function updateEvent(formData: FormData) {
       }
     } else {
       // Non-recurring event or non-admin updating - update single event
+      const err = await getLocationCollisionError(
+        date,
+        start_time,
+        end_time,
+        location,
+        eventId,
+        "update"
+      );
+      if (err) return err;
       await db.update(events).set(updateData).where(eq(events.id, eventId));
     }
 
