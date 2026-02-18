@@ -155,13 +155,14 @@ export async function createBooking(formData: FormData) {
       // Continue even if email fails
     }
 
-    // Revalidate relevant pages
+    // Revalidate relevant pages and caches
     revalidatePath("/");
     revalidatePath(
       `/event/${createEventSlug(parseInt(eventId), event.title, event.instructor)}`,
     );
     revalidateTag("events");
     revalidateTag(`event-${eventId}`);
+    revalidateTag(`event-${eventId}-participations`);
 
     return { success: true, participationId, confirmationToken: token };
   } catch (error) {
@@ -225,10 +226,11 @@ export async function cancelBooking(participationId: number) {
       .set({ currentBookings: sql`${events.currentBookings} - 1` })
       .where(eq(events.id, participation.eventId));
 
-    // Revalidate relevant pages
+    // Revalidate relevant pages and caches
     revalidatePath("/");
     revalidateTag("events");
     revalidateTag(`event-${participation.eventId}`);
+    revalidateTag(`event-${participation.eventId}-participations`);
     if (eventResults.length > 0) {
       revalidatePath(
         `/event/${createEventSlug(participation.eventId, eventResults[0].title, eventResults[0].instructor)}`,
@@ -293,10 +295,11 @@ export async function cancelBookingByEvent(eventId: number) {
       .set({ currentBookings: sql`${events.currentBookings} - 1` })
       .where(eq(events.id, eventId));
 
-    // Revalidate relevant pages
+    // Revalidate relevant pages and caches
     revalidatePath("/");
     revalidateTag("events");
     revalidateTag(`event-${eventId}`);
+    revalidateTag(`event-${eventId}-participations`);
     if (eventResults.length > 0) {
       revalidatePath(
         `/event/${createEventSlug(eventId, eventResults[0].title, eventResults[0].instructor)}`,
@@ -389,11 +392,12 @@ export async function addComment(eventId: number, content: string) {
       })
       .returning({ id: comments.id });
 
-    // Revalidate event page
+    // Revalidate event page and caches
     const eventSlug = createEventSlug(eventId, event.title, event.instructor);
     revalidatePath(`/event/${eventSlug}`);
     revalidateTag("events");
     revalidateTag(`event-${eventId}`);
+    revalidateTag(`event-${eventId}-comments`);
 
     // Send notification emails to participants and instructor
     try {
@@ -562,7 +566,9 @@ export async function deleteComment(commentId: number) {
     // Delete the comment
     await db.delete(comments).where(eq(comments.id, commentId));
 
-    // Revalidate event page
+    // Revalidate event page and caches
+    revalidateTag(`event-${comment.eventId}`);
+    revalidateTag(`event-${comment.eventId}-comments`);
     if (eventResults.length > 0) {
       revalidatePath(
         `/event/${createEventSlug(comment.eventId, eventResults[0].title, eventResults[0].instructor)}`,

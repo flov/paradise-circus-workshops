@@ -850,7 +850,7 @@ export function WeeklyTimetable() {
                                               slot.recurringSeriesId ||
                                               undefined,
                                             recurringUntil:
-                                              slot.recurringUntil || undefined,
+                                              slot.recurringUntil,
                                             lastUpdatedBy: slot.lastUpdatedBy ?? null,
                                             approvedBy: slot.approvedBy ?? null,
                                             lastUpdatedByUser: slot.lastUpdatedByUser ?? null,

@@ -26,12 +26,10 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import {
   isEventPast,
-  getUserName,
-  getUserEmail,
   parseEventSlug,
   createEventSlug,
 } from "@/lib/utils";
-import { auth, currentUser } from "@clerk/nextjs/server";
+import { auth } from "@clerk/nextjs/server";
 import { AvatarStack } from "@/components/avatar-stack";
 import ReactMarkdown from "react-markdown";
 import { EventCalendarButtons } from "@/components/event-calendar-buttons";
@@ -167,79 +165,77 @@ export default async function BookEventPage({
 
   const isPast = isEventPast(event.date, event.endTime);
 
-  // Get user data on server side for faster loading
+  // Get user data and fetch participations/comments in parallel to minimize CPU time
   const { userId } = await auth();
-  let initialUserName = "";
-  let initialUserEmail = "";
-  let currentUserImageUrl: string | null = null;
 
-  if (userId) {
-    const user = await currentUser();
-    if (user) {
-      initialUserName = getUserName(user);
-      initialUserEmail = getUserEmail(user);
-    }
-    
-    // Get current user's profile image from database
-    try {
-      const userProfile = await db
-        .select({ avatarImageUrl: users.avatarImageUrl })
-        .from(users)
-        .where(eq(users.clerkUserId, userId))
-        .limit(1);
-      
-      if (userProfile.length > 0) {
-        currentUserImageUrl = userProfile[0].avatarImageUrl || null;
-      }
-    } catch (error) {
-      console.error("Failed to fetch user profile image:", error);
-    }
-  }
+  const getParticipations = unstable_cache(
+    async (id: number) => {
+      return db
+        .select({
+          id: participations.id,
+          participantName: participations.participantName,
+          participantEmail: participations.participantEmail,
+          clerkUserId: participations.clerkUserId,
+          avatarImageUrl: users.avatarImageUrl,
+        })
+        .from(participations)
+        .leftJoin(users, eq(participations.clerkUserId, users.clerkUserId))
+        .where(eq(participations.eventId, id));
+    },
+    [`event-${eventId}-participations`],
+    { revalidate: 60, tags: [`event-${eventId}-participations`] }
+  );
 
-  // Fetch participations for this event with user profile images from database
-  const participationsData = await db
-    .select({
-      id: participations.id,
-      participantName: participations.participantName,
-      participantEmail: participations.participantEmail,
-      clerkUserId: participations.clerkUserId,
-      avatarImageUrl: users.avatarImageUrl,
-    })
-    .from(participations)
-    .leftJoin(users, eq(participations.clerkUserId, users.clerkUserId))
-    .where(eq(participations.eventId, eventId));
+  const getComments = unstable_cache(
+    async (id: number) => {
+      return db
+        .select({
+          id: comments.id,
+          authorName: comments.authorName,
+          authorImageUrl: comments.authorImageUrl,
+          content: comments.content,
+          createdAt: comments.createdAt,
+          clerkUserId: comments.clerkUserId,
+        })
+        .from(comments)
+        .where(eq(comments.eventId, id))
+        .orderBy(asc(comments.createdAt));
+    },
+    [`event-${eventId}-comments`],
+    { revalidate: 60, tags: [`event-${eventId}-comments`] }
+  );
 
-  // Check if current user has a participation and get the participationId
-  let userParticipationId: number | null = null;
-  if (userId) {
-    const userParticipation = participationsData.find(
-      (participation) => participation.clerkUserId === userId,
-    );
-    if (userParticipation) {
-      userParticipationId = userParticipation.id;
-    }
-  }
+  // Fetch user profile (only if authenticated), participations, and comments in parallel
+  const [userProfileResult, participationsData, commentsData] = await Promise.all([
+    userId
+      ? db
+          .select({
+            displayName: users.displayName,
+            email: users.email,
+            avatarImageUrl: users.avatarImageUrl,
+          })
+          .from(users)
+          .where(eq(users.clerkUserId, userId))
+          .limit(1)
+      : Promise.resolve([]),
+    getParticipations(eventId),
+    getComments(eventId),
+  ]);
 
-  // Map participations to participants with database avatar images
+  const userProfile = userProfileResult[0];
+  const initialUserName = userProfile?.displayName ?? "";
+  const initialUserEmail = userProfile?.email ?? "";
+  const currentUserImageUrl = userProfile?.avatarImageUrl ?? null;
+
+  const userParticipationId = userId
+    ? participationsData.find((p) => p.clerkUserId === userId)?.id ?? null
+    : null;
+
   const participants = participationsData.map((participation) => ({
     name: participation.participantName,
     email: participation.participantEmail,
     imageUrl: participation.avatarImageUrl || null,
   }));
-
-  // Fetch comments for this event
-  const commentsData = await db
-    .select({
-      id: comments.id,
-      authorName: comments.authorName,
-      authorImageUrl: comments.authorImageUrl,
-      content: comments.content,
-      createdAt: comments.createdAt,
-      clerkUserId: comments.clerkUserId,
-    })
-    .from(comments)
-    .where(eq(comments.eventId, eventId))
-    .orderBy(asc(comments.createdAt));
 
   return (
     <div className="min-h-screen bg-background">
