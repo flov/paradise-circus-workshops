@@ -746,10 +746,11 @@ describe("deleteEventAndFutureInstructorEvents", () => {
     ).rejects.toThrow("Unauthorized");
   });
 
-  it("should fail when user is not admin", async () => {
+  it("should fail when user is not admin or instructor", async () => {
     const regularUser = await createTestUser({
       clerkUserId: "regular-user",
       isAdmin: false,
+      isInstructor: false,
     });
     const event = await createTestEvent();
 
@@ -757,7 +758,75 @@ describe("deleteEventAndFutureInstructorEvents", () => {
 
     await expect(
       deleteEventAndFutureInstructorEvents(event.id),
-    ).rejects.toThrow("Only admins can delete events and all future instructor events");
+    ).rejects.toThrow("Only admins and event instructors can delete events and all future instructor events");
+  });
+
+  it("should fail when instructor tries to delete another instructor's events", async () => {
+    const instructor = await createTestUser({
+      clerkUserId: "instructor-user",
+      isAdmin: false,
+      isInstructor: true,
+      username: "instructor",
+    });
+    const otherInstructor = await createTestUser({
+      clerkUserId: "other-instructor",
+      isAdmin: false,
+      isInstructor: true,
+      username: "other-instructor",
+    });
+    const event = await createTestEvent({
+      instructorId: otherInstructor.id,
+      instructor: null,
+    });
+
+    mockInstructorAuth("instructor-user");
+    vi.mocked(isAdmin).mockResolvedValue(false);
+
+    await expect(
+      deleteEventAndFutureInstructorEvents(event.id),
+    ).rejects.toThrow("You can only delete events and future events you are instructing");
+  });
+
+  it("should succeed when instructor deletes their own future events", async () => {
+    const instructor = await createTestUser({
+      clerkUserId: "instructor-user",
+      isAdmin: false,
+      isInstructor: true,
+      username: "instructor",
+    });
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+
+    const currentEvent = await createTestEvent({
+      date: today.toISOString().split("T")[0],
+      instructorId: instructor.id,
+      instructor: null,
+    });
+    const futureEvent = await createTestEvent({
+      date: tomorrow.toISOString().split("T")[0],
+      instructorId: instructor.id,
+      instructor: null,
+    });
+
+    mockInstructorAuth("instructor-user");
+    vi.mocked(isAdmin).mockResolvedValue(false);
+
+    await deleteEventAndFutureInstructorEvents(currentEvent.id);
+
+    const db = getTestDb();
+    const currentEventCheck = await db
+      .select()
+      .from(events)
+      .where(eq(events.id, currentEvent.id));
+    const futureEventCheck = await db
+      .select()
+      .from(events)
+      .where(eq(events.id, futureEvent.id));
+
+    expect(currentEventCheck.length).toBe(0);
+    expect(futureEventCheck.length).toBe(0);
   });
 
   it("should fail when event not found", async () => {

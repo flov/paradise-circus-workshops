@@ -945,7 +945,7 @@ export function EventForm({
               </AlertDialogContent>
             </AlertDialog>
           ) : null}
-          {onDeleteAllFuture && userProfile?.isAdmin && initialValues?.id ? (
+          {onDeleteAllFuture && (userProfile?.isAdmin || userProfile?.isInstructor) && initialValues?.id ? (
             <AlertDialog
               open={deleteAllFutureDialogOpen}
               onOpenChange={handleDeleteAllFutureDialogOpenChange}

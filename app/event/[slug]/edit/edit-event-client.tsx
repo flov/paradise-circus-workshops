@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import { updateEvent, deleteEvent } from "@/app/admin/actions"
+import { updateEvent, deleteEvent, deleteEventAndFutureInstructorEvents } from "@/app/admin/actions"
 import { EventForm, type EventFormInitialValues } from "@/components/admin/event-form"
 import {
   Card,
@@ -62,6 +62,20 @@ export function EditEventPageClient({
     }
   }
 
+  async function handleDeleteAllFuture(eventId: number, cancellationMessage?: string | null) {
+    try {
+      await deleteEventAndFutureInstructorEvents(eventId, cancellationMessage)
+      // Redirect to home after successful deletion
+      router.push("/")
+      router.refresh()
+      // Dispatch custom event to notify WeeklyTimetable to refresh
+      window.dispatchEvent(new CustomEvent('event-deleted'))
+    } catch (err) {
+      setError("Failed to delete event and future events")
+      throw err
+    }
+  }
+
   function handleCancel() {
     router.back()
   }
@@ -84,6 +98,7 @@ export function EditEventPageClient({
           submitButtonText="Update Event"
           submittingText="Updating..."
           onDelete={handleDelete}
+          onDeleteAllFuture={handleDeleteAllFuture}
         />
       </CardContent>
     </Card>

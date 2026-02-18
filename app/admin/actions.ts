@@ -1653,13 +1653,60 @@ export async function deleteEventAndFutureInstructorEvents(
     throw new Error("Unauthorized. You must be signed in to delete events.");
   }
 
-  // Check authorization: must be admin
+  // Check authorization: must be admin OR (instructor AND matching event instructor)
   const userIsAdmin = await isAdmin();
 
   if (!userIsAdmin) {
-    throw new Error(
-      "Unauthorized. Only admins can delete events and all future instructor events.",
-    );
+    // Check if user is instructor
+    const userResult = await db
+      .select({
+        id: users.id,
+        username: users.username,
+        isInstructor: users.isInstructor,
+      })
+      .from(users)
+      .where(eq(users.clerkUserId, userId))
+      .limit(1);
+
+    if (userResult.length === 0 || !userResult[0].isInstructor) {
+      throw new Error(
+        "Unauthorized. Only admins and event instructors can delete events and all future instructor events.",
+      );
+    }
+
+    const currentUserId = userResult[0].id;
+
+    // Fetch event to check instructor
+    const eventResult = await db
+      .select({
+        instructor: events.instructor,
+        instructorId: events.instructorId,
+      })
+      .from(events)
+      .where(eq(events.id, eventId))
+      .limit(1);
+
+    if (eventResult.length === 0) {
+      throw new Error("Event not found.");
+    }
+
+    // Check authorization: if instructorId exists, check that; otherwise check instructor string
+    const eventInstructorId = eventResult[0].instructorId;
+    if (eventInstructorId !== null) {
+      // Match instructorId
+      if (eventInstructorId !== currentUserId) {
+        throw new Error(
+          "Unauthorized. You can only delete events and future events you are instructing.",
+        );
+      }
+    } else {
+      // Fallback to instructor string comparison
+      if (eventResult[0].instructor !== userResult[0].username) {
+        throw new Error(
+          "Unauthorized. You can only delete events and future events you are instructing.",
+        );
+      }
+    }
   }
 
   try {
@@ -2300,6 +2347,330 @@ export async function getRecurringWorkshopsWithoutEndDate(weekStart: string) {
       success: false,
       error: "Failed to fetch recurring workshops",
       events: [],
+    };
+  }
+}
+
+/**
+ * Get the Monday (YYYY-MM-DD) of the week containing the given date.
+ * Uses UTC to avoid timezone issues.
+ */
+function getWeekMondayUTC(dateStr: string): string {
+  const [year, month, day] = dateStr.split("-").map(Number);
+  const date = new Date(Date.UTC(year, month - 1, day));
+  const dayOfWeek = date.getUTCDay(); // 0=Sun, 1=Mon, ..., 6=Sat
+  const daysSinceMonday = (dayOfWeek + 6) % 7;
+  const monday = new Date(date);
+  monday.setUTCDate(date.getUTCDate() - daysSinceMonday);
+  return `${monday.getUTCFullYear()}-${String(monday.getUTCMonth() + 1).padStart(2, "0")}-${String(monday.getUTCDate()).padStart(2, "0")}`;
+}
+
+/**
+ * Get all week Mondays from startDate to endDate (inclusive).
+ * Each week is identified by its Monday (YYYY-MM-DD).
+ */
+function getWeekMondaysInRange(startDateStr: string, endDateStr: string): string[] {
+  const startMonday = getWeekMondayUTC(startDateStr);
+  const endMonday = getWeekMondayUTC(endDateStr);
+
+  const [startYear, startMonth, startDay] = startMonday.split("-").map(Number);
+  const [endYear, endMonth, endDay] = endMonday.split("-").map(Number);
+
+  const start = new Date(Date.UTC(startYear, startMonth - 1, startDay));
+  const end = new Date(Date.UTC(endYear, endMonth - 1, endDay));
+
+  const mondays: string[] = [];
+  let current = new Date(start);
+
+  while (current <= end) {
+    mondays.push(
+      `${current.getUTCFullYear()}-${String(current.getUTCMonth() + 1).padStart(2, "0")}-${String(current.getUTCDate()).padStart(2, "0")}`
+    );
+    current.setUTCDate(current.getUTCDate() + 7);
+  }
+
+  return mondays;
+}
+
+/**
+ * Check if a date falls within a week (Monday-Sunday).
+ */
+function dateInWeek(dateStr: string, weekMondayStr: string): boolean {
+  const [year, month, day] = dateStr.split("-").map(Number);
+  const date = new Date(Date.UTC(year, month - 1, day));
+
+  const [wYear, wMonth, wDay] = weekMondayStr.split("-").map(Number);
+  const weekMonday = new Date(Date.UTC(wYear, wMonth - 1, wDay));
+  const weekSunday = new Date(weekMonday);
+  weekSunday.setUTCDate(weekSunday.getUTCDate() + 6);
+
+  return date >= weekMonday && date <= weekSunday;
+}
+
+export type RecurringSeriesWithGaps = {
+  recurringSeriesId: string;
+  title: string;
+  firstEventDate: string;
+  recurringUntil: string;
+  totalWeeks: number;
+  missingWeeks: string[]; // Week Monday dates that are missing events
+  eventCount: number;
+};
+
+/**
+ * Find all recurring events with recurring_until set and check whether
+ * they have events for every week from first event to recurring_until.
+ * Returns series that have gaps (missing weeks).
+ */
+export async function getRecurringEventsWithGaps(): Promise<{
+  success: boolean;
+  seriesWithGaps?: RecurringSeriesWithGaps[];
+  error?: string;
+}> {
+  try {
+    const { userId } = await auth();
+    if (!userId) {
+      return { success: false, error: "Unauthorized" };
+    }
+    const userIsAdmin = await isAdmin();
+    if (!userIsAdmin) {
+      return { success: false, error: "Unauthorized" };
+    }
+
+    // Get all events with recurring_until set
+    const eventsWithRecurringUntil = await db
+      .select({
+        id: events.id,
+        title: events.title,
+        date: events.date,
+        recurringSeriesId: events.recurringSeriesId,
+        recurringUntil: events.recurringUntil,
+      })
+      .from(events)
+      .where(
+        and(
+          eq(events.isRecurring, true),
+          isNotNull(events.recurringSeriesId),
+          isNotNull(events.recurringUntil),
+        ),
+      );
+
+    // Group by recurring_series_id
+    const seriesMap = new Map<
+      string,
+      { title: string; dates: string[]; recurringUntil: string }
+    >();
+
+    for (const ev of eventsWithRecurringUntil) {
+      if (!ev.recurringSeriesId || !ev.recurringUntil) continue;
+
+      const existing = seriesMap.get(ev.recurringSeriesId);
+      if (existing) {
+        if (!existing.dates.includes(ev.date)) {
+          existing.dates.push(ev.date);
+        }
+      } else {
+        seriesMap.set(ev.recurringSeriesId, {
+          title: ev.title,
+          dates: [ev.date],
+          recurringUntil: ev.recurringUntil,
+        });
+      }
+    }
+
+    const seriesWithGaps: RecurringSeriesWithGaps[] = [];
+    const totalSeriesWithRecurringUntil = seriesMap.size;
+
+    for (const [recurringSeriesId, data] of seriesMap) {
+      const firstDate = data.dates.sort()[0];
+      if (!firstDate) continue;
+
+      const expectedWeekMondays = getWeekMondaysInRange(firstDate, data.recurringUntil);
+      const eventDates = new Set(data.dates);
+
+      const missingWeeks: string[] = [];
+      for (const weekMonday of expectedWeekMondays) {
+        const hasEventInWeek = data.dates.some((d) => dateInWeek(d, weekMonday));
+        if (!hasEventInWeek) {
+          missingWeeks.push(weekMonday);
+        }
+      }
+
+      if (missingWeeks.length > 0) {
+        seriesWithGaps.push({
+          recurringSeriesId,
+          title: data.title,
+          firstEventDate: firstDate,
+          recurringUntil: data.recurringUntil,
+          totalWeeks: expectedWeekMondays.length,
+          missingWeeks,
+          eventCount: data.dates.length,
+        });
+      }
+    }
+
+    return {
+      success: true,
+      seriesWithGaps,
+      totalSeriesWithRecurringUntil,
+    };
+  } catch (error) {
+    console.error("Error fetching recurring events with gaps:", error);
+    return {
+      success: false,
+      error: "Failed to fetch recurring events with gaps",
+    };
+  }
+}
+
+/**
+ * Get the event date (YYYY-MM-DD) for a given week Monday, using the same weekday
+ * as the first event in the series.
+ */
+function getEventDateForWeek(
+  weekMondayStr: string,
+  firstEventDateStr: string,
+): string {
+  const [wYear, wMonth, wDay] = weekMondayStr.split("-").map(Number);
+  const weekMonday = new Date(Date.UTC(wYear, wMonth - 1, wDay));
+
+  const [fYear, fMonth, fDay] = firstEventDateStr.split("-").map(Number);
+  const firstEvent = new Date(Date.UTC(fYear, fMonth - 1, fDay));
+  const firstEventWeekday = firstEvent.getUTCDay(); // 0=Sun, 1=Mon, ...
+  const mondayWeekday = 1;
+  const daysToAdd = (firstEventWeekday - mondayWeekday + 7) % 7;
+
+  const eventDate = new Date(weekMonday);
+  eventDate.setUTCDate(weekMonday.getUTCDate() + daysToAdd);
+
+  return `${eventDate.getUTCFullYear()}-${String(eventDate.getUTCMonth() + 1).padStart(2, "0")}-${String(eventDate.getUTCDate()).padStart(2, "0")}`;
+}
+
+/**
+ * Create events for the missing weeks in a recurring series.
+ * Uses an existing event from the series as template.
+ */
+export async function fillRecurringSeriesGaps(
+  recurringSeriesId: string,
+  missingWeeks: string[],
+  firstEventDate: string,
+): Promise<{
+  success: boolean;
+  created?: number;
+  error?: string;
+}> {
+  try {
+    const { userId } = await auth();
+    if (!userId) {
+      return { success: false, error: "Unauthorized" };
+    }
+    const userIsAdmin = await isAdmin();
+    if (!userIsAdmin) {
+      return { success: false, error: "Unauthorized" };
+    }
+
+    if (missingWeeks.length === 0) {
+      return { success: true, created: 0 };
+    }
+
+    // Get template event (any recurring event from the series)
+    const templateEvents = await db
+      .select({
+        title: events.title,
+        description: events.description,
+        instructor: events.instructor,
+        instructorId: events.instructorId,
+        startTime: events.startTime,
+        endTime: events.endTime,
+        location: events.location,
+        whatToBring: events.whatToBring,
+        isWorkshop: events.isWorkshop,
+        isPublished: events.isPublished,
+        propId: events.propId,
+        recurringUntil: events.recurringUntil,
+        recapVideoId: events.recapVideoId,
+      })
+      .from(events)
+      .where(
+        and(
+          eq(events.recurringSeriesId, recurringSeriesId),
+          eq(events.isRecurring, true),
+        ),
+      )
+      .limit(1);
+
+    const template = templateEvents[0];
+    if (!template) {
+      return { success: false, error: "No template event found for this series" };
+    }
+
+    // Get existing dates to avoid duplicates
+    const allSeriesEvents = await db
+      .select({ date: events.date })
+      .from(events)
+      .where(eq(events.recurringSeriesId, recurringSeriesId));
+    const existingDates = new Set(allSeriesEvents.map((e) => e.date));
+
+    const eventsToCreate: Array<{
+      title: string;
+      description: string | null;
+      instructor: string | null;
+      instructorId: number | null;
+      date: string;
+      startTime: string;
+      endTime: string;
+      location: string | null;
+      whatToBring: string | null;
+      isWorkshop: boolean;
+      isPublished: boolean;
+      propId: number | null;
+      recurringSeriesId: string;
+      isRecurring: boolean;
+      recapVideoId: string | null;
+      recurringUntil: string | null;
+    }> = [];
+
+    for (const weekMonday of missingWeeks) {
+      const dateStr = getEventDateForWeek(weekMonday, firstEventDate);
+      if (!existingDates.has(dateStr)) {
+        eventsToCreate.push({
+          title: template.title,
+          description: template.description,
+          instructor: template.instructor,
+          instructorId: template.instructorId,
+          date: dateStr,
+          startTime: template.startTime,
+          endTime: template.endTime,
+          location: template.location,
+          whatToBring: template.whatToBring,
+          isWorkshop: template.isWorkshop,
+          isPublished: template.isPublished,
+          propId: template.propId,
+          recurringSeriesId,
+          isRecurring: true,
+          recapVideoId: template.recapVideoId,
+          recurringUntil: template.recurringUntil,
+        });
+        existingDates.add(dateStr);
+      }
+    }
+
+    if (eventsToCreate.length > 0) {
+      await db.insert(events).values(eventsToCreate);
+
+      revalidatePath("/admin");
+      revalidatePath("/admin/recurring_events");
+      revalidatePath("/");
+      revalidatePath("/api/timetable");
+      revalidateTag("timetable-public");
+    }
+
+    return { success: true, created: eventsToCreate.length };
+  } catch (error) {
+    console.error("Error filling recurring series gaps:", error);
+    return {
+      success: false,
+      error: "Failed to create events for missing weeks",
     };
   }
 }
