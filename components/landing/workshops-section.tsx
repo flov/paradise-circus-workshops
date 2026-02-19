@@ -1,7 +1,7 @@
-"use client";
+"use client"
 
-import Link from "next/link";
-import { Button } from "@/components/ui/button";
+import Link from "next/link"
+import { Button } from "@/components/ui/button"
 import {
   Card,
   CardContent,
@@ -9,8 +9,8 @@ import {
   CardTitle,
   CardDescription,
   CardAction,
-} from "@/components/ui/card";
-import { ArrowRight, Calendar, Clock, Users } from "lucide-react";
+} from "@/components/ui/card"
+import { ArrowRight, Calendar, Clock, Users } from "lucide-react"
 
 const workshopCategories = [
   {
@@ -34,11 +34,11 @@ const workshopCategories = [
     description: "Clowning and improv performance",
     icon: "🤡",
   },
-];
+]
 
 interface WorkshopsSectionProps {
-  workshopsThisWeek: number;
-  artistsCount: number;
+  workshopsThisWeek: number
+  artistsCount: number
 }
 
 export function WorkshopsSection({
@@ -46,10 +46,10 @@ export function WorkshopsSection({
   artistsCount,
 }: WorkshopsSectionProps) {
   return (
-    <section className="py-20 px-4 bg-card">
+    <section className="py-16 px-4 bg-card">
       <div className="max-w-6xl mx-auto">
         {/* Section header */}
-        <div className="text-center mb-16">
+        <div className="text-center mb-8">
           <span className="text-primary font-medium text-sm uppercase tracking-wider">
             Learn Something New Every Day
           </span>
@@ -67,7 +67,7 @@ export function WorkshopsSection({
         </div>
 
         {/* Stats row */}
-        <div className="grid grid-cols-3 gap-4 md:gap-8 mb-16">
+        <div className="grid grid-cols-3 gap-4 md:gap-8 mb-8">
           <div className="text-center p-4 md:p-6 rounded-2xl bg-background">
             <div className="flex justify-center mb-3">
               <Calendar className="w-6 h-6 text-primary" />
@@ -96,63 +96,30 @@ export function WorkshopsSection({
         </div>
 
         {/* Workshop categories - Combined card */}
-        <Card className="mb-12 border-border/50 hover:shadow-lg transition-all duration-300">
-          <CardHeader>
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <CardTitle
-                  className="text-xl md:text-2xl"
-                  style={{ fontFamily: "var(--font-rye)", fontWeight: 300 }}
-                >
-                  Type of Workshops
-                </CardTitle>
-                <CardDescription className="text-sm md:text-base mt-1">
-                  A mix of flow arts, skill-building, and playful performance —
-                  drop in and try something new.
-                </CardDescription>
-              </div>
-
-              <CardAction className="shrink-0 hidden sm:flex items-center gap-2 md:gap-3">
-                {workshopCategories.map((category) => (
-                  <span
-                    key={category.title}
-                    className="inline-flex h-10 w-10 md:h-12 md:w-12 items-center justify-center rounded-full bg-primary/10"
-                    aria-hidden="true"
-                  >
-                    <span className="text-xl md:text-2xl">{category.icon}</span>
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 mb-8">
+          {workshopCategories.map((category) => (
+            <div
+              key={category.title}
+              className="rounded-xl border border-border/50 bg-background/40 p-4 transition-colors hover:bg-background/60"
+            >
+              <div className="flex items-start gap-3">
+                <div className="mt-0.5 flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
+                  <span className="text-xl" aria-hidden="true">
+                    {category.icon}
                   </span>
-                ))}
-              </CardAction>
-            </div>
-          </CardHeader>
-          <CardContent>
-            {/* Categories */}
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              {workshopCategories.map((category) => (
-                <div
-                  key={category.title}
-                  className="rounded-xl border border-border/50 bg-background/40 p-4 transition-colors hover:bg-background/60"
-                >
-                  <div className="flex items-start gap-3">
-                    <div className="mt-0.5 flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
-                      <span className="text-xl" aria-hidden="true">
-                        {category.icon}
-                      </span>
-                    </div>
-                    <div className="min-w-0">
-                      <p className="font-semibold text-foreground leading-snug">
-                        {category.title}
-                      </p>
-                      <p className="text-sm text-muted-foreground mt-1 leading-relaxed">
-                        {category.description}
-                      </p>
-                    </div>
-                  </div>
                 </div>
-              ))}
+                <div className="min-w-0">
+                  <p className="font-semibold text-foreground leading-snug">
+                    {category.title}
+                  </p>
+                  <p className="text-sm text-muted-foreground mt-1 leading-relaxed">
+                    {category.description}
+                  </p>
+                </div>
+              </div>
             </div>
-          </CardContent>
-        </Card>
+          ))}
+        </div>
 
         {/* CTA */}
         <div className="text-center">
@@ -165,5 +132,5 @@ export function WorkshopsSection({
         </div>
       </div>
     </section>
-  );
+  )
 }
