@@ -7,6 +7,7 @@ import {
 } from "@/components/ui/card";
 import { RecurringEventsCopyPanel } from "@/components/admin/recurring-events-copy-panel";
 import { RecurringEventsGapsCard } from "@/components/admin/recurring-events-gaps-card";
+import { RecurringEventsLinkPanel } from "@/components/admin/recurring-events-link-panel";
 import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import { isAdmin } from "@/app/profile/actions";
@@ -34,6 +35,7 @@ export default async function AdminRecurringEventsPage() {
       />
 
       <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8 space-y-8">
+        <RecurringEventsLinkPanel />
         <RecurringEventsGapsCard />
         <Card>
           <CardHeader>

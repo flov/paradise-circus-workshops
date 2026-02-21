@@ -2,7 +2,7 @@
 
 import { db } from "@/db";
 import { events, participations, props, users, userProps, comments } from "@/db/schema";
-import { eq, sql, inArray, asc, desc, isNotNull, isNull, and, gte, lte } from "drizzle-orm";
+import { eq, sql, inArray, asc, desc, isNotNull, isNull, and, gte, lte, or } from "drizzle-orm";
 import { revalidatePath, revalidateTag } from "next/cache";
 import { createEventSlug, getUserEmail } from "@/lib/utils";
 import { auth, currentUser } from "@clerk/nextjs/server";
@@ -2585,10 +2585,35 @@ function dateInWeek(dateStr: string, weekMondayStr: string): boolean {
   return date >= weekMonday && date <= weekSunday;
 }
 
+/** Get today's date as YYYY-MM-DD in UTC. */
+function getTodayUTC(): string {
+  const now = new Date();
+  const y = now.getUTCFullYear();
+  const m = String(now.getUTCMonth() + 1).padStart(2, "0");
+  const d = String(now.getUTCDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
+
+/** True if the week (Monday-Sunday) is in the future or current (week Sunday >= today). */
+function isWeekInFutureOrCurrent(weekMondayStr: string): boolean {
+  const [wYear, wMonth, wDay] = weekMondayStr.split("-").map(Number);
+  const weekMonday = new Date(Date.UTC(wYear, wMonth - 1, wDay));
+  const weekSunday = new Date(weekMonday);
+  weekSunday.setUTCDate(weekSunday.getUTCDate() + 6);
+  const todayStr = getTodayUTC();
+  const [tYear, tMonth, tDay] = todayStr.split("-").map(Number);
+  const today = new Date(Date.UTC(tYear, tMonth - 1, tDay));
+  return weekSunday >= today;
+}
+
 export type RecurringSeriesWithGaps = {
   recurringSeriesId: string;
   title: string;
+  instructorDisplayName: string | null;
+  instructorUsername: string | null;
   firstEventDate: string;
+  startTime: string;
+  endTime: string;
   recurringUntil: string;
   totalWeeks: number;
   missingWeeks: string[]; // Week Monday dates that are missing events
@@ -2615,16 +2640,22 @@ export async function getRecurringEventsWithGaps(): Promise<{
       return { success: false, error: "Unauthorized" };
     }
 
-    // Get all events with recurring_until set
+    // Get all events with recurring_until set (join users for instructor displayName)
     const eventsWithRecurringUntil = await db
       .select({
         id: events.id,
         title: events.title,
         date: events.date,
+        startTime: events.startTime,
+        endTime: events.endTime,
+        instructor: events.instructor,
         recurringSeriesId: events.recurringSeriesId,
         recurringUntil: events.recurringUntil,
+        instructorDisplayName: users.displayName,
+        instructorUsername: users.username,
       })
       .from(events)
+      .leftJoin(users, eq(events.instructorId, users.id))
       .where(
         and(
           eq(events.isRecurring, true),
@@ -2636,11 +2667,23 @@ export async function getRecurringEventsWithGaps(): Promise<{
     // Group by recurring_series_id
     const seriesMap = new Map<
       string,
-      { title: string; dates: string[]; recurringUntil: string }
+      {
+        title: string;
+        dates: string[];
+        recurringUntil: string;
+        startTime: string;
+        endTime: string;
+        instructorDisplayName: string | null;
+        instructorUsername: string | null;
+      }
     >();
 
     for (const ev of eventsWithRecurringUntil) {
       if (!ev.recurringSeriesId || !ev.recurringUntil) continue;
+
+      const instructorDisplayName =
+        ev.instructorDisplayName || ev.instructorUsername || ev.instructor || null;
+      const instructorUsername = ev.instructorUsername || null;
 
       const existing = seriesMap.get(ev.recurringSeriesId);
       if (existing) {
@@ -2652,6 +2695,10 @@ export async function getRecurringEventsWithGaps(): Promise<{
           title: ev.title,
           dates: [ev.date],
           recurringUntil: ev.recurringUntil,
+          startTime: ev.startTime,
+          endTime: ev.endTime,
+          instructorDisplayName,
+          instructorUsername,
         });
       }
     }
@@ -2663,11 +2710,20 @@ export async function getRecurringEventsWithGaps(): Promise<{
       const firstDate = data.dates.sort()[0];
       if (!firstDate) continue;
 
-      const expectedWeekMondays = getWeekMondaysInRange(firstDate, data.recurringUntil);
-      const eventDates = new Set(data.dates);
+      const allWeekMondays = getWeekMondaysInRange(firstDate, data.recurringUntil);
+
+      // Only consider weeks where the actual event date would be on or before recurringUntil.
+      // E.g. if workshop is every Sunday and recurringUntil is March 2 (Monday), the week of
+      // March 2 would create an event on March 8 (Sunday) - which is after March 2, so skip it.
+      const expectedWeekMondays = allWeekMondays.filter((weekMonday) => {
+        const eventDate = getEventDateForWeek(weekMonday, firstDate);
+        return eventDate <= data.recurringUntil;
+      });
 
       const missingWeeks: string[] = [];
       for (const weekMonday of expectedWeekMondays) {
+        // Only consider weeks in the future or current week (don't create events for past weeks)
+        if (!isWeekInFutureOrCurrent(weekMonday)) continue;
         const hasEventInWeek = data.dates.some((d) => dateInWeek(d, weekMonday));
         if (!hasEventInWeek) {
           missingWeeks.push(weekMonday);
@@ -2678,7 +2734,11 @@ export async function getRecurringEventsWithGaps(): Promise<{
         seriesWithGaps.push({
           recurringSeriesId,
           title: data.title,
+          instructorDisplayName: data.instructorDisplayName,
+          instructorUsername: data.instructorUsername,
           firstEventDate: firstDate,
+          startTime: data.startTime,
+          endTime: data.endTime,
           recurringUntil: data.recurringUntil,
           totalWeeks: expectedWeekMondays.length,
           missingWeeks,
@@ -2732,6 +2792,7 @@ export async function fillRecurringSeriesGaps(
   recurringSeriesId: string,
   missingWeeks: string[],
   firstEventDate: string,
+  recurringUntil: string,
 ): Promise<{
   success: boolean;
   created?: number;
@@ -2827,7 +2888,7 @@ export async function fillRecurringSeriesGaps(
           recurringSeriesId,
           isRecurring: true,
           recapVideoId: template.recapVideoId,
-          recurringUntil: template.recurringUntil,
+          recurringUntil,
         });
         existingDates.add(dateStr);
       }
@@ -2849,6 +2910,188 @@ export async function fillRecurringSeriesGaps(
     return {
       success: false,
       error: "Failed to create events for missing weeks",
+    };
+  }
+}
+
+export type DuplicatedRecurringTitleGroup = {
+  title: string;
+  instructor: string | null;
+  instructorId: number | null;
+  events: Array<{
+    id: number;
+    date: string;
+    startTime: string;
+    endTime: string;
+    instructor: string | null;
+    location: string | null;
+    recurringSeriesId: string | null;
+  }>;
+  distinctSeriesCount: number;
+};
+
+/**
+ * Find events that share the same title AND same instructor (or instructorId)
+ * but have different recurringSeriesIds.
+ * Returns groups of events that could be linked into a single series.
+ */
+export async function getDuplicatedRecurringTitles(): Promise<{
+  success: boolean;
+  groups?: DuplicatedRecurringTitleGroup[];
+  error?: string;
+}> {
+  try {
+    const { userId } = await auth();
+    if (!userId) {
+      return { success: false, error: "Unauthorized" };
+    }
+    const userIsAdmin = await isAdmin();
+    if (!userIsAdmin) {
+      return { success: false, error: "Unauthorized" };
+    }
+
+    // Get all events that are recurring or have a recurringSeriesId
+    const allRecurring = await db
+      .select({
+        id: events.id,
+        title: events.title,
+        date: events.date,
+        startTime: events.startTime,
+        endTime: events.endTime,
+        instructor: events.instructor,
+        instructorId: events.instructorId,
+        location: events.location,
+        recurringSeriesId: events.recurringSeriesId,
+      })
+      .from(events)
+      .where(
+        or(
+          eq(events.isRecurring, true),
+          isNotNull(events.recurringSeriesId),
+        ),
+      )
+      .orderBy(asc(events.title), asc(events.date));
+
+    // Group by title + instructor (same title and same instructor/instructorId)
+    const groupKey = (ev: (typeof allRecurring)[0]) =>
+      `${ev.title}::${ev.instructorId ?? ev.instructor ?? "__none__"}`;
+    const byTitleAndInstructor = new Map<string, typeof allRecurring>();
+    for (const ev of allRecurring) {
+      const key = groupKey(ev);
+      const list = byTitleAndInstructor.get(key) ?? [];
+      list.push(ev);
+      byTitleAndInstructor.set(key, list);
+    }
+
+    // Find groups with multiple distinct recurringSeriesIds
+    const groups: DuplicatedRecurringTitleGroup[] = [];
+    for (const [, evs] of byTitleAndInstructor) {
+      const distinctIds = new Set<string>();
+      for (const ev of evs) {
+        distinctIds.add(ev.recurringSeriesId ?? "__null__");
+      }
+      if (distinctIds.size > 1) {
+        const first = evs[0];
+        groups.push({
+          title: first.title,
+          instructor: first.instructor,
+          instructorId: first.instructorId,
+          events: evs.map((e) => ({
+            id: e.id,
+            date: e.date,
+            startTime: e.startTime,
+            endTime: e.endTime,
+            instructor: e.instructor,
+            location: e.location,
+            recurringSeriesId: e.recurringSeriesId,
+          })),
+          distinctSeriesCount: distinctIds.size,
+        });
+      }
+    }
+
+    return { success: true, groups };
+  } catch (error) {
+    console.error("Error fetching duplicated recurring titles:", error);
+    return {
+      success: false,
+      error: "Failed to fetch duplicated recurring titles",
+    };
+  }
+}
+
+/**
+ * Link all events with the given IDs to use the same recurringSeriesId.
+ * Uses the recurringSeriesId from the earliest event by date as the target.
+ */
+export async function linkRecurringEventsByTitle(eventIds: number[]): Promise<{
+  success: boolean;
+  updated?: number;
+  error?: string;
+}> {
+  try {
+    const { userId } = await auth();
+    if (!userId) {
+      return { success: false, error: "Unauthorized" };
+    }
+    const userIsAdmin = await isAdmin();
+    if (!userIsAdmin) {
+      return { success: false, error: "Unauthorized" };
+    }
+
+    if (eventIds.length === 0) {
+      return { success: false, error: "No events selected" };
+    }
+
+    const targetEvents = await db
+      .select({
+        id: events.id,
+        date: events.date,
+        recurringSeriesId: events.recurringSeriesId,
+      })
+      .from(events)
+      .where(inArray(events.id, eventIds))
+      .orderBy(asc(events.date));
+
+    if (targetEvents.length === 0) {
+      return { success: false, error: "No events found" };
+    }
+
+    // Use the recurringSeriesId from the earliest event; if it's null, generate a new one
+    let targetSeriesId = targetEvents[0].recurringSeriesId;
+    if (!targetSeriesId) {
+      targetSeriesId = randomUUID();
+    }
+
+    const idsToUpdate = targetEvents
+      .filter((e) => e.recurringSeriesId !== targetSeriesId)
+      .map((e) => e.id);
+
+    if (idsToUpdate.length === 0) {
+      return { success: true, updated: 0 };
+    }
+
+    await db
+      .update(events)
+      .set({
+        recurringSeriesId: targetSeriesId,
+        isRecurring: true,
+        updatedAt: new Date(),
+      })
+      .where(inArray(events.id, idsToUpdate));
+
+    revalidatePath("/admin");
+    revalidatePath("/admin/recurring_events");
+    revalidatePath("/");
+    revalidatePath("/api/timetable");
+    revalidateTag("timetable-public");
+
+    return { success: true, updated: idsToUpdate.length };
+  } catch (error) {
+    console.error("Error linking recurring events:", error);
+    return {
+      success: false,
+      error: "Failed to link recurring events",
     };
   }
 }

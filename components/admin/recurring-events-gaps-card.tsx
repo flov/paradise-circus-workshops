@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import Link from "next/link";
 import {
   getRecurringEventsWithGaps,
   fillRecurringSeriesGaps,
@@ -33,6 +34,31 @@ function formatDate(dateStr: string) {
   const month = date.toLocaleDateString("en-US", { month: "short" });
   const year = date.getFullYear();
   return `${weekday}, ${day} ${month} ${year}`;
+}
+
+function formatTime(time: string) {
+  const [hours, minutes] = time.split(":");
+  const hour = Number.parseInt(hours);
+  const ampm = hour >= 12 ? "PM" : "AM";
+  const displayHour = hour % 12 || 12;
+  return `${displayHour}:${minutes} ${ampm}`;
+}
+
+/** Get the event date (YYYY-MM-DD) for a given week Monday, using the same weekday as firstEventDate. */
+function getEventDateForWeek(weekMondayStr: string, firstEventDateStr: string): string {
+  const [wYear, wMonth, wDay] = weekMondayStr.split("-").map(Number);
+  const weekMonday = new Date(Date.UTC(wYear, wMonth - 1, wDay));
+
+  const [fYear, fMonth, fDay] = firstEventDateStr.split("-").map(Number);
+  const firstEvent = new Date(Date.UTC(fYear, fMonth - 1, fDay));
+  const firstEventWeekday = firstEvent.getUTCDay();
+  const mondayWeekday = 1;
+  const daysToAdd = (firstEventWeekday - mondayWeekday + 7) % 7;
+
+  const eventDate = new Date(weekMonday);
+  eventDate.setUTCDate(weekMonday.getUTCDate() + daysToAdd);
+
+  return `${eventDate.getUTCFullYear()}-${String(eventDate.getUTCMonth() + 1).padStart(2, "0")}-${String(eventDate.getUTCDate()).padStart(2, "0")}`;
 }
 
 export function RecurringEventsGapsCard() {
@@ -70,6 +96,7 @@ export function RecurringEventsGapsCard() {
         series.recurringSeriesId,
         series.missingWeeks,
         series.firstEventDate,
+        series.recurringUntil,
       );
       if (result.success && result.created !== undefined) {
         setSuccessMessage(`Created ${result.created} event${result.created !== 1 ? "s" : ""} for missing weeks.`);
@@ -156,7 +183,24 @@ export function RecurringEventsGapsCard() {
                   <TableBody>
                     {seriesWithGaps.map((series) => (
                       <TableRow key={series.recurringSeriesId}>
-                        <TableCell className="font-medium">{series.title}</TableCell>
+                        <TableCell className="font-medium">
+                          <span className="flex items-center gap-2 flex-wrap">
+                            {series.title}
+                            {series.instructorDisplayName &&
+                              (series.instructorUsername ? (
+                                <Link
+                                  href={`/artists/${series.instructorUsername}`}
+                                  className="text-sm text-primary hover:underline"
+                                >
+                                  {series.instructorDisplayName}
+                                </Link>
+                              ) : (
+                                <span className="text-sm text-muted-foreground">
+                                  {series.instructorDisplayName}
+                                </span>
+                              ))}
+                          </span>
+                        </TableCell>
                         <TableCell className="text-sm">
                           {formatDate(series.firstEventDate)} — {formatDate(series.recurringUntil)}
                         </TableCell>
@@ -167,11 +211,22 @@ export function RecurringEventsGapsCard() {
                         </TableCell>
                         <TableCell>
                           <div className="flex flex-wrap gap-1">
-                            {series.missingWeeks.map((weekMonday) => (
-                              <Badge key={weekMonday} variant="destructive" className="text-xs">
-                                {formatDate(weekMonday)}
-                              </Badge>
-                            ))}
+                            {series.missingWeeks.map((weekMonday) => {
+                              const eventDate = getEventDateForWeek(
+                                weekMonday,
+                                series.firstEventDate,
+                              );
+                              const timeRange = `${formatTime(series.startTime)}–${formatTime(series.endTime)}`;
+                              return (
+                                <Badge
+                                  key={weekMonday}
+                                  variant="destructive"
+                                  className="text-xs font-normal"
+                                >
+                                  {formatDate(eventDate)}, {timeRange}
+                                </Badge>
+                              );
+                            })}
                           </div>
                         </TableCell>
                         <TableCell className="text-right">
