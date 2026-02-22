@@ -25,7 +25,8 @@ export function logActivity(params: LogActivityParams): void {
     ...params.metadata,
   };
 
-  db.insert(activityLogs)
+  void db
+    .insert(activityLogs)
     .values({
       userId: params.userId ?? null,
       actorName: params.actorName,
@@ -35,7 +36,6 @@ export function logActivity(params: LogActivityParams): void {
       entityLabel: params.entityLabel ?? null,
       metadata: Object.keys(metadata).length > 0 ? metadata : null,
     })
-    .then(() => {})
     .catch((error) => {
       console.error("Failed to log activity:", error);
     });

@@ -20,35 +20,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
-  Plus,
-  Pencil,
-  Trash2,
-  CheckCircle,
-  Copy,
-  Link as LinkIcon,
-  CalendarPlus,
-} from "lucide-react";
+  ACTIVITY_ACTION_CONFIG,
+  ACTIVITY_ACTION_FILTER_OPTIONS,
+} from "@/lib/activity-config";
+import { ACTIVITY_INITIAL_CURSOR } from "@/lib/activity-config";
 import { loadMoreActivity } from "@/app/admin/activity/actions";
 import type { ActivityLog } from "@/db/schema";
-
-// --- Constants ---
-
-const ACTION_CONFIG: Record<
-  string,
-  {
-    label: string;
-    icon: typeof Plus;
-    badgeVariant: "default" | "secondary" | "destructive" | "outline" | "pink" | "purple" | "amber";
-  }
-> = {
-  create: { label: "created", icon: Plus, badgeVariant: "default" },
-  update: { label: "updated", icon: Pencil, badgeVariant: "secondary" },
-  delete: { label: "deleted", icon: Trash2, badgeVariant: "destructive" },
-  approve: { label: "approved", icon: CheckCircle, badgeVariant: "purple" },
-  copy: { label: "copied to next week", icon: Copy, badgeVariant: "amber" },
-  fill: { label: "filled gaps", icon: CalendarPlus, badgeVariant: "amber" },
-  link: { label: "linked", icon: LinkIcon, badgeVariant: "pink" },
-};
 
 // --- Helpers ---
 
@@ -62,14 +39,14 @@ function formatDateTime(date: Date): string {
 }
 
 function EntryIcon({ action }: { action: string }) {
-  const config = ACTION_CONFIG[action];
+  const config = ACTIVITY_ACTION_CONFIG[action];
   if (!config) return null;
   const Icon = config.icon;
   return <Icon className="h-4 w-4 shrink-0 text-muted-foreground" />;
 }
 
 function ActionBadge({ action }: { action: string }) {
-  const config = ACTION_CONFIG[action];
+  const config = ACTIVITY_ACTION_CONFIG[action];
   if (!config) return <Badge variant="outline">{action}</Badge>;
   return <Badge variant={config.badgeVariant}>{config.label}</Badge>;
 }
@@ -87,15 +64,23 @@ function ActorName({ name, entry }: { name: string; entry: ActivityLog }) {
   return <span className="font-medium">{name}</span>;
 }
 
-function ActivityRow({ log }: { log: ActivityLog }) {
-  const config = ACTION_CONFIG[log.action];
-  const meta = log.metadata as Record<string, unknown> | null;
-  const count = meta?.count as number | undefined;
-  const field = meta?.field as string | undefined;
+function formatActivityDetails(metadata: Record<string, unknown> | null): string {
+  if (!metadata) return "—";
+  const parts: string[] = [];
+  const count = metadata.count as number | undefined;
+  const field = metadata.field as string | undefined;
+  const changedFields = metadata.changedFields as string[] | undefined;
 
-  const details: string[] = [];
-  if (count && count > 1) details.push(`${count} events`);
-  if (field) details.push(field);
+  if (count && count > 1) parts.push(`${count} events`);
+  if (field) parts.push(field);
+  if (changedFields?.length) parts.push(changedFields.join(", "));
+
+  return parts.length > 0 ? parts.join(" · ") : "—";
+}
+
+function ActivityRow({ log }: { log: ActivityLog }) {
+  const meta = log.metadata as Record<string, unknown> | null;
+  const details = formatActivityDetails(meta);
 
   return (
     <TableRow>
@@ -115,9 +100,7 @@ function ActivityRow({ log }: { log: ActivityLog }) {
       <TableCell className="max-w-[280px] whitespace-normal break-words">
         {log.entityLabel ?? "—"}
       </TableCell>
-      <TableCell className="text-muted-foreground text-xs">
-        {details.length > 0 ? details.join(" · ") : "—"}
-      </TableCell>
+      <TableCell className="text-muted-foreground text-xs">{details}</TableCell>
     </TableRow>
   );
 }
@@ -139,7 +122,7 @@ export function ActivityFeed({ initialLogs, initialHasMore }: ActivityFeedProps)
   useEffect(() => {
     if (loaded) return;
     startTransition(async () => {
-      const result = await loadMoreActivity(new Date("2099-01-01").toISOString());
+      const result = await loadMoreActivity(ACTIVITY_INITIAL_CURSOR);
       setLogs(result.logs);
       setHasMore(result.hasMore);
       setLoaded(true);
@@ -181,13 +164,11 @@ export function ActivityFeed({ initialLogs, initialHasMore }: ActivityFeedProps)
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All actions</SelectItem>
-            <SelectItem value="create">Create</SelectItem>
-            <SelectItem value="update">Update</SelectItem>
-            <SelectItem value="delete">Delete</SelectItem>
-            <SelectItem value="approve">Approve</SelectItem>
-            <SelectItem value="copy">Copy</SelectItem>
-            <SelectItem value="fill">Fill</SelectItem>
-            <SelectItem value="link">Link</SelectItem>
+            {ACTIVITY_ACTION_FILTER_OPTIONS.map(({ value, label }) => (
+              <SelectItem key={value} value={value}>
+                {label}
+              </SelectItem>
+            ))}
           </SelectContent>
         </Select>
       </div>

@@ -1,7 +1,8 @@
-import { Suspense } from "react";
 import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import { isAdmin } from "@/app/profile/actions";
+import { ACTIVITY_INITIAL_CURSOR } from "@/lib/activity-config";
+import { loadMoreActivity } from "./actions";
 import { AdminNav } from "@/components/admin/admin-nav";
 import { ActivityFeed } from "@/components/admin/activity-feed";
 
@@ -17,6 +18,8 @@ export default async function ActivityPage() {
     redirect("/");
   }
 
+  const { logs, hasMore } = await loadMoreActivity(ACTIVITY_INITIAL_CURSOR);
+
   return (
     <div className="min-h-screen bg-background">
       <AdminNav
@@ -25,15 +28,7 @@ export default async function ActivityPage() {
       />
 
       <main className="mx-auto max-w-3xl px-4 py-8 sm:px-6 lg:px-8">
-        <Suspense
-          fallback={
-            <div className="text-center py-12 text-muted-foreground">
-              Loading activity...
-            </div>
-          }
-        >
-          <ActivityFeed />
-        </Suspense>
+        <ActivityFeed initialLogs={logs} initialHasMore={hasMore} />
       </main>
     </div>
   );
