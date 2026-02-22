@@ -3,6 +3,7 @@ import { Geist, Geist_Mono, Rye } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
 import { ClerkProvider } from "@clerk/nextjs";
 import { Navigation } from "@/components/navigation";
+import { QueryProvider } from "@/components/query-provider";
 import "./globals.css";
 import { Footer } from "@/components/footer";
 
@@ -123,10 +124,12 @@ export default function RootLayout({
         <body
           className={`font-sans antialiased ${rye.variable} min-h-screen flex flex-col`}
         >
-          <Navigation />
-          <div className="pt-12 flex-1">{children}</div>
-          <Footer />
-          <Analytics />
+          <QueryProvider>
+            <Navigation />
+            <div className="pt-12 flex-1">{children}</div>
+            <Footer />
+            <Analytics />
+          </QueryProvider>
         </body>
       </html>
     </ClerkProvider>

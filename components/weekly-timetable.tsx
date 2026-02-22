@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@clerk/nextjs";
 import {
@@ -81,6 +82,130 @@ const TIME_SLOTS = [
   "10pm",
 ];
 
+function formatLocalDate(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function getWeekDates(weekOffset: number): Date[] {
+  const now = new Date();
+  const currentDay = now.getDay();
+  const mondayOffset = currentDay === 0 ? -6 : 1 - currentDay;
+
+  const monday = new Date(now);
+  monday.setDate(now.getDate() + mondayOffset + weekOffset * 7);
+
+  const dates = [];
+  for (let i = 0; i < 7; i++) {
+    const date = new Date(monday);
+    date.setDate(monday.getDate() + i);
+    dates.push(date);
+  }
+  return dates;
+}
+
+function getMondayOfWeek(weekOffset: number): Date {
+  const now = new Date();
+  const currentDay = now.getDay();
+  const mondayOffset = currentDay === 0 ? -6 : 1 - currentDay;
+
+  const monday = new Date(now);
+  monday.setDate(now.getDate() + mondayOffset + weekOffset * 7);
+  monday.setHours(0, 0, 0, 0);
+  return monday;
+}
+
+function getWeekOffsetFromDate(mondayDate: Date): number {
+  const now = new Date();
+  const currentDay = now.getDay();
+  const mondayOffset = currentDay === 0 ? -6 : 1 - currentDay;
+
+  const currentMonday = new Date(now);
+  currentMonday.setDate(now.getDate() + mondayOffset);
+  currentMonday.setHours(0, 0, 0, 0);
+
+  const targetMonday = new Date(mondayDate);
+  targetMonday.setHours(0, 0, 0, 0);
+
+  const diffTime = targetMonday.getTime() - currentMonday.getTime();
+  const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
+  return Math.round(diffDays / 7);
+}
+
+function hourToTimeSlot(hour: number): string {
+  if (hour >= 12) {
+    return `${hour === 12 ? 12 : hour - 12}pm`;
+  }
+  return `${hour}am`;
+}
+
+function calculateDurationHours(startTime: string, endTime: string): number {
+  const [startHours, startMinutes] = startTime.split(":").map(Number);
+  const [endHours, endMinutes] = endTime.split(":").map(Number);
+  const startTotalMinutes = startHours * 60 + startMinutes;
+  const endTotalMinutes = endHours * 60 + endMinutes;
+  const durationMinutes = endTotalMinutes - startTotalMinutes;
+  return Math.ceil(durationMinutes / 60);
+}
+
+function organizeEvents(events: any[]): TimetableData {
+  const organized: TimetableData = {};
+
+  events.forEach((event: any) => {
+    const date = new Date(event.date);
+    const dayIndex = (date.getDay() + 6) % 7;
+    const dayName = DAYS[dayIndex];
+
+    const startHour = Number.parseInt(event.startTime.split(":")[0]);
+    const startTimeSlot = hourToTimeSlot(startHour);
+    const durationHours = calculateDurationHours(event.startTime, event.endTime);
+
+    if (!organized[dayName]) organized[dayName] = {};
+    if (!organized[dayName][startTimeSlot]) organized[dayName][startTimeSlot] = [];
+
+    const baseSlot = {
+      id: event.id,
+      title: event.title,
+      description: event.description,
+      instructor: event.instructor,
+      instructorId: event.instructorId || null,
+      instructorDisplayName: event.instructorDisplayName || null,
+      date: event.date,
+      startTime: event.startTime,
+      endTime: event.endTime,
+      location: event.location,
+      whatToBring: event.whatToBring,
+      isWorkshop: event.isWorkshop,
+      propId: event.propId || null,
+      isPublished: event.isPublished !== undefined ? event.isPublished : true,
+      isRecurring: event.isRecurring ?? false,
+      recurringSeriesId: event.recurringSeriesId || null,
+      recurringUntil: event.recurringUntil || null,
+      createdAt: event.createdAt,
+      lastUpdatedBy: event.lastUpdatedBy ?? null,
+      approvedBy: event.approvedBy ?? null,
+      lastUpdatedByUser: event.lastUpdatedByUser ?? null,
+      approvedByUser: event.approvedByUser ?? null,
+    };
+
+    organized[dayName][startTimeSlot].push(baseSlot);
+
+    for (let i = 1; i < durationHours; i++) {
+      const nextHour = startHour + i;
+      const nextTimeSlot = hourToTimeSlot(nextHour);
+
+      if (TIME_SLOTS.indexOf(nextTimeSlot) !== -1) {
+        if (!organized[dayName][nextTimeSlot]) organized[dayName][nextTimeSlot] = [];
+        organized[dayName][nextTimeSlot].push({ ...baseSlot, isBlocked: true });
+      }
+    }
+  });
+
+  return organized;
+}
+
 type AuthContext = {
   isAdmin: boolean;
   isInstructor: boolean;
@@ -91,31 +216,47 @@ export function WeeklyTimetable() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { isSignedIn } = useAuth();
-  const [authContext, setAuthContext] = useState<AuthContext | null>(null);
+  const queryClient = useQueryClient();
   const [currentWeek, setCurrentWeek] = useState(0); // 0 = current week
-  const [timetableData, setTimetableData] = useState<TimetableData>({});
-  const [weekDates, setWeekDates] = useState<Date[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
 
   // Fetch auth context client-side (keeps timetable page static)
-  useEffect(() => {
-    if (!isSignedIn) {
-      setAuthContext({ isAdmin: false, isInstructor: false, userId: null });
-      return;
-    }
-    fetch("/api/auth/me")
-      .then((res) => res.json())
-      .then((data) =>
-        setAuthContext({
-          isAdmin: data.isAdmin ?? false,
-          isInstructor: data.isInstructor ?? false,
-          userId: data.userId ?? null,
-        })
-      )
-      .catch(() =>
-        setAuthContext({ isAdmin: false, isInstructor: false, userId: null })
-      );
-  }, [isSignedIn]);
+  const { data: authContext = null } = useQuery<AuthContext>({
+    queryKey: ["auth-context", isSignedIn],
+    queryFn: async () => {
+      if (!isSignedIn)
+        return { isAdmin: false, isInstructor: false, userId: null };
+      const res = await fetch("/api/auth/me");
+      const data = await res.json();
+      return {
+        isAdmin: data.isAdmin ?? false,
+        isInstructor: data.isInstructor ?? false,
+        userId: data.userId ?? null,
+      };
+    },
+    staleTime: 5 * 60_000, // auth context is stable, cache 5 minutes
+  });
+
+  // Derived week dates — no need for state since it's pure computation
+  const weekDates = getWeekDates(currentWeek);
+
+  // Fetch timetable data with 1-minute stale time for fast week switching
+  const { data: timetableData = {}, isLoading } = useQuery<TimetableData>({
+    queryKey: ["timetable", currentWeek, authContext?.userId ?? null],
+    queryFn: async ({ queryKey }) => {
+      const [, weekOffset, userId] = queryKey as [string, number, number | null];
+      const dates = getWeekDates(weekOffset);
+      const startDate = formatLocalDate(dates[0]);
+      const endDate = formatLocalDate(dates[6]);
+      const apiUrl = userId
+        ? `/api/timetable?start=${startDate}&end=${endDate}&userId=${userId}`
+        : `/api/timetable/public?start=${startDate}&end=${endDate}`;
+      const response = await fetch(apiUrl);
+      const events = await response.json();
+      return organizeEvents(events);
+    },
+    enabled: authContext !== null,
+    staleTime: 60_000,
+  });
   const [shouldScrollToNow, setShouldScrollToNow] = useState(false);
   const [addEventOpen, setAddEventOpen] = useState(false);
   const [prefillValues, setPrefillValues] = useState<{
@@ -125,14 +266,6 @@ export function WeeklyTimetable() {
   } | null>(null);
   const dayCardRefs = useRef<(HTMLDivElement | null)[]>([]);
   const timeSlotRefs = useRef<Map<string, HTMLDivElement>>(new Map());
-
-  // Helper function to format date as YYYY-MM-DD in local timezone
-  const formatLocalDate = (date: Date): string => {
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, "0");
-    const day = String(date.getDate()).padStart(2, "0");
-    return `${year}-${month}-${day}`;
-  };
 
   // Helper function to convert time slot string to HH:MM format
   const convertTimeSlotToTime = (timeSlot: string): string => {
@@ -163,53 +296,6 @@ export function WeeklyTimetable() {
     return convertTimeSlotToTime(nextSlot);
   };
 
-  const getWeekDates = (weekOffset: number): Date[] => {
-    const now = new Date();
-    const currentDay = now.getDay();
-    const mondayOffset = currentDay === 0 ? -6 : 1 - currentDay;
-
-    const monday = new Date(now);
-    monday.setDate(now.getDate() + mondayOffset + weekOffset * 7);
-
-    const dates = [];
-    for (let i = 0; i < 7; i++) {
-      const date = new Date(monday);
-      date.setDate(monday.getDate() + i);
-      dates.push(date);
-    }
-    return dates;
-  };
-
-  // Get Monday of a given week offset
-  const getMondayOfWeek = (weekOffset: number): Date => {
-    const now = new Date();
-    const currentDay = now.getDay();
-    const mondayOffset = currentDay === 0 ? -6 : 1 - currentDay;
-
-    const monday = new Date(now);
-    monday.setDate(now.getDate() + mondayOffset + weekOffset * 7);
-    monday.setHours(0, 0, 0, 0);
-    return monday;
-  };
-
-  // Calculate week offset from a Monday date
-  const getWeekOffsetFromDate = (mondayDate: Date): number => {
-    const now = new Date();
-    const currentDay = now.getDay();
-    const mondayOffset = currentDay === 0 ? -6 : 1 - currentDay;
-
-    const currentMonday = new Date(now);
-    currentMonday.setDate(now.getDate() + mondayOffset);
-    currentMonday.setHours(0, 0, 0, 0);
-
-    const targetMonday = new Date(mondayDate);
-    targetMonday.setHours(0, 0, 0, 0);
-
-    const diffTime = targetMonday.getTime() - currentMonday.getTime();
-    const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
-    return Math.round(diffDays / 7);
-  };
-
   // Initialize week from URL query parameter
   useEffect(() => {
     const weekParam = searchParams.get("week");
@@ -227,162 +313,12 @@ export function WeeklyTimetable() {
     }
   }, [searchParams]);
 
-  const loadWeekData = useCallback(async () => {
-    setIsLoading(true);
-    const dates = getWeekDates(currentWeek);
-    setWeekDates(dates);
-
-    try {
-      // Fetch events for the current week
-      const startDate = formatLocalDate(dates[0]);
-      const endDate = formatLocalDate(dates[6]);
-
-      // Build API URL - use public route for logged-out users, authenticated route for logged-in users
-      const userId = authContext?.userId;
-      const apiUrl = userId
-        ? `/api/timetable?start=${startDate}&end=${endDate}&userId=${userId}`
-        : `/api/timetable/public?start=${startDate}&end=${endDate}`;
-
-      const response = await fetch(apiUrl);
-      const events = await response.json();
-
-      // Helper function to calculate duration in hours
-      const calculateDurationHours = (
-        startTime: string,
-        endTime: string,
-      ): number => {
-        const [startHours, startMinutes] = startTime.split(":").map(Number);
-        const [endHours, endMinutes] = endTime.split(":").map(Number);
-        const startTotalMinutes = startHours * 60 + startMinutes;
-        const endTotalMinutes = endHours * 60 + endMinutes;
-        const durationMinutes = endTotalMinutes - startTotalMinutes;
-        // Calculate how many hour slots this spans (e.g., 13:00-15:00 spans 2 hours: 1pm and 2pm)
-        return Math.ceil(durationMinutes / 60);
-      };
-
-      // Helper function to convert hour to time slot string
-      const hourToTimeSlot = (hour: number): string => {
-        if (hour >= 12) {
-          return `${hour === 12 ? 12 : hour - 12}pm`;
-        }
-        return `${hour}am`;
-      };
-
-      // Helper function to get time slot index
-      const getTimeSlotIndex = (timeSlot: string): number => {
-        return TIME_SLOTS.indexOf(timeSlot);
-      };
-
-      // Organize events into timetable structure
-      const organized: TimetableData = {};
-
-      events.forEach((event: any) => {
-        const date = new Date(event.date);
-        const dayIndex = (date.getDay() + 6) % 7; // Convert Sunday=0 to Monday=0
-        const dayName = DAYS[dayIndex];
-
-        // Convert 24h time to 12h format for matching
-        const startHour = Number.parseInt(event.startTime.split(":")[0]);
-        const startTimeSlot = hourToTimeSlot(startHour);
-
-        // Calculate duration in hours
-        const durationHours = calculateDurationHours(
-          event.startTime,
-          event.endTime,
-        );
-
-        if (!organized[dayName]) organized[dayName] = {};
-        if (!organized[dayName][startTimeSlot])
-          organized[dayName][startTimeSlot] = [];
-
-        // Add the main event entry in the start time slot
-        organized[dayName][startTimeSlot].push({
-          id: event.id,
-          title: event.title,
-          description: event.description,
-          instructor: event.instructor,
-          instructorId: event.instructorId || null,
-          instructorDisplayName: (event as any).instructorDisplayName || null,
-          date: event.date,
-          startTime: event.startTime,
-          endTime: event.endTime,
-          location: event.location,
-          whatToBring: event.whatToBring,
-          isWorkshop: event.isWorkshop,
-          propId: event.propId || null,
-          isPublished:
-            event.isPublished !== undefined ? event.isPublished : true,
-          isRecurring: (event as any).isRecurring ?? false,
-          recurringSeriesId: (event as any).recurringSeriesId || null,
-          recurringUntil: (event as any).recurringUntil || null,
-          createdAt: (event as any).createdAt,
-          lastUpdatedBy: (event as any).lastUpdatedBy ?? null,
-          approvedBy: (event as any).approvedBy ?? null,
-          lastUpdatedByUser: (event as any).lastUpdatedByUser ?? null,
-          approvedByUser: (event as any).approvedByUser ?? null,
-        });
-
-        // For each subsequent hour slot, add a blocked entry
-        for (let i = 1; i < durationHours; i++) {
-          const nextHour = startHour + i;
-          const nextTimeSlot = hourToTimeSlot(nextHour);
-
-          // Only add blocked entries for time slots that exist in TIME_SLOTS
-          if (getTimeSlotIndex(nextTimeSlot) !== -1) {
-            if (!organized[dayName][nextTimeSlot])
-              organized[dayName][nextTimeSlot] = [];
-
-            // Add blocked entry
-            organized[dayName][nextTimeSlot].push({
-              id: event.id,
-              title: event.title,
-              description: event.description,
-              instructor: event.instructor,
-              instructorId: event.instructorId || null,
-              instructorDisplayName:
-                (event as any).instructorDisplayName || null,
-              date: event.date,
-              startTime: event.startTime,
-              endTime: event.endTime,
-              location: event.location,
-              whatToBring: event.whatToBring,
-              isWorkshop: event.isWorkshop,
-              propId: event.propId || null,
-              isPublished:
-                event.isPublished !== undefined ? event.isPublished : true,
-              isRecurring: event.isRecurring ?? false,
-              recurringSeriesId: event.recurringSeriesId || null,
-              recurringUntil: event.recurringUntil || null,
-              createdAt: event.createdAt,
-              lastUpdatedBy: event.lastUpdatedBy ?? null,
-              approvedBy: event.approvedBy ?? null,
-              lastUpdatedByUser: event.lastUpdatedByUser ?? null,
-              approvedByUser: event.approvedByUser ?? null,
-              isBlocked: true,
-            });
-          }
-        }
-      });
-
-      setTimetableData(organized);
-    } catch (error) {
-      console.error("Failed to load timetable:", error);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [currentWeek, authContext]);
-
-  useEffect(() => {
-    loadWeekData();
-  }, [loadWeekData]);
-
-  // Listen for event updates to refresh the timetable
+  // Invalidate timetable cache when events are mutated elsewhere in the app
   useEffect(() => {
     const handleEventUpdate = () => {
-      loadWeekData();
+      queryClient.invalidateQueries({ queryKey: ["timetable"] });
     };
 
-    // Listen for custom events when events are created, updated, or deleted
     window.addEventListener("event-updated", handleEventUpdate);
     window.addEventListener("event-created", handleEventUpdate);
     window.addEventListener("event-deleted", handleEventUpdate);
@@ -392,7 +328,7 @@ export function WeeklyTimetable() {
       window.removeEventListener("event-created", handleEventUpdate);
       window.removeEventListener("event-deleted", handleEventUpdate);
     };
-  }, [loadWeekData]);
+  }, [queryClient]);
 
   // Handle clicking on "+" button in empty slot
   const handleAddEventClick = (dayIndex: number, timeSlot: string) => {
@@ -578,12 +514,7 @@ export function WeeklyTimetable() {
 
   // Effect to scroll when week changes and shouldScrollToNow is true
   useEffect(() => {
-    if (
-      shouldScrollToNow &&
-      !isLoading &&
-      weekDates.length > 0 &&
-      currentWeek === 0
-    ) {
+    if (shouldScrollToNow && !isLoading && currentWeek === 0) {
       setShouldScrollToNow(false);
       // Add a small delay to ensure refs are set up after DOM update
       setTimeout(() => {

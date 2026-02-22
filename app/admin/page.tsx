@@ -1,24 +1,24 @@
-import { auth } from "@clerk/nextjs/server";
-import { redirect } from "next/navigation";
-import { isAdmin } from "@/app/profile/actions";
-import { AdminNav } from "@/components/admin/admin-nav";
-import { ActivityFeed } from "@/components/admin/activity-feed";
-import { ACTIVITY_INITIAL_CURSOR } from "@/lib/activity-config";
-import { loadMoreActivity } from "@/app/admin/activity/actions";
+import { auth } from "@clerk/nextjs/server"
+import { redirect } from "next/navigation"
+import { isAdmin } from "@/app/profile/actions"
+import { AdminNav } from "@/components/admin/admin-nav"
+import { ActivityFeed } from "@/components/admin/activity-feed"
+import { loadMoreActivity } from "@/app/admin/activity/actions"
+import { ACTIVITY_INITIAL_CURSOR } from "@/lib/activity-config"
 
 export default async function AdminPage() {
-  const { userId } = await auth();
+  const { userId } = await auth()
 
   if (!userId) {
-    redirect("/sign-in");
+    redirect("/sign-in")
   }
 
-  const userIsAdmin = await isAdmin();
+  const userIsAdmin = await isAdmin()
   if (!userIsAdmin) {
-    redirect("/");
+    redirect("/")
   }
 
-  const { logs, hasMore } = await loadMoreActivity(ACTIVITY_INITIAL_CURSOR);
+  const { logs, hasMore } = await loadMoreActivity(ACTIVITY_INITIAL_CURSOR)
 
   return (
     <div className="min-h-screen bg-background">
@@ -31,5 +31,5 @@ export default async function AdminPage() {
         <ActivityFeed initialLogs={logs} initialHasMore={hasMore} />
       </main>
     </div>
-  );
+  )
 }
