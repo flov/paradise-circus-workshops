@@ -1,4 +1,4 @@
-CREATE TABLE "activity_logs" (
+CREATE TABLE IF NOT EXISTS "activity_logs" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"user_id" integer,
 	"actor_name" varchar(255) NOT NULL,
@@ -10,10 +10,25 @@ CREATE TABLE "activity_logs" (
 	"created_at" timestamp DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
-ALTER TABLE "events" ADD COLUMN "last_updated_by" integer;--> statement-breakpoint
-ALTER TABLE "events" ADD COLUMN "approved_by" integer;--> statement-breakpoint
-ALTER TABLE "activity_logs" ADD CONSTRAINT "activity_logs_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
-CREATE INDEX "idx_activity_logs_created_at" ON "activity_logs" USING btree ("created_at");--> statement-breakpoint
-CREATE INDEX "idx_activity_logs_entity_type_action" ON "activity_logs" USING btree ("entity_type","action");--> statement-breakpoint
-ALTER TABLE "events" ADD CONSTRAINT "events_last_updated_by_users_id_fk" FOREIGN KEY ("last_updated_by") REFERENCES "public"."users"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "events" ADD CONSTRAINT "events_approved_by_users_id_fk" FOREIGN KEY ("approved_by") REFERENCES "public"."users"("id") ON DELETE set null ON UPDATE no action;
+ALTER TABLE "events" ADD COLUMN IF NOT EXISTS "last_updated_by" integer;
+--> statement-breakpoint
+ALTER TABLE "events" ADD COLUMN IF NOT EXISTS "approved_by" integer;
+--> statement-breakpoint
+DO $$ BEGIN
+	ALTER TABLE "activity_logs" ADD CONSTRAINT "activity_logs_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE set null ON UPDATE no action;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "idx_activity_logs_created_at" ON "activity_logs" USING btree ("created_at");
+--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "idx_activity_logs_entity_type_action" ON "activity_logs" USING btree ("entity_type","action");
+--> statement-breakpoint
+DO $$ BEGIN
+	ALTER TABLE "events" ADD CONSTRAINT "events_last_updated_by_users_id_fk" FOREIGN KEY ("last_updated_by") REFERENCES "public"."users"("id") ON DELETE set null ON UPDATE no action;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+--> statement-breakpoint
+DO $$ BEGIN
+	ALTER TABLE "events" ADD CONSTRAINT "events_approved_by_users_id_fk" FOREIGN KEY ("approved_by") REFERENCES "public"."users"("id") ON DELETE set null ON UPDATE no action;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
