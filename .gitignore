@@ -33,6 +33,8 @@ backup.sql
 *.tsbuildinfo
 next-env.d.ts
 
+# claude
+.claude/
 
 # clerk configuration (can include secrets)
 /.clerk/
