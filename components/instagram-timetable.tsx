@@ -447,7 +447,7 @@ function EventCell({
           )}
           {isCleanupTime && (
             <p
-              className="text-[9px] sm:text-[11px] md:text-[12px] lg:text-sm leading-tight mt-1"
+              className="text-[8px] sm:text-[10px] md:text-[11px] lg:text[10px] leading-tight mt-1"
               style={{
                 color: "#a855f7",
                 fontFamily: "'Arial Black', 'Arial Bold', Arial, sans-serif",
@@ -648,7 +648,7 @@ function EventCell({
         )}
         {isCleanupTime && (
           <p
-            className="text-[9px] sm:text-[11px] md:text-[12px] lg:text-sm leading-tight mt-1"
+            className="text-[9px] sm:text-[10px] md:text-[10px] lg:text-[10px] leading-tight mt-1"
             style={{
               color: "#a855f7",
               fontFamily: "'Arial Black', 'Arial Bold', Arial, sans-serif",
