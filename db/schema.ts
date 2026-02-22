@@ -1,4 +1,4 @@
-import { pgTable, serial, varchar, text, date, time, integer, timestamp, index, boolean } from "drizzle-orm/pg-core";
+import { pgTable, serial, varchar, text, date, time, integer, timestamp, index, boolean, jsonb } from "drizzle-orm/pg-core";
 import { relations, InferSelectModel, InferInsertModel } from "drizzle-orm";
 
 export const events = pgTable(
@@ -200,6 +200,25 @@ export const userPropsRelations = relations(userProps, ({ one }) => ({
 }));
 
 
+export const activityLogs = pgTable(
+  "activity_logs",
+  {
+    id: serial("id").primaryKey(),
+    userId: integer("user_id").references(() => users.id, { onDelete: "set null" }),
+    actorName: varchar("actor_name", { length: 255 }).notNull(),
+    action: varchar("action", { length: 50 }).notNull(),
+    entityType: varchar("entity_type", { length: 50 }).notNull(),
+    entityId: varchar("entity_id", { length: 100 }),
+    entityLabel: varchar("entity_label", { length: 500 }),
+    metadata: jsonb("metadata").$type<Record<string, unknown>>(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => ({
+    createdAtIdx: index("idx_activity_logs_created_at").on(table.createdAt),
+    entityTypeActionIdx: index("idx_activity_logs_entity_type_action").on(table.entityType, table.action),
+  })
+);
+
 // Export inferred types for each table
 export type Event = InferSelectModel<typeof events>;
 export type NewEvent = InferInsertModel<typeof events>;
@@ -231,3 +250,6 @@ export type NewUserProp = InferInsertModel<typeof userProps>;
 
 export type AdminSetting = InferSelectModel<typeof adminSettings>;
 export type NewAdminSetting = InferInsertModel<typeof adminSettings>;
+
+export type ActivityLog = InferSelectModel<typeof activityLogs>;
+export type NewActivityLog = InferInsertModel<typeof activityLogs>;

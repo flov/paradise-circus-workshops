@@ -1,12 +1,12 @@
 import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import { isAdmin } from "@/app/profile/actions";
+import { ACTIVITY_INITIAL_CURSOR } from "@/lib/activity-config";
+import { loadMoreActivity } from "./actions";
 import { AdminNav } from "@/components/admin/admin-nav";
 import { ActivityFeed } from "@/components/admin/activity-feed";
-import { ACTIVITY_INITIAL_CURSOR } from "@/lib/activity-config";
-import { loadMoreActivity } from "@/app/admin/activity/actions";
 
-export default async function AdminPage() {
+export default async function ActivityPage() {
   const { userId } = await auth();
 
   if (!userId) {
@@ -23,11 +23,11 @@ export default async function AdminPage() {
   return (
     <div className="min-h-screen bg-background">
       <AdminNav
-        title="Admin Dashboard"
+        title="Activity"
         description="Recent timetable activity by admins and instructors"
       />
 
-      <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+      <main className="mx-auto max-w-3xl px-4 py-8 sm:px-6 lg:px-8">
         <ActivityFeed initialLogs={logs} initialHasMore={hasMore} />
       </main>
     </div>

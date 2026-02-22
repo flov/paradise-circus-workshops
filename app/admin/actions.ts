@@ -17,6 +17,18 @@ import {
   sendAdminPromotedEmail,
 } from "@/lib/email";
 import { randomUUID } from "crypto";
+import { logActivity } from "@/lib/activity-log";
+
+/** Resolve the current user's DB id, display name, and username for activity logging. */
+async function getActorInfo(clerkUserId: string): Promise<{ id: number | null; name: string; username: string }> {
+  const result = await db
+    .select({ id: users.id, displayName: users.displayName, username: users.username })
+    .from(users)
+    .where(eq(users.clerkUserId, clerkUserId))
+    .limit(1);
+  if (result.length === 0) return { id: null, name: "Unknown", username: "unknown" };
+  return { id: result[0].id, name: result[0].displayName || result[0].username, username: result[0].username };
+}
 
 /**
  * Generate weekly date strings from startDate to endDate (inclusive) using UTC.
@@ -470,6 +482,18 @@ export async function createEvent(formData: FormData) {
         }
       }
 
+      const actor = await getActorInfo(userId);
+      logActivity({
+        userId: actor.id,
+        actorName: actor.name,
+        actorUsername: actor.username,
+        action: "create",
+        entityType: "event",
+        entityId: String(newEvents[0]?.id),
+        entityLabel: title,
+        metadata: { count: eventDates.length, recurringSeriesId },
+      });
+
       revalidatePath("/admin");
       revalidatePath("/");
       revalidatePath("/api/timetable");
@@ -655,6 +679,16 @@ export async function createEvent(formData: FormData) {
     } else {
     }
 
+    const actor = await getActorInfo(userId);
+    logActivity({
+      userId: actor.id,
+      actorName: actor.name,
+      action: "create",
+      entityType: "event",
+      entityId: String(newEvent.id),
+      entityLabel: title,
+    });
+
     revalidatePath("/admin");
     revalidatePath("/");
     revalidatePath("/api/timetable");
@@ -787,6 +821,16 @@ export async function approveEvent(eventId: number) {
         // Don't fail the approval if email fails
       }
     }
+
+    const actor = await getActorInfo(userId);
+    logActivity({
+      userId: actor.id,
+      actorName: actor.name,
+      action: "approve",
+      entityType: "event",
+      entityId: String(eventId),
+      entityLabel: event.title,
+    });
 
     revalidatePath("/admin");
     revalidatePath("/admin/pending-approval");
@@ -1651,6 +1695,29 @@ export async function updateEvent(formData: FormData) {
       }
     }
 
+    // Log activity for update
+    const actor = await getActorInfo(userId);
+    const changedFields: string[] = [];
+    if (title !== currentEvent.title) changedFields.push("title");
+    if ((description || null) !== (currentEvent.description || null)) changedFields.push("description");
+    if ((instructorName || null) !== (currentEvent.instructor || null)) changedFields.push("instructor");
+    if (date !== currentEvent.date) changedFields.push("date");
+    const normalizeTimeForLog = (t: string | null) => t ? (t.length === 5 ? `${t}:00` : t) : null;
+    if (normalizeTimeForLog(start_time) !== normalizeTimeForLog(currentEvent.startTime)) changedFields.push("startTime");
+    if (normalizeTimeForLog(end_time) !== normalizeTimeForLog(currentEvent.endTime)) changedFields.push("endTime");
+    if ((location || null) !== (currentEvent.location || null)) changedFields.push("location");
+    if (isWorkshop !== currentEvent.isWorkshop) changedFields.push("isWorkshop");
+    if (isPublished !== currentEvent.isPublished) changedFields.push("isPublished");
+    logActivity({
+      userId: actor.id,
+      actorName: actor.name,
+      action: "update",
+      entityType: "event",
+      entityId: String(eventId),
+      entityLabel: title,
+      metadata: changedFields.length > 0 ? { changedFields } : undefined,
+    });
+
     revalidatePath("/admin");
     revalidatePath("/");
     revalidatePath("/api/timetable");
@@ -1804,6 +1871,18 @@ export async function deleteEvent(
       // Wait for all emails to be sent (or fail gracefully)
       await Promise.allSettled(emailPromises);
     }
+
+    // Log activity before deletion
+    const actor = await getActorInfo(userId);
+    logActivity({
+      userId: actor.id,
+      actorName: actor.name,
+      action: "delete",
+      entityType: "event",
+      entityId: String(eventId),
+      entityLabel: event.title,
+      metadata: cancellationMessage ? { cancellationMessage } : undefined,
+    });
 
     // Delete the event (this will cascade delete participations due to foreign key constraint)
     await db.delete(events).where(eq(events.id, eventId));
@@ -1971,6 +2050,18 @@ export async function deleteEventAndFutureInstructorEvents(
       ? currentEvent.instructorProfile.displayName ||
         currentEvent.instructorProfile.username
       : currentEvent.instructor || "Unknown Instructor";
+
+    // Log activity before deletion
+    const actor = await getActorInfo(userId);
+    logActivity({
+      userId: actor.id,
+      actorName: actor.name,
+      action: "delete",
+      entityType: "event",
+      entityId: String(eventId),
+      entityLabel: currentEvent.title,
+      metadata: { count: eventsToDelete.length, ...(cancellationMessage ? { cancellationMessage } : {}) },
+    });
 
     // Process each event: send cancellation emails and delete
     for (const eventToDelete of eventsToDelete) {
@@ -2897,6 +2988,17 @@ export async function fillRecurringSeriesGaps(
     if (eventsToCreate.length > 0) {
       await db.insert(events).values(eventsToCreate);
 
+      const actor = await getActorInfo(userId);
+      logActivity({
+        userId: actor.id,
+        actorName: actor.name,
+        actorUsername: actor.username,
+        action: "fill",
+        entityType: "event",
+        entityLabel: template.title,
+        metadata: { count: eventsToCreate.length, recurringSeriesId },
+      });
+
       revalidatePath("/admin");
       revalidatePath("/admin/recurring_events");
       revalidatePath("/");
@@ -3080,6 +3182,15 @@ export async function linkRecurringEventsByTitle(eventIds: number[]): Promise<{
       })
       .where(inArray(events.id, idsToUpdate));
 
+    const actor = await getActorInfo(userId);
+    logActivity({
+      userId: actor.id,
+      actorName: actor.name,
+      action: "link",
+      entityType: "event",
+      metadata: { count: idsToUpdate.length, recurringSeriesId: targetSeriesId },
+    });
+
     revalidatePath("/admin");
     revalidatePath("/admin/recurring_events");
     revalidatePath("/");
@@ -3259,6 +3370,18 @@ export async function copySelectedRecurringEventsToNextWeek(
     if (eventsToInsert.length > 0) {
       await db.insert(events).values(eventsToInsert);
       copiedCount = eventsToInsert.length;
+    }
+
+    if (copiedCount > 0) {
+      const actor = await getActorInfo(userId);
+      logActivity({
+        userId: actor.id,
+        actorName: actor.name,
+        actorUsername: actor.username,
+        action: "copy",
+        entityType: "event",
+        metadata: { count: copiedCount },
+      });
     }
 
     // Revalidate paths
@@ -3495,6 +3618,17 @@ export async function updateEventRecapVideo(
         console.error("Error sending recap notification emails:", error);
       });
     }
+
+    const actor = await getActorInfo(userId);
+    logActivity({
+      userId: actor.id,
+      actorName: actor.name,
+      action: "update",
+      entityType: "event",
+      entityId: String(eventId),
+      entityLabel: event.title,
+      metadata: { field: "recapVideoId" },
+    });
 
     revalidatePath(`/event`);
     revalidatePath("/api/timetable");
