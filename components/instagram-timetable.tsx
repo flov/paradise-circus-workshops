@@ -1,33 +1,33 @@
-"use client";
+"use client"
 
-import React, { useState, useMemo, useEffect } from "react";
-import Link from "next/link";
-import { createEventSlug } from "@/lib/utils";
+import React, { useState, useMemo, useEffect } from "react"
+import Link from "next/link"
+import { createEventSlug } from "@/lib/utils"
 
 interface ScheduleEvent {
-  name: string;
-  instructor: string;
-  eventId?: number;
-  instructorUsername?: string;
-  isLogo?: boolean;
-  isSpecial?: boolean;
-  span?: number; // Number of time slots this event spans
-  isOccupied?: boolean; // True if this slot is occupied by a multi-slot event
-  startsAtHalfHour?: boolean; // True if event starts at :30 (e.g., 12:30)
+  name: string
+  instructor: string
+  eventId?: number
+  instructorUsername?: string
+  isLogo?: boolean
+  isSpecial?: boolean
+  span?: number // Number of time slots this event spans
+  isOccupied?: boolean // True if this slot is occupied by a multi-slot event
+  startsAtHalfHour?: boolean // True if event starts at :30 (e.g., 12:30)
 }
 
 interface ScheduleData {
-  title: string;
-  days: string[];
-  timeSlots: string[];
-  events: Record<string, ScheduleEvent | null>;
+  title: string
+  days: string[]
+  timeSlots: string[]
+  events: Record<string, ScheduleEvent | null>
 }
 
 interface InstagramTimetableProps {
-  data: ScheduleData;
-  aspectRatio?: "square" | "portrait" | "landscape";
-  location?: string;
-  stripeColor?: string;
+  data: ScheduleData
+  aspectRatio?: "square" | "portrait" | "landscape"
+  location?: string
+  stripeColor?: string
 }
 
 export function InstagramTimetable({
@@ -38,88 +38,88 @@ export function InstagramTimetable({
 }: InstagramTimetableProps) {
   // Default colors based on location
   const defaultStripeColor = useMemo(() => {
-    if (initialStripeColor) return initialStripeColor;
-    return location === "paradise-river" ? "#16a34a" : "#dc2626"; // green-600 for river, red-600 for stage
-  }, [location, initialStripeColor]);
+    if (initialStripeColor) return initialStripeColor
+    return location === "paradise-river" ? "#16a34a" : "#dc2626" // green-600 for river, red-600 for stage
+  }, [location, initialStripeColor])
 
-  const [stripeColor, setStripeColor] = useState(defaultStripeColor);
-  const [secondStripeColor, setSecondStripeColor] = useState("#ffffff"); // Default to white
+  const [stripeColor, setStripeColor] = useState(defaultStripeColor)
+  const [secondStripeColor, setSecondStripeColor] = useState("#ffffff") // Default to white
 
   // Update stripe color when location changes
   useEffect(() => {
     if (!initialStripeColor) {
-      setStripeColor(location === "paradise-river" ? "#16a34a" : "#dc2626");
+      setStripeColor(location === "paradise-river" ? "#16a34a" : "#dc2626")
     }
-  }, [location, initialStripeColor]);
+  }, [location, initialStripeColor])
 
   const aspectClasses = {
     square: "aspect-square max-w-[1080px]",
     portrait: "aspect-[4/5] max-w-[864px]",
     landscape: "aspect-[4/3] max-w-[1200px]",
-  };
+  }
 
   // Pre-calculate spans and occupied status for all cells
-  const cellData: Record<string, { span: number; shouldRender: boolean }> = {};
+  const cellData: Record<string, { span: number; shouldRender: boolean }> = {}
 
   data.days.forEach((day) => {
     data.timeSlots.forEach((time, timeIndex) => {
-      const key = `${time}-${day}`;
-      const event = data.events[key];
+      const key = `${time}-${day}`
+      const event = data.events[key]
 
       // Helper to check if a slot is occupied by an earlier event span
       const isOccupiedByEventSpan = (slotIndex: number): boolean => {
         for (let i = 0; i < slotIndex; i++) {
-          const earlierTime = data.timeSlots[i];
-          const earlierEvent = data.events[`${earlierTime}-${day}`];
+          const earlierTime = data.timeSlots[i]
+          const earlierEvent = data.events[`${earlierTime}-${day}`]
           if (earlierEvent?.span && earlierEvent.span > 1) {
-            const spanEndIndex = i + earlierEvent.span - 1;
+            const spanEndIndex = i + earlierEvent.span - 1
             if (slotIndex <= spanEndIndex && slotIndex > i) {
-              return true;
+              return true
             }
           }
         }
-        return false;
-      };
+        return false
+      }
 
-      const isOccupiedByEarlier = isOccupiedByEventSpan(timeIndex);
+      const isOccupiedByEarlier = isOccupiedByEventSpan(timeIndex)
 
-      let span = 1;
-      let shouldRender = true;
+      let span = 1
+      let shouldRender = true
 
       if (event) {
         // Event with explicit span
         if (event.span && event.span > 1) {
-          span = event.span;
+          span = event.span
         }
         // If occupied by earlier event span, don't render
         if (isOccupiedByEarlier) {
-          shouldRender = false;
+          shouldRender = false
         }
       } else {
         // FREE FLOW slot
         if (isOccupiedByEarlier) {
-          shouldRender = false;
+          shouldRender = false
         } else {
           // Check if this is part of an earlier FREE FLOW group
           for (let i = 0; i < timeIndex; i++) {
-            const earlierTime = data.timeSlots[i];
-            const earlierEvent = data.events[`${earlierTime}-${day}`];
+            const earlierTime = data.timeSlots[i]
+            const earlierEvent = data.events[`${earlierTime}-${day}`]
 
             if (!earlierEvent && !isOccupiedByEventSpan(i)) {
               // Count consecutive FREE FLOW slots from this earlier slot
-              let freeFlowSpan = 1;
+              let freeFlowSpan = 1
               for (let j = i + 1; j < data.timeSlots.length; j++) {
-                const checkTime = data.timeSlots[j];
-                const checkEvent = data.events[`${checkTime}-${day}`];
+                const checkTime = data.timeSlots[j]
+                const checkEvent = data.events[`${checkTime}-${day}`]
                 if (checkEvent || isOccupiedByEventSpan(j)) {
-                  break;
+                  break
                 }
-                freeFlowSpan++;
+                freeFlowSpan++
               }
               // If this slot is within the span
               if (timeIndex < i + freeFlowSpan && timeIndex > i) {
-                shouldRender = false;
-                break;
+                shouldRender = false
+                break
               }
             }
           }
@@ -127,20 +127,20 @@ export function InstagramTimetable({
           // If we should render, calculate span
           if (shouldRender) {
             for (let i = timeIndex + 1; i < data.timeSlots.length; i++) {
-              const nextTime = data.timeSlots[i];
-              const nextEvent = data.events[`${nextTime}-${day}`];
+              const nextTime = data.timeSlots[i]
+              const nextEvent = data.events[`${nextTime}-${day}`]
               if (nextEvent || isOccupiedByEventSpan(i)) {
-                break;
+                break
               }
-              span++;
+              span++
             }
           }
         }
       }
 
-      cellData[key] = { span, shouldRender };
-    });
-  });
+      cellData[key] = { span, shouldRender }
+    })
+  })
 
   return (
     <div className="w-full flex flex-col items-center gap-4">
@@ -230,7 +230,7 @@ export function InstagramTimetable({
               {/* Time Rows */}
               {data.timeSlots.map((time, timeIndex) => {
                 // Calculate the grid row (1-indexed, +1 for header row)
-                const gridRow = timeIndex + 2;
+                const gridRow = timeIndex + 2
 
                 return (
                   <React.Fragment key={time}>
@@ -238,12 +238,12 @@ export function InstagramTimetable({
                       {time}
                     </TimeCell>
                     {data.days.map((day, dayIndex) => {
-                      const key = `${time}-${day}`;
-                      const event = data.events[key];
-                      const cellInfo = cellData[key];
+                      const key = `${time}-${day}`
+                      const event = data.events[key]
+                      const cellInfo = cellData[key]
 
                       // Calculate grid column (1-indexed, +1 for time column)
-                      const gridColumn = dayIndex + 2;
+                      const gridColumn = dayIndex + 2
 
                       // Ensure cellData exists - if not, calculate defaults
                       if (!cellInfo) {
@@ -257,14 +257,44 @@ export function InstagramTimetable({
                             day={day}
                             time={time}
                           />
-                        );
+                        )
                       }
 
-                      const { span, shouldRender } = cellInfo;
+                      const { span, shouldRender } = cellInfo
 
                       // Don't render cells that are part of a span - CSS Grid handles this automatically
                       if (!shouldRender) {
-                        return null;
+                        // Exception: always show buffet info at Wed 6pm even if covered by another event's span
+                        const isBuffetSlot = day === "Wed" && time === "6pm";
+                        if (isBuffetSlot) {
+                          return (
+                            <div
+                              key={key}
+                              className="flex items-end justify-center"
+                              style={{ gridRow, gridColumn, zIndex: 20 }}
+                            >
+                              <div className="text-center w-full bg-[#3a3a3a] rounded-b px-1 py-0.5">
+                                <p
+                                  className="text-[9px] sm:text-[11px] md:text-[12px] lg:text-[15px] leading-tight"
+                                  style={{
+                                    color: "#a855f7",
+                                    fontFamily:
+                                      "'Arial Black', 'Arial Bold', Arial, sans-serif",
+                                  }}
+                                >
+                                  All You Can Eat Buffet
+                                </p>
+                                <p
+                                  className="text-[8px] sm:text-[10px] md:text-[11px] lg:text-xs leading-tight"
+                                  style={{ color: "#a855f7" }}
+                                >
+                                  Pi Gaew
+                                </p>
+                              </div>
+                            </div>
+                          );
+                        }
+                        return null
                       }
 
                       return (
@@ -277,17 +307,17 @@ export function InstagramTimetable({
                           day={day}
                           time={time}
                         />
-                      );
+                      )
                     })}
                   </React.Fragment>
-                );
+                )
               })}
             </div>
           </div>
         </div>
       </div>
     </div>
-  );
+  )
 }
 
 function SunburstBackground({
@@ -295,15 +325,15 @@ function SunburstBackground({
   stripeColor,
   secondStripeColor,
 }: {
-  location?: string;
-  stripeColor: string;
-  secondStripeColor: string;
+  location?: string
+  stripeColor: string
+  secondStripeColor: string
 }) {
-  const rays = 24;
-  const rayElements = [];
+  const rays = 24
+  const rayElements = []
 
   for (let i = 0; i < rays; i++) {
-    const rotation = (360 / rays) * i;
+    const rotation = (360 / rays) * i
     rayElements.push(
       <div
         key={i}
@@ -321,7 +351,7 @@ function SunburstBackground({
           clipPath: `polygon(50% 50%, 40% 0%, 55% 0%)`,
         }}
       />,
-    );
+    )
   }
 
   return (
@@ -331,15 +361,15 @@ function SunburstBackground({
     >
       {rayElements}
     </div>
-  );
+  )
 }
 
 function HeaderCell({
   children,
   style,
 }: {
-  children: React.ReactNode;
-  style?: React.CSSProperties;
+  children: React.ReactNode
+  style?: React.CSSProperties
 }) {
   return (
     <div
@@ -353,15 +383,15 @@ function HeaderCell({
         {children}
       </span>
     </div>
-  );
+  )
 }
 
 function TimeCell({
   children,
   style,
 }: {
-  children: React.ReactNode;
-  style?: React.CSSProperties;
+  children: React.ReactNode
+  style?: React.CSSProperties
 }) {
   return (
     <div
@@ -375,7 +405,7 @@ function TimeCell({
         {children}
       </span>
     </div>
-  );
+  )
 }
 
 function EventCell({
@@ -386,35 +416,35 @@ function EventCell({
   day,
   time,
 }: {
-  event: ScheduleEvent | null;
-  rowSpan?: number;
-  gridRow?: number;
-  gridColumn?: number;
-  day?: string;
-  time?: string;
+  event: ScheduleEvent | null
+  rowSpan?: number
+  gridRow?: number
+  gridColumn?: number
+  day?: string
+  time?: string
 }) {
   // Apply explicit grid positioning and row span
-  const gridStyle: React.CSSProperties = {};
+  const gridStyle: React.CSSProperties = {}
   if (gridRow !== undefined) {
     if (rowSpan > 1) {
-      gridStyle.gridRow = `${gridRow} / span ${rowSpan}`;
+      gridStyle.gridRow = `${gridRow} / span ${rowSpan}`
     } else {
-      gridStyle.gridRow = gridRow;
+      gridStyle.gridRow = gridRow
     }
   } else if (rowSpan > 1) {
-    gridStyle.gridRow = `span ${rowSpan}`;
+    gridStyle.gridRow = `span ${rowSpan}`
   }
   if (gridColumn !== undefined) {
-    gridStyle.gridColumn = gridColumn;
+    gridStyle.gridColumn = gridColumn
   }
 
   // Check if this is Wednesday at 6pm for the buffet event
-  const isBuffetTime = day === "Wed" && time === "6pm";
+  const isBuffetTime = day === "Wed" && time === "6pm"
   // Check if this is Sunday at 12pm for the community clean up event
-  const isCleanupTime = day === "Sun" && time === "12pm";
+  const isCleanupTime = day === "Sun" && time === "12pm"
 
   // Handle half-hour starts: position in bottom half of the slot
-  const needsHalfHourPositioning = event?.startsAtHalfHour && rowSpan === 1;
+  const needsHalfHourPositioning = event?.startsAtHalfHour && rowSpan === 1
 
   if (!event) {
     return (
@@ -461,7 +491,7 @@ function EventCell({
           </p>
         </div>
       </div>
-    );
+    )
   }
 
   if (event.isLogo) {
@@ -478,7 +508,7 @@ function EventCell({
           <div className="text-[8px] sm:text-xs font-black">CIRCUS</div>
         </div>
       </div>
-    );
+    )
   }
 
   // For half-hour starts, position in bottom half of the slot
@@ -579,7 +609,7 @@ function EventCell({
           </div>
         </div>
       </div>
-    );
+    )
   }
 
   return (
@@ -659,5 +689,5 @@ function EventCell({
         )}
       </div>
     </div>
-  );
+  )
 }
