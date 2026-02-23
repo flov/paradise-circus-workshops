@@ -240,6 +240,9 @@ importers:
       drizzle-kit:
         specifier: ^0.31.8
         version: 0.31.8
+      next-openapi-gen:
+        specifier: ^0.10.2
+        version: 0.10.2
       postcss:
         specifier: ^8.5
         version: 8.5.0
@@ -4635,6 +4638,11 @@ packages:
 
   neo-async@2.6.2:
     resolution: {integrity: sha512-Yd3UES5mWCSqR+qNT93S3UoYUkqAZ9lLg8a7g9rimsWmYGK8cVToA4/sF3RrshdyV3sAGMXVUmpMYOw+dLpOuw==}
+
+  next-openapi-gen@0.10.2:
+    resolution: {integrity: sha512-Y5xEKeUDrsuwgD3B9JT/zuwde5WQxUXLrpOgCtd1wN1GNcRcw/IgZpU9wje4huFoy0od0WOHdQ563oLBFyRztA==}
+    engines: {node: '>=18.0.0'}
+    hasBin: true
 
   next-themes@0.4.6:
     resolution: {integrity: sha512-pZvgD5L0IEvX5/9GWyHMf3m8BKiVQwsCMHfoFosXtXBMnaS0ZnIJ9ST4b4NqLVKDEm8QBxoNNGNaBv2JNF6XNA==}
@@ -10028,6 +10036,18 @@ snapshots:
   negotiator@1.0.0: {}
 
   neo-async@2.6.2: {}
+
+  next-openapi-gen@0.10.2:
+    dependencies:
+      '@babel/parser': 7.28.5
+      '@babel/traverse': 7.28.5
+      '@babel/types': 7.28.5
+      commander: 14.0.2
+      fs-extra: 11.3.3
+      js-yaml: 4.1.1
+      ora: 8.2.0
+    transitivePeerDependencies:
+      - supports-color
 
   next-themes@0.4.6(react-dom@19.2.0(react@19.2.0))(react@19.2.0):
     dependencies:

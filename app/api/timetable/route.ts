@@ -4,6 +4,7 @@ import { and, gte, lte, asc, eq, or } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import type { NextRequest } from "next/server";
 import { auth } from "@clerk/nextjs/server";
+import { corsJson, corsOptions } from "@/lib/cors";
 
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
@@ -12,7 +13,7 @@ export async function GET(request: NextRequest) {
   const userId = searchParams.get("userId");
 
   if (!startDate || !endDate) {
-    return Response.json(
+    return corsJson(
       { error: "Start and end dates are required" },
       { status: 400 },
     );
@@ -132,7 +133,7 @@ export async function GET(request: NextRequest) {
       .orderBy(asc(events.date), asc(events.startTime));
 
     // Return events with computed instructorDisplayName field
-    return Response.json(
+    return corsJson(
       eventsData.map((event) => ({
         ...event,
         instructorDisplayName: event.instructorProfile
@@ -143,9 +144,13 @@ export async function GET(request: NextRequest) {
     );
   } catch (error) {
     console.error("Database error:", error);
-    return Response.json(
+    return corsJson(
       { error: "Failed to fetch timetable" },
       { status: 500 },
     );
   }
+}
+
+export async function OPTIONS() {
+  return corsOptions();
 }

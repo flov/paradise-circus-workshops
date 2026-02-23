@@ -3,6 +3,7 @@ import { events, users } from "@/db/schema";
 import { and, gte, lte, asc, eq } from "drizzle-orm";
 import type { NextRequest } from "next/server";
 import { unstable_cache } from "next/cache";
+import { corsJson, corsOptions } from "@/lib/cors";
 
 async function getPublicTimetableData(startDate: string, endDate: string) {
   const dateConditions = and(
@@ -66,7 +67,7 @@ export async function GET(request: NextRequest) {
   const endDate = searchParams.get("end");
 
   if (!startDate || !endDate) {
-    return Response.json(
+    return corsJson(
       { error: "Start and end dates are required" },
       { status: 400 },
     );
@@ -87,12 +88,16 @@ export async function GET(request: NextRequest) {
 
     const eventsData = await cachedData();
 
-    return Response.json(eventsData);
+    return corsJson(eventsData);
   } catch (error) {
     console.error("Database error:", error);
-    return Response.json(
+    return corsJson(
       { error: "Failed to fetch timetable" },
       { status: 500 },
     );
   }
+}
+
+export async function OPTIONS() {
+  return corsOptions();
 }

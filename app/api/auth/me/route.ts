@@ -1,5 +1,5 @@
 import { getAuthContext } from "@/app/profile/actions";
-import { NextResponse } from "next/server";
+import { corsJson, corsOptions } from "@/lib/cors";
 
 /**
  * Returns the current user's auth context for client-side navigation and timetable.
@@ -9,11 +9,15 @@ import { NextResponse } from "next/server";
 export async function GET() {
   const context = await getAuthContext();
   if (!context) {
-    return NextResponse.json({ isAdmin: false, isInstructor: false, userId: null });
+    return corsJson({ isAdmin: false, isInstructor: false, userId: null });
   }
-  return NextResponse.json({
+  return corsJson({
     isAdmin: context.isAdmin,
     isInstructor: context.isInstructor,
     userId: context.userId,
   });
+}
+
+export async function OPTIONS() {
+  return corsOptions();
 }
