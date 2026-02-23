@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "build": "BASELINE_BROWSER_MAPPING_IGNORE_OLD_DATA=1 next build --webpack",
+    "build": "pnpm openapi:generate && BASELINE_BROWSER_MAPPING_IGNORE_OLD_DATA=1 next build --webpack",
     "dev": "next dev",
     "lint": "eslint .",
     "start": "next start",
@@ -19,7 +19,8 @@
     "test:db:up": "docker compose -f docker-compose.test.yml up -d",
     "test:db:down": "docker compose -f docker-compose.test.yml down",
     "test:db:migrate": "tsx scripts/test-db-setup.ts",
-    "test:local": "DATABASE_URL_TEST=postgresql://postgres:postgres@localhost:5433/paradise_circus_test dotenv -e .env.test -- vitest run"
+    "test:local": "DATABASE_URL_TEST=postgresql://postgres:postgres@localhost:5433/paradise_circus_test dotenv -e .env.test -- vitest run",
+    "openapi:generate": "next-openapi-gen generate"
   },
   "dependencies": {
     "@clerk/nextjs": "^6.36.5",

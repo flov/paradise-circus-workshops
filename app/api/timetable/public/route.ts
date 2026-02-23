@@ -62,6 +62,12 @@ async function getPublicTimetableData(startDate: string, endDate: string) {
   }));
 }
 
+/**
+ * Get public timetable (published events only)
+ * @description Returns published events for the given date range. Used by the mobile app timetable. Requires start and end in YYYY-MM-DD format.
+ * @params timetableQuerySchema
+ * @responseSet public
+ */
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
   const result = timetableQuerySchema.safeParse({

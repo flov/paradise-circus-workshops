@@ -1,8 +1,14 @@
 import { unstable_cache } from "next/cache"
 import { getUserByUsername, getUserProps, getUserWorkshops } from "@/app/profile/actions"
 import { corsJson, corsOptions } from "@/lib/cors"
-import { usernameParamSchema } from "@/lib/validations"
+import { artistUsernameParamsSchema, usernameParamSchema } from "@/lib/validations"
 
+/**
+ * Get artist profile by username
+ * @description Returns full artist profile with props and upcoming workshops. Used by the mobile app artist detail screen.
+ * @pathParams artistUsernameParamsSchema
+ * @responseSet public
+ */
 export async function GET(
   _request: Request,
   { params }: { params: Promise<{ username: string }> },

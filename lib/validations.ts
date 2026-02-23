@@ -26,6 +26,17 @@ export const usernameParamSchema = z
     "Username can only contain letters, numbers, dots, hyphens, and underscores"
   );
 
+// API path/query schemas for OpenAPI docs
+export const artistUsernameParamsSchema = z.object({
+  username: usernameParamSchema,
+});
+
+export const authMeResponseSchema = z.object({
+  isAdmin: z.boolean().describe("Whether the user is an admin"),
+  isInstructor: z.boolean().describe("Whether the user is an instructor"),
+  userId: z.string().nullable().describe("Clerk user ID when signed in"),
+});
+
 // Server action inputs
 export const createBookingSchema = z.object({
   eventId: positiveIntSchema,

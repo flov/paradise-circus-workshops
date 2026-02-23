@@ -2,10 +2,9 @@ import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono, Rye } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
 import { ClerkProvider } from "@clerk/nextjs";
-import { Navigation } from "@/components/navigation";
 import { QueryProvider } from "@/components/query-provider";
+import { AppShell } from "@/components/app-shell";
 import "./globals.css";
-import { Footer } from "@/components/footer";
 
 const _geist = Geist({ subsets: ["latin"] });
 const _geistMono = Geist_Mono({ subsets: ["latin"] });
@@ -125,9 +124,7 @@ export default function RootLayout({
           className={`font-sans antialiased ${rye.variable} min-h-screen flex flex-col`}
         >
           <QueryProvider>
-            <Navigation />
-            <div className="pt-12 flex-1">{children}</div>
-            <Footer />
+            <AppShell>{children}</AppShell>
             <Analytics />
           </QueryProvider>
         </body>

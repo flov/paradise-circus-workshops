@@ -1,10 +1,12 @@
 import { getAuthContext } from "@/app/profile/actions";
 import { corsJson, corsOptions } from "@/lib/cors";
+import { authMeResponseSchema } from "@/lib/validations";
 
 /**
- * Returns the current user's auth context for client-side navigation and timetable.
- * Only called when user is signed in - avoids blocking static rendering
- * of the layout for anonymous visitors.
+ * Get current user auth context
+ * @description Returns the current user's auth context (isAdmin, isInstructor, userId). Used for client-side navigation and timetable. Returns nulls when signed out.
+ * @response authMeResponseSchema
+ * @responseSet public
  */
 export async function GET() {
   const context = await getAuthContext();
