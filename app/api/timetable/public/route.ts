@@ -4,6 +4,7 @@ import { and, gte, lte, asc, eq } from "drizzle-orm";
 import type { NextRequest } from "next/server";
 import { unstable_cache } from "next/cache";
 import { corsJson, corsOptions } from "@/lib/cors";
+import { timetableQuerySchema } from "@/lib/validations";
 
 async function getPublicTimetableData(startDate: string, endDate: string) {
   const dateConditions = and(
@@ -63,15 +64,14 @@ async function getPublicTimetableData(startDate: string, endDate: string) {
 
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
-  const startDate = searchParams.get("start");
-  const endDate = searchParams.get("end");
-
-  if (!startDate || !endDate) {
-    return corsJson(
-      { error: "Start and end dates are required" },
-      { status: 400 },
-    );
+  const result = timetableQuerySchema.safeParse({
+    start: searchParams.get("start"),
+    end: searchParams.get("end"),
+  });
+  if (!result.success) {
+    return corsJson({ error: result.error.issues[0].message }, { status: 400 });
   }
+  const { start: startDate, end: endDate } = result.data;
 
   try {
     // Cache the public timetable data

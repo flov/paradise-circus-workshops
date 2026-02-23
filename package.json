@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "build": "BASELINE_BROWSER_MAPPING_IGNORE_OLD_DATA=1 next build",
+    "build": "BASELINE_BROWSER_MAPPING_IGNORE_OLD_DATA=1 next build --webpack",
     "dev": "next dev",
     "lint": "eslint .",
     "start": "next start",

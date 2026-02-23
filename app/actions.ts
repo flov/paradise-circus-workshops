@@ -12,6 +12,7 @@ import {
 } from "@/lib/email";
 import { auth, currentUser } from "@clerk/nextjs/server";
 import { getUserName, getUserEmail, createEventSlug } from "@/lib/utils";
+import { createBookingSchema, addCommentSchema } from "@/lib/validations";
 
 export async function createBooking(formData: FormData) {
   // Get authenticated user
@@ -50,24 +51,17 @@ export async function createBooking(formData: FormData) {
     console.error("Failed to fetch user displayName:", error);
   }
 
-  const eventId = formData.get("eventId") as string;
-  const formName = formData.get("name") as string;
-  const formEmail = formData.get("email") as string;
-  const phone = formData.get("phone") as string;
-  const notes = formData.get("notes") as string;
-
-  // Use Clerk data if available, otherwise fallback to form data
-  const name = clerkName || formName;
-  const email = clerkEmail || formEmail;
-
-  // Validate required fields
-  if (!eventId || !name || !email) {
-    return {
-      success: false,
-      error:
-        "Missing required fields. Please ensure you have a name and email.",
-    };
+  const bookingResult = createBookingSchema.safeParse({
+    eventId: formData.get("eventId"),
+    name: clerkName || formData.get("name"),
+    email: clerkEmail || formData.get("email"),
+    phone: formData.get("phone"),
+    notes: formData.get("notes"),
+  });
+  if (!bookingResult.success) {
+    return { success: false, error: bookingResult.error.issues[0].message };
   }
+  const { eventId, name, email, phone, notes } = bookingResult.data;
 
   try {
     // Check if event exists
@@ -84,7 +78,7 @@ export async function createBooking(formData: FormData) {
         whatToBring: events.whatToBring,
       })
       .from(events)
-      .where(eq(events.id, parseInt(eventId)));
+      .where(eq(events.id, eventId));
 
     if (eventResults.length === 0) {
       return { success: false, error: "Event not found" };
@@ -99,7 +93,7 @@ export async function createBooking(formData: FormData) {
     const participationResults = await db
       .insert(participations)
       .values({
-        eventId: parseInt(eventId),
+        eventId: eventId,
         clerkUserId: userId,
         participantName: name,
         participantEmail: email,
@@ -119,7 +113,7 @@ export async function createBooking(formData: FormData) {
     await db
       .update(events)
       .set({ currentBookings: sql`${events.currentBookings} + 1` })
-      .where(eq(events.id, parseInt(eventId)));
+      .where(eq(events.id, eventId));
 
     try {
       await sendBookingConfirmationEmail({
@@ -144,7 +138,7 @@ export async function createBooking(formData: FormData) {
       await sendAdminNotificationEmail({
         participantName: name,
         participantEmail: email,
-        participantPhone: phone,
+        participantPhone: phone ?? null,
         eventTitle: event.title,
         eventDate: event.date,
         eventStartTime: event.startTime,
@@ -158,7 +152,7 @@ export async function createBooking(formData: FormData) {
     // Revalidate relevant pages and caches
     revalidatePath("/");
     revalidatePath(
-      `/event/${createEventSlug(parseInt(eventId), event.title, event.instructor)}`,
+      `/event/${createEventSlug(eventId, event.title, event.instructor)}`,
     );
     revalidateTag("events");
     revalidateTag(`event-${eventId}`);
@@ -320,6 +314,11 @@ export async function addComment(eventId: number, content: string) {
     return { success: false, error: "You must be signed in to comment" };
   }
 
+  const commentResult = addCommentSchema.safeParse({ eventId, content });
+  if (!commentResult.success) {
+    return { success: false, error: commentResult.error.issues[0].message };
+  }
+
   const user = await currentUser();
   if (!user) {
     return { success: false, error: "Unable to retrieve user information" };
@@ -349,10 +348,6 @@ export async function addComment(eventId: number, content: string) {
   } catch (error) {
     // If database lookup fails, fall back to Clerk name
     console.error("Failed to fetch user profile:", error);
-  }
-
-  if (!content.trim()) {
-    return { success: false, error: "Comment cannot be empty" };
   }
 
   try {

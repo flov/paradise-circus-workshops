@@ -5,7 +5,8 @@ import { users, userProps, props, events } from "@/db/schema";
 import { eq, asc, desc, sql, and } from "drizzle-orm";
 import { revalidatePath, revalidateTag } from "next/cache";
 import { auth, currentUser } from "@clerk/nextjs/server";
-import { validateUsername, extractYouTubeId, extractVimeoId, validateInstagramHandle, isEventPast } from "@/lib/utils";
+import { extractYouTubeId, extractVimeoId, isEventPast } from "@/lib/utils";
+import { profileSchema } from "@/lib/validations";
 import type { UserProfile, UserProp, PropOption } from "@/lib/types";
 import type { Event } from "@/db/schema";
 
@@ -110,10 +111,7 @@ export async function createProfile(formData: FormData) {
       .limit(1);
 
     // Get form data
-    const username = formData.get("username") as string;
-    const displayName = formData.get("displayName") as string;
     const bio = formData.get("bio") as string;
-    const instagramHandle = formData.get("instagramHandle") as string;
     const patreonPage = formData.get("patreonPage") as string;
     const website = formData.get("website") as string;
     const isInstructor = formData.get("isInstructor") === "true";
@@ -124,24 +122,22 @@ export async function createProfile(formData: FormData) {
     const youtubeVideosInput = formData.get("youtubeVideos") as string;
     const vimeoVideosInput = formData.get("vimeoVideos") as string;
 
-    // Validate username
-    const validation = validateUsername(username);
-    if (!validation.isValid) {
-      return { success: false, error: validation.error };
-    }
+    // Normalize Instagram handle (strip @ prefix) before validation
+    const rawInstagram = formData.get("instagramHandle") as string | null;
+    const cleanedInstagram = rawInstagram
+      ? rawInstagram.replace(/^@/, "").trim() || null
+      : null;
 
-    // Validate display name
-    if (!displayName || !displayName.trim()) {
-      return { success: false, error: "Display name is required" };
+    // Validate username, displayName, and instagramHandle with Zod
+    const profileResult = profileSchema.safeParse({
+      username: formData.get("username"),
+      displayName: formData.get("displayName"),
+      instagramHandle: cleanedInstagram,
+    });
+    if (!profileResult.success) {
+      return { success: false, error: profileResult.error.issues[0].message };
     }
-
-    // Validate Instagram handle
-    if (instagramHandle) {
-      const instagramValidation = validateInstagramHandle(instagramHandle);
-      if (!instagramValidation.isValid) {
-        return { success: false, error: instagramValidation.error };
-      }
-    }
+    const { username, displayName } = profileResult.data;
 
     // Process YouTube videos
     let youtubeVideos: string[] | null = null;
@@ -169,10 +165,7 @@ export async function createProfile(formData: FormData) {
       vimeoVideos = videoIds.length > 0 ? videoIds : null;
     }
 
-    // Normalize Instagram handle (remove @ if present)
-    const normalizedInstagramHandle = instagramHandle 
-      ? instagramHandle.replace(/^@/, '').trim() || null 
-      : null;
+    const normalizedInstagramHandle = profileResult.data.instagramHandle ?? null;
 
     // Get email and avatar from Clerk
     const clerkUser = await currentUser();
@@ -219,14 +212,6 @@ export async function createProfile(formData: FormData) {
       // Update existing user record
       const existingUser = userRecord[0];
       
-      // Validate username if changed
-      if (username.trim().toLowerCase() !== existingUser.username) {
-        const validation = validateUsername(username);
-        if (!validation.isValid) {
-          return { success: false, error: validation.error };
-        }
-      }
-
       try {
         const trimmedUsername = username.trim().toLowerCase();
         await db

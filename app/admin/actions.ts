@@ -18,6 +18,7 @@ import {
 } from "@/lib/email";
 import { randomUUID } from "crypto";
 import { logActivity } from "@/lib/activity-log";
+import { createEventSchema } from "@/lib/validations";
 
 /** Resolve the current user's DB id, display name, and username for activity logging. */
 async function getActorInfo(clerkUserId: string): Promise<{ id: number | null; name: string; username: string }> {
@@ -148,14 +149,21 @@ export async function createEvent(formData: FormData) {
     };
   }
 
-  const title = formData.get("title") as string;
-  const description = formData.get("description") as string;
+  const eventFieldsResult = createEventSchema.safeParse({
+    title: formData.get("title"),
+    description: formData.get("description"),
+    date: formData.get("date"),
+    start_time: formData.get("start_time"),
+    end_time: formData.get("end_time"),
+    location: formData.get("location"),
+  });
+  if (!eventFieldsResult.success) {
+    return { success: false, error: eventFieldsResult.error.issues[0].message };
+  }
+  const { title, description, date, start_time, end_time, location } = eventFieldsResult.data;
+
   const instructor = formData.get("instructor") as string;
   const instructorIdInput = formData.get("instructorId") as string;
-  const date = formData.get("date") as string;
-  const start_time = formData.get("start_time") as string;
-  const end_time = formData.get("end_time") as string;
-  const location = formData.get("location") as string;
   const whatToBring = formData.get("whatToBring") as string;
   const propIdInput = formData.get("propId") as string;
   const isWorkshop =
@@ -166,18 +174,6 @@ export async function createEvent(formData: FormData) {
   const recurringUntilInput = formData.get("recurringUntil") as string | null;
   // For createEvent, if recurringUntil is provided, use it (empty string becomes null)
   const recurringUntil = recurringUntilInput || null;
-
-  // Validate required fields
-  if (
-    !title ||
-    !description ||
-    !date ||
-    !start_time ||
-    !end_time ||
-    !location
-  ) {
-    return { success: false, error: "Missing required fields" };
-  }
 
   // Recurring events are allowed for both admins and instructors
 

@@ -1,12 +1,18 @@
 import { unstable_cache } from "next/cache"
 import { getUserByUsername, getUserProps, getUserWorkshops } from "@/app/profile/actions"
 import { corsJson, corsOptions } from "@/lib/cors"
+import { usernameParamSchema } from "@/lib/validations"
 
 export async function GET(
   _request: Request,
   { params }: { params: Promise<{ username: string }> },
 ) {
   const { username } = await params
+
+  const usernameResult = usernameParamSchema.safeParse(username)
+  if (!usernameResult.success) {
+    return corsJson({ error: "Invalid username" }, { status: 400 })
+  }
 
   try {
     const getData = unstable_cache(
