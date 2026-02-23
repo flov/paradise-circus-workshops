@@ -1,17 +1,24 @@
-import { db } from "@/db";
-import { events, participations, comments, props, users, type Event } from "@/db/schema";
-import { eq, asc, and } from "drizzle-orm";
-import { unstable_cache } from "next/cache";
-import { BookEventButton } from "@/components/book-event-button";
-import { CancelBookingButton } from "@/components/cancel-booking-button";
+import { db } from "@/db"
+import {
+  events,
+  participations,
+  comments,
+  props,
+  users,
+  type Event,
+} from "@/db/schema"
+import { eq, asc, and } from "drizzle-orm"
+import { unstable_cache } from "next/cache"
+import { BookEventButton } from "@/components/book-event-button"
+import { CancelBookingButton } from "@/components/cancel-booking-button"
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+} from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
 import {
   Calendar,
   Clock,
@@ -20,34 +27,32 @@ import {
   ArrowLeft,
   UserCheck,
   Repeat,
-} from "lucide-react";
-import { notFound, redirect } from "next/navigation";
-import Link from "next/link";
-import { Button } from "@/components/ui/button";
-import {
-  isEventPast,
-  parseEventSlug,
-  createEventSlug,
-} from "@/lib/utils";
-import { auth } from "@clerk/nextjs/server";
-import { AvatarStack } from "@/components/avatar-stack";
-import ReactMarkdown from "react-markdown";
-import { EventCalendarButtons } from "@/components/event-calendar-buttons";
-import { EventComments } from "@/components/event-comments";
-import { AddRecapVideo } from "@/components/add-recap-video";
+} from "lucide-react"
+import { notFound, redirect } from "next/navigation"
+import Link from "next/link"
+import { Button } from "@/components/ui/button"
+import { isEventPast, parseEventSlug, createEventSlug } from "@/lib/utils"
+import { auth } from "@clerk/nextjs/server"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { AvatarStack } from "@/components/avatar-stack"
+import { getInitials } from "@/lib/utils"
+import ReactMarkdown from "react-markdown"
+import { EventCalendarButtons } from "@/components/event-calendar-buttons"
+import { EventComments } from "@/components/event-comments"
+import { AddRecapVideo } from "@/components/add-recap-video"
 
 export default async function BookEventPage({
   params,
 }: {
-  params: Promise<{ slug: string }>;
+  params: Promise<{ slug: string }>
 }) {
-  const { slug } = await params;
+  const { slug } = await params
 
   // Parse the slug to extract the event ID
-  const eventId = parseEventSlug(slug);
+  const eventId = parseEventSlug(slug)
 
   if (!eventId) {
-    notFound();
+    notFound()
   }
 
   const getEventData = unstable_cache(
@@ -76,6 +81,7 @@ export default async function BookEventPage({
             id: users.id,
             displayName: users.displayName,
             username: users.username,
+            avatarImageUrl: users.avatarImageUrl,
             bio: users.bio,
             instagramHandle: users.instagramHandle,
             youtubeVideos: users.youtubeVideos,
@@ -88,27 +94,27 @@ export default async function BookEventPage({
         })
         .from(events)
         .leftJoin(users, eq(events.instructorId, users.id))
-        .where(and(eq(events.id, id), eq(events.isPublished, true)));
-      if (results.length === 0) return null;
-      const eventResult = results[0];
-      let eventProp: { id: number; name: string } | null = null;
+        .where(and(eq(events.id, id), eq(events.isPublished, true)))
+      if (results.length === 0) return null
+      const eventResult = results[0]
+      let eventProp: { id: number; name: string } | null = null
       if (eventResult.propId) {
         const propResults = await db
           .select({ id: props.id, name: props.name })
           .from(props)
           .where(eq(props.id, eventResult.propId))
-          .limit(1);
-        if (propResults.length > 0) eventProp = propResults[0];
+          .limit(1)
+        if (propResults.length > 0) eventProp = propResults[0]
       }
-      return { eventResult, eventProp };
+      return { eventResult, eventProp }
     },
     [`event-${eventId}`],
-    { revalidate: 300, tags: ["events", `event-${eventId}`] }
-  );
+    { revalidate: 300, tags: ["events", `event-${eventId}`] },
+  )
 
-  const cached = await getEventData(eventId);
-  if (!cached) notFound();
-  const { eventResult, eventProp } = cached;
+  const cached = await getEventData(eventId)
+  if (!cached) notFound()
+  const { eventResult, eventProp } = cached
 
   const event = {
     id: eventResult.id,
@@ -129,44 +135,43 @@ export default async function BookEventPage({
     isRecurring: eventResult.isRecurring,
     createdAt: eventResult.createdAt,
     updatedAt: eventResult.updatedAt,
-  };
+  }
 
   // Get instructor display name from joined profile
-  const instructorDisplayName = eventResult.instructorProfile?.displayName || eventResult.instructorProfile?.username || null;
+  const instructorDisplayName =
+    eventResult.instructorProfile?.displayName ||
+    eventResult.instructorProfile?.username ||
+    null
 
   // If the slug is in old format (numeric only), redirect to new format for SEO
   if (/^\d+$/.test(slug)) {
-    const instructorName = instructorDisplayName || event.instructor || '';
-    const newSlug = createEventSlug(
-      event.id,
-      event.title,
-      instructorName,
-    );
-    redirect(`/event/${newSlug}`);
+    const instructorName = instructorDisplayName || event.instructor || ""
+    const newSlug = createEventSlug(event.id, event.title, instructorName)
+    redirect(`/event/${newSlug}`)
   }
 
   // Format date
-  const date = new Date(event.date);
+  const date = new Date(event.date)
   const formattedDate = date.toLocaleDateString("en-US", {
     weekday: "long",
     month: "long",
     day: "numeric",
     year: "numeric",
-  });
+  })
 
   // Format time
   const formatTime = (time: string) => {
-    const [hours, minutes] = time.split(":");
-    const hour = Number.parseInt(hours);
-    const ampm = hour >= 12 ? "PM" : "AM";
-    const displayHour = hour % 12 || 12;
-    return `${displayHour}:${minutes} ${ampm}`;
-  };
+    const [hours, minutes] = time.split(":")
+    const hour = Number.parseInt(hours)
+    const ampm = hour >= 12 ? "PM" : "AM"
+    const displayHour = hour % 12 || 12
+    return `${displayHour}:${minutes} ${ampm}`
+  }
 
-  const isPast = isEventPast(event.date, event.endTime);
+  const isPast = isEventPast(event.date, event.endTime)
 
   // Get user data and fetch participations/comments in parallel to minimize CPU time
-  const { userId } = await auth();
+  const { userId } = await auth()
 
   const getParticipations = unstable_cache(
     async (id: number) => {
@@ -180,11 +185,11 @@ export default async function BookEventPage({
         })
         .from(participations)
         .leftJoin(users, eq(participations.clerkUserId, users.clerkUserId))
-        .where(eq(participations.eventId, id));
+        .where(eq(participations.eventId, id))
     },
     [`event-${eventId}-participations`],
-    { revalidate: 60, tags: [`event-${eventId}-participations`] }
-  );
+    { revalidate: 60, tags: [`event-${eventId}-participations`] },
+  )
 
   const getComments = unstable_cache(
     async (id: number) => {
@@ -199,43 +204,44 @@ export default async function BookEventPage({
         })
         .from(comments)
         .where(eq(comments.eventId, id))
-        .orderBy(asc(comments.createdAt));
+        .orderBy(asc(comments.createdAt))
     },
     [`event-${eventId}-comments`],
-    { revalidate: 60, tags: [`event-${eventId}-comments`] }
-  );
+    { revalidate: 60, tags: [`event-${eventId}-comments`] },
+  )
 
   // Fetch user profile (only if authenticated), participations, and comments in parallel
-  const [userProfileResult, participationsData, commentsData] = await Promise.all([
-    userId
-      ? db
-          .select({
-            displayName: users.displayName,
-            email: users.email,
-            avatarImageUrl: users.avatarImageUrl,
-          })
-          .from(users)
-          .where(eq(users.clerkUserId, userId))
-          .limit(1)
-      : Promise.resolve([]),
-    getParticipations(eventId),
-    getComments(eventId),
-  ]);
+  const [userProfileResult, participationsData, commentsData] =
+    await Promise.all([
+      userId
+        ? db
+            .select({
+              displayName: users.displayName,
+              email: users.email,
+              avatarImageUrl: users.avatarImageUrl,
+            })
+            .from(users)
+            .where(eq(users.clerkUserId, userId))
+            .limit(1)
+        : Promise.resolve([]),
+      getParticipations(eventId),
+      getComments(eventId),
+    ])
 
-  const userProfile = userProfileResult[0];
-  const initialUserName = userProfile?.displayName ?? "";
-  const initialUserEmail = userProfile?.email ?? "";
-  const currentUserImageUrl = userProfile?.avatarImageUrl ?? null;
+  const userProfile = userProfileResult[0]
+  const initialUserName = userProfile?.displayName ?? ""
+  const initialUserEmail = userProfile?.email ?? ""
+  const currentUserImageUrl = userProfile?.avatarImageUrl ?? null
 
   const userParticipationId = userId
-    ? participationsData.find((p) => p.clerkUserId === userId)?.id ?? null
-    : null;
+    ? (participationsData.find((p) => p.clerkUserId === userId)?.id ?? null)
+    : null
 
   const participants = participationsData.map((participation) => ({
     name: participation.participantName,
     email: participation.participantEmail,
     imageUrl: participation.avatarImageUrl || null,
-  }));
+  }))
 
   return (
     <div className="min-h-screen bg-background">
@@ -260,18 +266,65 @@ export default async function BookEventPage({
           {/* Event Details */}
           <Card>
             <CardHeader>
-              <div className="flex items-start justify-between gap-2 mb-2">
-                <CardTitle className="text-2xl text-balance">
+              <div className="relative">
+                <CardTitle className="text-2xl text-balance pr-20">
                   {event.title}
                 </CardTitle>
-                {isPast && (
-                  <Badge
-                    variant="secondary"
-                    className="bg-muted text-muted-foreground"
-                  >
-                    Past Event
-                  </Badge>
-                )}
+                <div className="absolute top-0 right-0 flex items-center gap-2">
+                  {eventResult.instructorProfile &&
+                    (eventResult.instructorProfile.username ? (
+                      <Link
+                        href={`/artists/${eventResult.instructorProfile.username}`}
+                        className="rounded-full ring-2 ring-background"
+                      >
+                        <Avatar className="size-16">
+                          <AvatarImage
+                            src={
+                              eventResult.instructorProfile.avatarImageUrl ??
+                              undefined
+                            }
+                            alt={
+                              instructorDisplayName ||
+                              event.instructor ||
+                              "Instructor"
+                            }
+                          />
+                          <AvatarFallback className="bg-primary/10 text-primary text-base font-medium">
+                            {getInitials(
+                              instructorDisplayName || event.instructor || "?",
+                            )}
+                          </AvatarFallback>
+                        </Avatar>
+                      </Link>
+                    ) : (
+                      <Avatar className="size-16">
+                        <AvatarImage
+                          src={
+                            eventResult.instructorProfile.avatarImageUrl ??
+                            undefined
+                          }
+                          alt={
+                            instructorDisplayName ||
+                            event.instructor ||
+                            "Instructor"
+                          }
+                        />
+                        <AvatarFallback className="bg-primary/10 text-primary text-base font-medium">
+                          {getInitials(
+                            instructorDisplayName || event.instructor || "?",
+                          )}
+                        </AvatarFallback>
+                      </Avatar>
+                    ))}
+                  {isPast && (
+                    <Badge
+                      variant="secondary"
+                      className="bg-muted text-muted-foreground"
+                    >
+                      Past Event
+                    </Badge>
+                  )}
+                </div>
               </div>
               <CardDescription className="text-pretty">
                 <div className="prose prose-sm dark:prose-invert max-w-none">
@@ -318,11 +371,11 @@ export default async function BookEventPage({
                         href={`/artists/${eventResult.instructorProfile.username}`}
                         className="text-primary hover:underline"
                       >
-                        {instructorDisplayName || event.instructor || 'Unknown'}
+                        {instructorDisplayName || event.instructor || "Unknown"}
                       </Link>
                     ) : (
                       <div className="text-muted-foreground">
-                        {instructorDisplayName || event.instructor || 'Unknown'}
+                        {instructorDisplayName || event.instructor || "Unknown"}
                       </div>
                     )}
                   </div>
@@ -331,9 +384,7 @@ export default async function BookEventPage({
                   <div className="flex items-start gap-3 text-sm">
                     <div className="h-5 w-5 text-primary mt-0.5">🎪</div>
                     <div>
-                      <div className="font-medium text-foreground">
-                        Prop
-                      </div>
+                      <div className="font-medium text-foreground">Prop</div>
                       <div className="text-muted-foreground mt-1">
                         <Badge variant="secondary" className="text-xs">
                           {eventProp.name}
@@ -359,9 +410,7 @@ export default async function BookEventPage({
                 {event.isRecurring && (
                   <div className="flex items-center gap-3 text-sm">
                     <Repeat className="h-5 w-5 text-primary" />
-                    <div className="text-muted-foreground">
-                      Recurring Event
-                    </div>
+                    <div className="text-muted-foreground">Recurring Event</div>
                   </div>
                 )}
                 <div className="flex items-center gap-3 text-sm">
@@ -372,14 +421,15 @@ export default async function BookEventPage({
                       startTime: event.startTime,
                       endTime: event.endTime,
                       location: event.location,
-                      instructor: instructorDisplayName || event.instructor || '',
+                      instructor:
+                        instructorDisplayName || event.instructor || "",
                       description: event.description,
                       whatToBring: event.whatToBring || null,
                       bookingId: event.id,
                       confirmationToken: `event-${createEventSlug(
                         event.id,
                         event.title,
-                        instructorDisplayName || event.instructor || ''
+                        instructorDisplayName || event.instructor || "",
                       )}`,
                     }}
                     className="w-full"
@@ -414,9 +464,13 @@ export default async function BookEventPage({
                       Workshop Recap
                     </h3>
                     <p className="text-sm text-muted-foreground">
-                      Did you make a recap of the workshop? Add a YouTube video ID here.
+                      Did you make a recap of the workshop? Add a YouTube video
+                      ID here.
                     </p>
-                    <AddRecapVideo eventId={event.id} currentRecapVideoId={event.recapVideoId} />
+                    <AddRecapVideo
+                      eventId={event.id}
+                      currentRecapVideoId={event.recapVideoId}
+                    />
                   </div>
                 </div>
               )}
@@ -440,7 +494,10 @@ export default async function BookEventPage({
                   </div>
                   {isPast && event.isWorkshop && (
                     <div className="mt-2">
-                      <AddRecapVideo eventId={event.id} currentRecapVideoId={event.recapVideoId} />
+                      <AddRecapVideo
+                        eventId={event.id}
+                        currentRecapVideoId={event.recapVideoId}
+                      />
                     </div>
                   )}
                 </div>
@@ -459,5 +516,5 @@ export default async function BookEventPage({
         </div>
       </main>
     </div>
-  );
+  )
 }
