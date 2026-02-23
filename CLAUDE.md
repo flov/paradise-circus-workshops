@@ -28,11 +28,17 @@ pnpm lint                   # ESLint
 pnpm email:dev              # React Email dev server
 
 # Testing
-pnpm test                   # Vitest in watch mode (uses .env.test)
-pnpm test:run               # Single test run (no watch)
+# Default: uses Neon cloud DB from .env.test (slower due to network latency)
+pnpm test                   # Vitest in watch mode
+pnpm test:run               # Single run, no watch
 pnpm test:coverage          # Coverage report
-# Run a single test file:
-pnpm test -- tests/helpers/some-test.ts
+pnpm test -- app/actions.test.ts   # Run a single test file
+
+# Faster tests: use local Postgres (requires Docker). Run in order:
+pnpm test:db:up             # 1. Start Postgres container (port 5433)
+pnpm test:db:migrate        # 2. Apply migrations to test DB
+pnpm test:local             # 3. Run tests (2–5× faster than cloud)
+pnpm test:db:down           # 4. Stop container when done
 
 # Database
 npx drizzle-kit generate --name migration-name   # Generate migration after schema changes
@@ -71,6 +77,10 @@ After changing `db/schema.ts`, always generate a migration with `npx drizzle-kit
 - **Auth flow:** Clerk handles auth → webhook syncs user to DB → `users` table has `clerkUserId` foreign key pattern
 - **Recurring events:** Events can belong to a `recurringSeriesId` group with `isRecurring` and `recurringUntil` fields
 - **Activity logging:** Admin and instructor actions are logged via `lib/activity-log.ts` with types defined in `lib/activity-config.ts`
+
+### Testing
+
+Tests are integration tests that hit a real database. `tests/helpers/db.ts` provides `cleanupDatabase()`, `createTestUser()`, `createTestEvent()`, etc. Tests use `DATABASE_URL_TEST` from `.env.test` (or `DATABASE_URL` when tests set it). For fastest runs, use local Postgres via `pnpm test:local` after `test:db:up` and `test:db:migrate`.
 
 ### Mobile App (`/mobile`)
 

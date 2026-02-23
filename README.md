@@ -239,6 +239,19 @@ Before deploying to production:
 7. **Content Moderation**: Consider moderation tools for user-generated content (comments, profiles)
 8. **Image Upload**: Configure image storage for user avatars and profile photos
 
+## Testing
+
+Tests use Vitest and run against the database configured in `.env.test` (typically Neon cloud).
+
+For faster test runs, use a local PostgreSQL instance:
+
+```bash
+pnpm test:db:up      # Start local Postgres (Docker)
+pnpm test:db:migrate # Apply migrations
+pnpm test:local      # Run tests (much faster than cloud)
+pnpm test:db:down    # Stop container when done
+```
+
 ## Support
 
 For questions or issues, contact the Paradise Circus team.

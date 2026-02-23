@@ -1,39 +1,51 @@
-import { drizzle } from "drizzle-orm/neon-http";
-import { neon } from "@neondatabase/serverless";
 import * as schema from "@/db/schema";
 import { sql } from "drizzle-orm";
 
-let testDb: ReturnType<typeof drizzle> | null = null;
+type TestDb = ReturnType<typeof createTestDb>;
+let testDb: TestDb | null = null;
+
+function createTestDb() {
+  const databaseUrl =
+    process.env.DATABASE_URL_TEST || process.env.DATABASE_URL;
+  if (!databaseUrl) {
+    throw new Error("DATABASE_URL_TEST must be set for tests");
+  }
+  const isLocalPostgres =
+    databaseUrl.includes("localhost") || databaseUrl.includes("127.0.0.1");
+
+  if (isLocalPostgres) {
+    const { Pool } = require("pg");
+    const { drizzle } = require("drizzle-orm/node-postgres");
+    const pool = new Pool({ connectionString: databaseUrl });
+    return drizzle(pool, { schema });
+  }
+  const { neon } = require("@neondatabase/serverless");
+  const { drizzle } = require("drizzle-orm/neon-http");
+  const sqlClient = neon(databaseUrl);
+  return drizzle(sqlClient, { schema });
+}
 
 export function getTestDb() {
   if (!testDb) {
-    const databaseUrl =
-      process.env.DATABASE_URL_TEST || process.env.DATABASE_URL;
-    if (!databaseUrl) {
-      throw new Error("DATABASE_URL_TEST must be set for tests");
-    }
-    const sqlClient = neon(databaseUrl);
-    testDb = drizzle(sqlClient, { schema });
+    testDb = createTestDb();
   }
   return testDb;
 }
 
 /**
  * Clean up all test data from the database
- * This truncates all tables in the correct order to respect foreign key constraints
+ * Uses a single batched TRUNCATE to minimize round-trips
  */
 export async function cleanupDatabase() {
   const db = getTestDb();
 
   try {
-    // Delete in order to respect foreign key constraints
-    await db.execute(sql`TRUNCATE TABLE participations CASCADE`);
-    await db.execute(sql`TRUNCATE TABLE comments CASCADE`);
-    await db.execute(sql`TRUNCATE TABLE user_props CASCADE`);
-    await db.execute(sql`TRUNCATE TABLE events CASCADE`);
-    await db.execute(sql`TRUNCATE TABLE users CASCADE`);
-    await db.execute(sql`TRUNCATE TABLE props CASCADE`);
-    await db.execute(sql`TRUNCATE TABLE admin_settings CASCADE`);
+    await db.execute(sql`
+      TRUNCATE TABLE
+        participations, comments, user_props, events,
+        users, props, admin_settings, activity_logs
+      CASCADE
+    `);
   } catch (error) {
     // If tables don't exist or other error, try deleting all rows
     console.warn("Error truncating tables, trying delete instead:", error);
@@ -41,6 +53,7 @@ export async function cleanupDatabase() {
       await db.delete(schema.participations);
       await db.delete(schema.comments);
       await db.delete(schema.userProps);
+      await db.delete(schema.activityLogs);
       await db.delete(schema.events);
       await db.delete(schema.users);
       await db.delete(schema.props);

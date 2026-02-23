@@ -2365,8 +2365,8 @@ export async function extendRecurringEvents() {
       const [year, month, day] = latestEventDateStr.split("-").map(Number);
       const latestEventDate = new Date(Date.UTC(year, month - 1, day));
       
-      // Check if we need to extend (latest event date is before target date)
-      if (latestEventDate < targetDate) {
+      // Check if we need to extend (latest event is today or in the past — future events mean no extension needed)
+      if (latestEventDate <= todayUTC) {
         // Get ALL existing dates in the series (including non-recurring events) to avoid duplicates
         // This prevents creating duplicates when events were manually converted to non-recurring
         const allSeriesEvents = await db

@@ -5,19 +5,19 @@ import { alias } from "drizzle-orm/pg-core";
 import type { NextRequest } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { corsJson, corsOptions } from "@/lib/cors";
+import { timetableAuthQuerySchema } from "@/lib/validations";
 
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
-  const startDate = searchParams.get("start");
-  const endDate = searchParams.get("end");
-  const userId = searchParams.get("userId");
-
-  if (!startDate || !endDate) {
-    return corsJson(
-      { error: "Start and end dates are required" },
-      { status: 400 },
-    );
+  const parseResult = timetableAuthQuerySchema.safeParse({
+    start: searchParams.get("start"),
+    end: searchParams.get("end"),
+    userId: searchParams.get("userId") ?? undefined,
+  });
+  if (!parseResult.success) {
+    return corsJson({ error: parseResult.error.issues[0].message }, { status: 400 });
   }
+  const { start: startDate, end: endDate, userId: validatedUserId } = parseResult.data;
 
   try {
     // Check if user is admin or instructor
@@ -49,20 +49,17 @@ export async function GET(request: NextRequest) {
     // - If user is instructor: show all events (published and unpublished) - same as admin
     // - If userId is provided and valid: show published events + unpublished events for that instructor
     // - Otherwise: only show published events
-    const parsedUserId = userId ? Number.parseInt(userId, 10) : null;
-    const isValidUserId = parsedUserId !== null && !Number.isNaN(parsedUserId);
-
     let publishCondition;
     if (userIsAdmin || userIsInstructor) {
       // Admins and instructors see all events (published and unpublished)
       publishCondition = undefined; // No filter needed
-    } else if (isValidUserId) {
-      // If userId is provided but user is not an instructor, show published events + their own unpublished events
+    } else if (validatedUserId !== undefined) {
+      // If userId is provided, show published events + their own unpublished events
       publishCondition = or(
         eq(events.isPublished, true),
         and(
           eq(events.isPublished, false),
-          eq(events.instructorId, parsedUserId),
+          eq(events.instructorId, validatedUserId),
         ),
       );
     } else {
