@@ -5,6 +5,12 @@ import { eq, and } from "drizzle-orm";
 import { generateICSFile } from "@/lib/calendar";
 import { createEventSlug } from "@/lib/utils";
 
+/**
+ * Get calendar file for event (ICS)
+ * @description Returns an ICS calendar file for a published event. No booking required.
+ * @response icsContentSchema
+ * @responseSet public
+ */
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }

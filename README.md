@@ -176,6 +176,12 @@ The system will automatically send:
 
 - `/admin` - Admin dashboard with statistics and management tools
 
+### API Documentation
+
+- `/api-docs` - Interactive API documentation (Scalar/OpenAPI). Documents all REST endpoints consumed by the mobile app and web.
+
+Generate the OpenAPI spec with `pnpm openapi:generate` (also runs automatically before `pnpm build`).
+
 ## Design System
 
 The application features a custom circus-themed design:

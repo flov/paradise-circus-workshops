@@ -7,6 +7,13 @@ import { auth } from "@clerk/nextjs/server";
 import { corsJson, corsOptions } from "@/lib/cors";
 import { timetableAuthQuerySchema } from "@/lib/validations";
 
+/**
+ * Get timetable (events for date range)
+ * @description Returns events for the given date range. Admins and instructors see all events; others see published only. Supports optional userId filter for instructor's unpublished events.
+ * @params timetableAuthQuerySchema
+ * @response timetableResponseSchema
+ * @responseSet public
+ */
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
   const parseResult = timetableAuthQuerySchema.safeParse({

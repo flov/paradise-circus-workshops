@@ -98,6 +98,7 @@ const getAllArtists = unstable_cache(
 /**
  * List all artists (instructors and performers)
  * @description Returns all artists with their props, workshop counts, and profile info. Used by the mobile app and artists page.
+ * @response artistsListResponseSchema
  * @responseSet public
  */
 export async function GET() {

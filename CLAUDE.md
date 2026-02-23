@@ -47,6 +47,10 @@ pnpm db:migrate:production                         # Apply migrations to product
 
 # Build
 pnpm build                  # Production build
+
+# API docs (OpenAPI/Swagger)
+pnpm openapi:generate       # Generate openapi.json from route annotations
+# View at /api-docs when dev server is running
 ```
 
 ## Architecture

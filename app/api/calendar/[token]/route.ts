@@ -1,8 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
+import { events, participations, users } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { generateICSFile } from "@/lib/calendar";
 
+/**
+ * Get calendar file for participation (ICS)
+ * @description Returns an ICS calendar file for a booking. Requires valid confirmation token.
+ * @response icsContentSchema
+ * @responseSet public
+ */
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ token: string }> }

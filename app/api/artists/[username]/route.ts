@@ -7,6 +7,7 @@ import { artistUsernameParamsSchema, usernameParamSchema } from "@/lib/validatio
  * Get artist profile by username
  * @description Returns full artist profile with props and upcoming workshops. Used by the mobile app artist detail screen.
  * @pathParams artistUsernameParamsSchema
+ * @response artistProfileResponseSchema
  * @responseSet public
  */
 export async function GET(

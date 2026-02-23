@@ -36,6 +36,34 @@
           "username"
         ]
       },
+      "artistProfileResponseSchema": {
+        "type": "object",
+        "properties": {
+          "user": {
+            "$ref": "#/components/schemas/artistProfileUserSchema"
+          },
+          "props": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/artistUserPropSchema"
+            }
+          },
+          "workshops": {
+            "$ref": "#/components/schemas/artistProfileWorkshopsSchema"
+          }
+        },
+        "required": [
+          "user",
+          "props",
+          "workshops"
+        ]
+      },
+      "artistsListResponseSchema": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/artistListItemSchema"
+        }
+      },
       "authMeResponseSchema": {
         "type": "object",
         "properties": {
@@ -59,6 +87,16 @@
           "userId"
         ]
       },
+      "icsContentSchema": {
+        "type": "string",
+        "description": "ICS calendar file content (text/calendar)"
+      },
+      "propsListResponseSchema": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/propItemSchema"
+        }
+      },
       "timetableQuerySchema": {
         "type": "object",
         "properties": {
@@ -74,6 +112,38 @@
           "end"
         ]
       },
+      "timetablePublicResponseSchema": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/timetableEventSchema"
+        }
+      },
+      "timetableAuthQuerySchema": {
+        "type": "object",
+        "properties": {
+          "start": {
+            "$ref": "#/components/schemas/dateStringSchema"
+          },
+          "end": {
+            "$ref": "#/components/schemas/dateStringSchema"
+          },
+          "userId": {
+            "type": "integer",
+            "minimum": 0,
+            "exclusiveMinimum": true
+          }
+        },
+        "required": [
+          "start",
+          "end"
+        ]
+      },
+      "timetableResponseSchema": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/timetableEventSchema"
+        }
+      },
       "dateStringSchema": {
         "type": "string",
         "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
@@ -83,6 +153,517 @@
         "minLength": 3,
         "maxLength": 30,
         "pattern": "^[a-zA-Z0-9._-]+$"
+      },
+      "propItemSchema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "description": "Prop ID"
+          },
+          "name": {
+            "type": "string",
+            "description": "Prop name"
+          }
+        },
+        "required": [
+          "id",
+          "name"
+        ]
+      },
+      "artistPropSchema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Prop name"
+          },
+          "skillLevel": {
+            "type": "integer",
+            "description": "Skill level 0-5"
+          }
+        },
+        "required": [
+          "name",
+          "skillLevel"
+        ]
+      },
+      "artistListItemSchema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Artist ID"
+          },
+          "name": {
+            "type": "string",
+            "description": "Display name"
+          },
+          "avatar": {
+            "type": "string",
+            "description": "Avatar URL"
+          },
+          "username": {
+            "type": "string",
+            "description": "Username"
+          },
+          "isInstructor": {
+            "type": "boolean",
+            "description": "Whether the artist is an instructor"
+          },
+          "workshopCount": {
+            "type": "integer",
+            "description": "Number of workshops taught"
+          },
+          "props": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/artistPropSchema"
+            },
+            "description": "Props and skill levels"
+          },
+          "videoCount": {
+            "type": "integer",
+            "description": "Total video count"
+          },
+          "bio": {
+            "type": "string",
+            "description": "Artist bio"
+          },
+          "instagramHandle": {
+            "type": "string",
+            "description": "Instagram handle"
+          },
+          "availableForPerformances": {
+            "type": "boolean",
+            "description": "Available for performances"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "username",
+          "isInstructor",
+          "workshopCount",
+          "props",
+          "videoCount",
+          "availableForPerformances"
+        ]
+      },
+      "artistUserPropSchema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "userId": {
+            "type": "integer"
+          },
+          "propId": {
+            "type": "integer"
+          },
+          "propName": {
+            "type": "string"
+          },
+          "skillLevel": {
+            "type": "integer"
+          },
+          "createdAt": {
+            "type": "string",
+            "description": "ISO 8601 datetime"
+          }
+        },
+        "required": [
+          "id",
+          "userId",
+          "propId",
+          "propName",
+          "skillLevel",
+          "createdAt"
+        ]
+      },
+      "workshopEventSchema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "title": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "instructor": {
+            "type": "string",
+            "nullable": true
+          },
+          "date": {
+            "type": "string"
+          },
+          "startTime": {
+            "type": "string"
+          },
+          "endTime": {
+            "type": "string"
+          },
+          "currentBookings": {
+            "type": "integer"
+          },
+          "location": {
+            "type": "string",
+            "nullable": true
+          },
+          "isRecurring": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "description",
+          "instructor",
+          "date",
+          "startTime",
+          "endTime",
+          "currentBookings",
+          "location",
+          "isRecurring"
+        ]
+      },
+      "artistProfileUserSchema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "clerkUserId": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string",
+            "nullable": true
+          },
+          "username": {
+            "type": "string"
+          },
+          "displayName": {
+            "type": "string",
+            "nullable": true
+          },
+          "isInstructor": {
+            "type": "boolean"
+          },
+          "isAdmin": {
+            "type": "boolean"
+          },
+          "bio": {
+            "type": "string",
+            "nullable": true
+          },
+          "instagramHandle": {
+            "type": "string",
+            "nullable": true
+          },
+          "patreonPage": {
+            "type": "string",
+            "nullable": true
+          },
+          "website": {
+            "type": "string",
+            "nullable": true
+          },
+          "youtubeVideos": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true
+          },
+          "vimeoVideos": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true
+          },
+          "experienceStartDate": {
+            "type": "string",
+            "nullable": true
+          },
+          "performanceStyle": {
+            "type": "string",
+            "nullable": true
+          },
+          "availableForPerformances": {
+            "type": "boolean"
+          },
+          "location": {
+            "type": "string",
+            "nullable": true
+          },
+          "avatarImageUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "description": "ISO 8601 datetime"
+          },
+          "updatedAt": {
+            "type": "string",
+            "description": "ISO 8601 datetime"
+          }
+        },
+        "required": [
+          "id",
+          "clerkUserId",
+          "email",
+          "username",
+          "displayName",
+          "isInstructor",
+          "isAdmin",
+          "bio",
+          "instagramHandle",
+          "patreonPage",
+          "website",
+          "youtubeVideos",
+          "vimeoVideos",
+          "experienceStartDate",
+          "performanceStyle",
+          "availableForPerformances",
+          "location",
+          "avatarImageUrl",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "artistProfileWorkshopsSchema": {
+        "type": "object",
+        "properties": {
+          "upcoming": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/workshopEventSchema"
+            }
+          },
+          "past": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/workshopEventSchema"
+            }
+          }
+        },
+        "required": [
+          "upcoming",
+          "past"
+        ]
+      },
+      "userRefSchema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "username": {
+            "type": "string"
+          },
+          "displayName": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "id",
+          "username",
+          "displayName"
+        ]
+      },
+      "timetableInstructorProfileSchema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "displayName": {
+            "type": "string",
+            "nullable": true
+          },
+          "username": {
+            "type": "string"
+          },
+          "bio": {
+            "type": "string",
+            "nullable": true
+          },
+          "instagramHandle": {
+            "type": "string",
+            "nullable": true
+          },
+          "youtubeVideos": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true
+          },
+          "vimeoVideos": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true
+          },
+          "experienceStartDate": {
+            "type": "string",
+            "nullable": true
+          },
+          "performanceStyle": {
+            "type": "string",
+            "nullable": true
+          },
+          "availableForPerformances": {
+            "type": "boolean"
+          },
+          "location": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "id",
+          "displayName",
+          "username",
+          "bio",
+          "instagramHandle",
+          "youtubeVideos",
+          "vimeoVideos",
+          "experienceStartDate",
+          "performanceStyle",
+          "availableForPerformances",
+          "location"
+        ]
+      },
+      "timetableEventSchema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "title": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "instructor": {
+            "type": "string",
+            "nullable": true
+          },
+          "instructorId": {
+            "type": "integer",
+            "nullable": true
+          },
+          "date": {
+            "type": "string"
+          },
+          "startTime": {
+            "type": "string"
+          },
+          "endTime": {
+            "type": "string"
+          },
+          "location": {
+            "type": "string",
+            "nullable": true
+          },
+          "whatToBring": {
+            "type": "string",
+            "nullable": true
+          },
+          "isWorkshop": {
+            "type": "boolean"
+          },
+          "currentBookings": {
+            "type": "integer"
+          },
+          "propId": {
+            "type": "integer",
+            "nullable": true
+          },
+          "isPublished": {
+            "type": "boolean"
+          },
+          "isRecurring": {
+            "type": "boolean"
+          },
+          "recurringSeriesId": {
+            "type": "string",
+            "nullable": true
+          },
+          "recurringUntil": {
+            "type": "string",
+            "nullable": true
+          },
+          "recapVideoId": {
+            "type": "string",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "description": "ISO 8601 datetime"
+          },
+          "instructorProfile": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/timetableInstructorProfileSchema"
+              }
+            ]
+          },
+          "lastUpdatedByUser": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/userRefSchema"
+              }
+            ]
+          },
+          "approvedByUser": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/userRefSchema"
+              }
+            ]
+          },
+          "instructorDisplayName": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "description",
+          "instructor",
+          "instructorId",
+          "date",
+          "startTime",
+          "endTime",
+          "location",
+          "whatToBring",
+          "isWorkshop",
+          "currentBookings",
+          "propId",
+          "isPublished",
+          "isRecurring",
+          "recurringSeriesId",
+          "recurringUntil",
+          "recapVideoId",
+          "createdAt",
+          "instructorProfile",
+          "instructorDisplayName"
+        ]
       },
       "createBookingSchema": {
         "type": "object",
@@ -290,6 +871,16 @@
         ],
         "parameters": [],
         "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/artistsListResponseSchema"
+                }
+              }
+            }
+          },
           "400": {
             "$ref": "#/components/responses/400"
           },
@@ -320,6 +911,16 @@
           }
         ],
         "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/artistProfileResponseSchema"
+                }
+              }
+            }
+          },
           "400": {
             "$ref": "#/components/responses/400"
           },
@@ -367,13 +968,23 @@
     "/calendar/{token}": {
       "get": {
         "operationId": "get-calendar-{token}",
-        "summary": "",
-        "description": "",
+        "summary": "Get calendar file for participation (ICS)",
+        "description": "Returns an ICS calendar file for a booking. Requires valid confirmation token.",
         "tags": [
           "Calendar"
         ],
         "parameters": [],
         "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/icsContentSchema"
+                }
+              }
+            }
+          },
           "400": {
             "$ref": "#/components/responses/400"
           },
@@ -411,13 +1022,55 @@
     "/event/{id}/calendar": {
       "get": {
         "operationId": "get-event-{id}-calendar",
-        "summary": "",
-        "description": "",
+        "summary": "Get calendar file for event (ICS)",
+        "description": "Returns an ICS calendar file for a published event. No booking required.",
         "tags": [
           "Event"
         ],
         "parameters": [],
         "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/icsContentSchema"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        }
+      }
+    },
+    "/props": {
+      "get": {
+        "operationId": "get-props",
+        "summary": "List all flow art props",
+        "description": "Returns all props from the catalog (staff, poi, hoops, etc.). Used by the mobile app and profile autocomplete.",
+        "tags": [
+          "Props"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/propsListResponseSchema"
+                }
+              }
+            }
+          },
           "400": {
             "$ref": "#/components/responses/400"
           },
@@ -433,13 +1086,44 @@
     "/timetable": {
       "get": {
         "operationId": "get-timetable",
-        "summary": "",
-        "description": "",
+        "summary": "Get timetable (events for date range)",
+        "description": "Returns events for the given date range. Admins and instructors see all events; others see published only. Supports optional userId filter for instructor's unpublished events.",
         "tags": [
           "Timetable"
         ],
-        "parameters": [],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "start",
+            "schema": {},
+            "required": false
+          },
+          {
+            "in": "query",
+            "name": "end",
+            "schema": {},
+            "required": false
+          },
+          {
+            "in": "query",
+            "name": "userId",
+            "schema": {
+              "type": "integer"
+            },
+            "required": false
+          }
+        ],
         "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/timetableResponseSchema"
+                }
+              }
+            }
+          },
           "400": {
             "$ref": "#/components/responses/400"
           },
@@ -475,6 +1159,16 @@
           }
         ],
         "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/timetablePublicResponseSchema"
+                }
+              }
+            }
+          },
           "400": {
             "$ref": "#/components/responses/400"
           },

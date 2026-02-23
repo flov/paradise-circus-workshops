@@ -37,6 +37,145 @@ export const authMeResponseSchema = z.object({
   userId: z.string().nullable().describe("Clerk user ID when signed in"),
 });
 
+export const propItemSchema = z.object({
+  id: z.number().int().describe("Prop ID"),
+  name: z.string().describe("Prop name"),
+});
+
+export const propsListResponseSchema = z.array(propItemSchema);
+
+// API response schemas for OpenAPI docs
+export const artistPropSchema = z.object({
+  name: z.string().describe("Prop name"),
+  skillLevel: z.number().int().describe("Skill level 0-5"),
+});
+
+export const artistListItemSchema = z.object({
+  id: z.string().describe("Artist ID"),
+  name: z.string().describe("Display name"),
+  avatar: z.string().optional().describe("Avatar URL"),
+  username: z.string().describe("Username"),
+  isInstructor: z.boolean().describe("Whether the artist is an instructor"),
+  workshopCount: z.number().int().describe("Number of workshops taught"),
+  props: z.array(artistPropSchema).describe("Props and skill levels"),
+  videoCount: z.number().int().describe("Total video count"),
+  bio: z.string().optional().describe("Artist bio"),
+  instagramHandle: z.string().optional().describe("Instagram handle"),
+  availableForPerformances: z.boolean().describe("Available for performances"),
+});
+
+export const artistsListResponseSchema = z.array(artistListItemSchema);
+
+export const artistUserPropSchema = z.object({
+  id: z.number().int(),
+  userId: z.number().int(),
+  propId: z.number().int(),
+  propName: z.string(),
+  skillLevel: z.number().int(),
+  createdAt: z.string().describe("ISO 8601 datetime"),
+});
+
+export const workshopEventSchema = z.object({
+  id: z.number().int(),
+  title: z.string(),
+  description: z.string().nullable(),
+  instructor: z.string().nullable(),
+  date: z.string(),
+  startTime: z.string(),
+  endTime: z.string(),
+  currentBookings: z.number().int(),
+  location: z.string().nullable(),
+  isRecurring: z.boolean(),
+});
+
+export const artistProfileUserSchema = z.object({
+  id: z.number().int(),
+  clerkUserId: z.string(),
+  email: z.string().nullable(),
+  username: z.string(),
+  displayName: z.string().nullable(),
+  isInstructor: z.boolean(),
+  isAdmin: z.boolean(),
+  bio: z.string().nullable(),
+  instagramHandle: z.string().nullable(),
+  patreonPage: z.string().nullable(),
+  website: z.string().nullable(),
+  youtubeVideos: z.array(z.string()).nullable(),
+  vimeoVideos: z.array(z.string()).nullable(),
+  experienceStartDate: z.string().nullable(),
+  performanceStyle: z.string().nullable(),
+  availableForPerformances: z.boolean(),
+  location: z.string().nullable(),
+  avatarImageUrl: z.string().nullable(),
+  createdAt: z.string().describe("ISO 8601 datetime"),
+  updatedAt: z.string().describe("ISO 8601 datetime"),
+});
+
+export const artistProfileWorkshopsSchema = z.object({
+  upcoming: z.array(workshopEventSchema),
+  past: z.array(workshopEventSchema),
+});
+
+export const artistProfileResponseSchema = z.object({
+  user: artistProfileUserSchema,
+  props: z.array(artistUserPropSchema),
+  workshops: artistProfileWorkshopsSchema,
+});
+
+const userRefSchema = z.object({
+  id: z.number().int(),
+  username: z.string(),
+  displayName: z.string().nullable(),
+});
+
+export const timetableInstructorProfileSchema = z.object({
+  id: z.number().int(),
+  displayName: z.string().nullable(),
+  username: z.string(),
+  bio: z.string().nullable(),
+  instagramHandle: z.string().nullable(),
+  youtubeVideos: z.array(z.string()).nullable(),
+  vimeoVideos: z.array(z.string()).nullable(),
+  experienceStartDate: z.string().nullable(),
+  performanceStyle: z.string().nullable(),
+  availableForPerformances: z.boolean(),
+  location: z.string().nullable(),
+});
+
+export const timetableEventSchema = z.object({
+  id: z.number().int(),
+  title: z.string(),
+  description: z.string().nullable(),
+  instructor: z.string().nullable(),
+  instructorId: z.number().int().nullable(),
+  date: z.string(),
+  startTime: z.string(),
+  endTime: z.string(),
+  location: z.string().nullable(),
+  whatToBring: z.string().nullable(),
+  isWorkshop: z.boolean(),
+  currentBookings: z.number().int(),
+  propId: z.number().int().nullable(),
+  isPublished: z.boolean(),
+  isRecurring: z.boolean(),
+  recurringSeriesId: z.string().nullable(),
+  recurringUntil: z.string().nullable(),
+  recapVideoId: z.string().nullable(),
+  createdAt: z.string().describe("ISO 8601 datetime"),
+  instructorProfile: timetableInstructorProfileSchema.nullable(),
+  lastUpdatedByUser: userRefSchema.nullable().optional(),
+  approvedByUser: userRefSchema.nullable().optional(),
+  instructorDisplayName: z.string().nullable(),
+});
+
+export const timetableResponseSchema = z.array(timetableEventSchema);
+
+export const timetablePublicResponseSchema = z.array(timetableEventSchema);
+
+export const icsContentSchema = z
+  .string()
+  .describe("ICS calendar file content (text/calendar)");
+
 // Server action inputs
 export const createBookingSchema = z.object({
   eventId: positiveIntSchema,
