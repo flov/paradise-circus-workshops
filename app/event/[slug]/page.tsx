@@ -266,18 +266,36 @@ export default async function EventPage({
           {/* Event Details */}
           <Card>
             <CardHeader>
-              <div className="relative">
-                <CardTitle className="text-2xl text-balance pr-20">
+              <div className="flex items-start justify-between gap-2">
+                <CardTitle className="text-2xl text-balance">
                   {event.title}
                 </CardTitle>
-                <div className="absolute top-0 right-0 flex items-center gap-2">
-                  {eventResult.instructorProfile &&
-                    (eventResult.instructorProfile.username ? (
+                {isPast && (
+                  <Badge
+                    variant="secondary"
+                    className="bg-muted text-muted-foreground shrink-0"
+                  >
+                    Past Event
+                  </Badge>
+                )}
+              </div>
+              <CardDescription className="text-pretty">
+                <div className="prose prose-sm dark:prose-invert max-w-none">
+                  <ReactMarkdown>{event.description}</ReactMarkdown>
+                </div>
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {/* Metadata grid: 1 col on mobile, 2 cols on sm+ */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-3">
+                <div className="flex items-center gap-3 text-sm">
+                  {eventResult.instructorProfile ? (
+                    eventResult.instructorProfile.username ? (
                       <Link
                         href={`/artists/${eventResult.instructorProfile.username}`}
-                        className="rounded-full ring-2 ring-background"
+                        className="rounded-full shrink-0"
                       >
-                        <Avatar className="size-16">
+                        <Avatar className="size-10">
                           <AvatarImage
                             src={
                               eventResult.instructorProfile.avatarImageUrl ??
@@ -289,7 +307,7 @@ export default async function EventPage({
                               "Instructor"
                             }
                           />
-                          <AvatarFallback className="bg-primary/10 text-primary text-base font-medium">
+                          <AvatarFallback className="bg-primary/10 text-primary text-xs font-medium">
                             {getInitials(
                               instructorDisplayName || event.instructor || "?",
                             )}
@@ -297,7 +315,7 @@ export default async function EventPage({
                         </Avatar>
                       </Link>
                     ) : (
-                      <Avatar className="size-16">
+                      <Avatar className="size-10 shrink-0">
                         <AvatarImage
                           src={
                             eventResult.instructorProfile.avatarImageUrl ??
@@ -309,59 +327,16 @@ export default async function EventPage({
                             "Instructor"
                           }
                         />
-                        <AvatarFallback className="bg-primary/10 text-primary text-base font-medium">
+                        <AvatarFallback className="bg-primary/10 text-primary text-xs font-medium">
                           {getInitials(
                             instructorDisplayName || event.instructor || "?",
                           )}
                         </AvatarFallback>
                       </Avatar>
-                    ))}
-                  {isPast && (
-                    <Badge
-                      variant="secondary"
-                      className="bg-muted text-muted-foreground"
-                    >
-                      Past Event
-                    </Badge>
+                    )
+                  ) : (
+                    <Users className="h-5 w-5 text-primary shrink-0" />
                   )}
-                </div>
-              </div>
-              <CardDescription className="text-pretty">
-                <div className="prose prose-sm dark:prose-invert max-w-none">
-                  <ReactMarkdown>{event.description}</ReactMarkdown>
-                </div>
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-3">
-                <div className="flex items-center gap-3 text-sm">
-                  <Calendar className="h-5 w-5 text-primary" />
-                  <div>
-                    <div className="font-medium text-foreground">Date</div>
-                    <div className="text-muted-foreground">{formattedDate}</div>
-                  </div>
-                </div>
-                <div className="flex items-center gap-3 text-sm">
-                  <Clock className="h-5 w-5 text-primary" />
-                  <div>
-                    <div className="font-medium text-foreground">Time</div>
-                    <div className="text-muted-foreground">
-                      {formatTime(event.startTime)} -{" "}
-                      {formatTime(event.endTime)}
-                    </div>
-                  </div>
-                </div>
-                <div className="flex items-center gap-3 text-sm">
-                  <MapPin className="h-5 w-5 text-primary" />
-                  <div>
-                    <div className="font-medium text-foreground">Location</div>
-                    <div className="text-muted-foreground">
-                      {event.location}
-                    </div>
-                  </div>
-                </div>
-                <div className="flex items-center gap-3 text-sm">
-                  <Users className="h-5 w-5 text-primary" />
                   <div>
                     <div className="font-medium text-foreground">
                       Instructor
@@ -380,6 +355,36 @@ export default async function EventPage({
                     )}
                   </div>
                 </div>
+
+                <div className="flex items-center gap-3 text-sm">
+                  <Calendar className="h-5 w-5 text-primary shrink-0" />
+                  <div>
+                    <div className="font-medium text-foreground">Date</div>
+                    <div className="text-muted-foreground">{formattedDate}</div>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-3 text-sm">
+                  <Clock className="h-5 w-5 text-primary shrink-0" />
+                  <div>
+                    <div className="font-medium text-foreground">Time</div>
+                    <div className="text-muted-foreground">
+                      {formatTime(event.startTime)} -{" "}
+                      {formatTime(event.endTime)}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-3 text-sm">
+                  <MapPin className="h-5 w-5 text-primary shrink-0" />
+                  <div>
+                    <div className="font-medium text-foreground">Location</div>
+                    <div className="text-muted-foreground">
+                      {event.location}
+                    </div>
+                  </div>
+                </div>
+
                 {eventProp && (
                   <div className="flex items-start gap-3 text-sm">
                     <div className="h-5 w-5 text-primary mt-0.5">🎪</div>
@@ -393,8 +398,9 @@ export default async function EventPage({
                     </div>
                   </div>
                 )}
+
                 <div className="flex items-center gap-3 text-sm">
-                  <UserCheck className="h-5 w-5 text-primary" />
+                  <UserCheck className="h-5 w-5 text-primary shrink-0" />
                   <div className="font-medium text-foreground">
                     {event.currentParticipants}{" "}
                     {event.currentParticipants === 1
@@ -402,39 +408,40 @@ export default async function EventPage({
                       : "Participants"}
                   </div>
                   {participants.length > 0 && (
-                    <div className="mt-1">
-                      <AvatarStack participants={participants} size="sm" />
-                    </div>
+                    <AvatarStack participants={participants} size="sm" />
                   )}
                 </div>
+
                 {event.isRecurring && (
                   <div className="flex items-center gap-3 text-sm">
-                    <Repeat className="h-5 w-5 text-primary" />
+                    <Repeat className="h-5 w-5 text-primary shrink-0" />
                     <div className="text-muted-foreground">Recurring Event</div>
                   </div>
                 )}
-                <div className="flex items-center gap-3 text-sm">
-                  <EventCalendarButtons
-                    eventData={{
-                      title: event.title,
-                      date: event.date,
-                      startTime: event.startTime,
-                      endTime: event.endTime,
-                      location: event.location,
-                      instructor:
-                        instructorDisplayName || event.instructor || "",
-                      description: event.description,
-                      whatToBring: event.whatToBring || null,
-                      bookingId: event.id,
-                      confirmationToken: `event-${createEventSlug(
-                        event.id,
-                        event.title,
-                        instructorDisplayName || event.instructor || "",
-                      )}`,
-                    }}
-                    className="w-full"
-                  />
-                </div>
+              </div>
+
+              {/* Full-width actions */}
+              <div className="space-y-3">
+                <EventCalendarButtons
+                  eventData={{
+                    title: event.title,
+                    date: event.date,
+                    startTime: event.startTime,
+                    endTime: event.endTime,
+                    location: event.location,
+                    instructor:
+                      instructorDisplayName || event.instructor || "",
+                    description: event.description,
+                    whatToBring: event.whatToBring || null,
+                    bookingId: event.id,
+                    confirmationToken: `event-${createEventSlug(
+                      event.id,
+                      event.title,
+                      instructorDisplayName || event.instructor || "",
+                    )}`,
+                  }}
+                  className="w-full"
+                />
                 {userParticipationId ? (
                   <div className="rounded-md bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800 p-4">
                     <p className="text-sm font-medium text-green-800 dark:text-green-200 mb-2">
