@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -164,13 +165,18 @@ export function ArtistList({ artists }: ArtistListProps) {
   const [selectedProp, setSelectedProp] = useState<string>("all");
   const [sortBy, setSortBy] = useState<SortOption>("date-newest");
 
-  // Get all unique props from all artists
+  const { data: propsList = [] } = useQuery<{ id: number; name: string }[]>({
+    queryKey: ["api-props"],
+    queryFn: async () => {
+      const res = await fetch("/api/props");
+      if (!res.ok) throw new Error("Failed to fetch props");
+      return res.json();
+    },
+  });
+
   const allProps = useMemo(
-    () =>
-      Array.from(
-        new Set(artists.flatMap((artist) => artist.props.map((p) => p.name))),
-      ).sort(),
-    [artists],
+    () => propsList.map((p) => p.name),
+    [propsList],
   );
 
   const filteredArtists = useMemo(() => {
