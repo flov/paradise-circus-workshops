@@ -9,8 +9,8 @@ import {
 } from "@/db/schema"
 import { eq, asc, and } from "drizzle-orm"
 import { unstable_cache } from "next/cache"
-import { BookEventButton } from "@/components/book-event-button"
-import { CancelBookingButton } from "@/components/cancel-booking-button"
+import { ParticipateButton } from "@/components/participate-button"
+import { CancelParticipationButton } from "@/components/cancel-participation-button"
 import {
   Card,
   CardContent,
@@ -41,7 +41,7 @@ import { EventCalendarButtons } from "@/components/event-calendar-buttons"
 import { EventComments } from "@/components/event-comments"
 import { AddRecapVideo } from "@/components/add-recap-video"
 
-export default async function BookEventPage({
+export default async function EventPage({
   params,
 }: {
   params: Promise<{ slug: string }>
@@ -68,7 +68,7 @@ export default async function BookEventPage({
           startTime: events.startTime,
           endTime: events.endTime,
           maxCapacity: events.maxCapacity,
-          currentBookings: events.currentBookings,
+          currentParticipants: events.currentParticipants,
           location: events.location,
           whatToBring: events.whatToBring,
           isWorkshop: events.isWorkshop,
@@ -126,7 +126,7 @@ export default async function BookEventPage({
     startTime: eventResult.startTime,
     endTime: eventResult.endTime,
     maxCapacity: eventResult.maxCapacity,
-    currentBookings: eventResult.currentBookings,
+    currentParticipants: eventResult.currentParticipants,
     location: eventResult.location,
     whatToBring: eventResult.whatToBring,
     isWorkshop: eventResult.isWorkshop,
@@ -255,7 +255,7 @@ export default async function BookEventPage({
               </Button>
             </Link>
             <h1 className="text-1xl font-bold text-foreground text-balance">
-              Book Your Event
+              Join This Event
             </h1>
           </div>
         </div>
@@ -396,8 +396,8 @@ export default async function BookEventPage({
                 <div className="flex items-center gap-3 text-sm">
                   <UserCheck className="h-5 w-5 text-primary" />
                   <div className="font-medium text-foreground">
-                    {event.currentBookings}{" "}
-                    {event.currentBookings === 1
+                    {event.currentParticipants}{" "}
+                    {event.currentParticipants === 1
                       ? "Participant"
                       : "Participants"}
                   </div>
@@ -440,13 +440,13 @@ export default async function BookEventPage({
                     <p className="text-sm font-medium text-green-800 dark:text-green-200 mb-2">
                       ✓ You are participating in this event
                     </p>
-                    <CancelBookingButton
-                      bookingId={userParticipationId}
+                    <CancelParticipationButton
+                      participationId={userParticipationId}
                       variant="outline"
                     />
                   </div>
                 ) : (
-                  <BookEventButton
+                  <ParticipateButton
                     eventId={event.id}
                     isPast={isPast}
                     isAuthenticated={!!userId}

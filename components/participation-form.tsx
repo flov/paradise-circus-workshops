@@ -9,11 +9,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { createBooking } from "@/app/actions";
+import { createParticipation } from "@/app/actions";
 import { Loader2 } from "lucide-react";
 import { getUserName, getUserEmail } from "@/lib/utils";
 
-export function BookingForm({ 
+export function ParticipationForm({
   eventId, 
   isPast,
   initialUserName = "",
@@ -58,10 +58,10 @@ export function BookingForm({
     }
 
     try {
-      const result = await createBooking(formData);
+      const result = await createParticipation(formData);
 
       if (result.success && result.confirmationToken) {
-        router.push(`/booking-confirmation/${result.confirmationToken}`);
+        router.push(`/participation-confirmation/${result.confirmationToken}`);
       } else {
         setError(result.error || "Failed to create participation. Please try again.");
       }

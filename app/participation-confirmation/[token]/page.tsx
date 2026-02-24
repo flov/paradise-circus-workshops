@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { AddToCalendarButton } from '@/components/add-to-calendar-button';
-import { CancelBookingButton } from '@/components/cancel-booking-button';
+import { CancelParticipationButton } from '@/components/cancel-participation-button';
 import {
   CheckCircle,
   Calendar,
@@ -21,7 +21,7 @@ import { createEventSlug } from '@/lib/utils';
 import { ArrowLeft } from 'lucide-react';
 import type { Participation, Event } from '@/db/schema';
 
-export default async function BookingConfirmationPage({
+export default async function ParticipationConfirmationPage({
   params,
 }: {
   params: Promise<{ token: string }>;
@@ -211,8 +211,8 @@ export default async function BookingConfirmationPage({
               <Link href='/'>
                 <Button className='w-full'>Browse More Events</Button>
               </Link>
-              <CancelBookingButton
-                bookingId={participation.id}
+              <CancelParticipationButton
+                participationId={participation.id}
                 variant='outline'
                 className='w-full mt-2'
               />

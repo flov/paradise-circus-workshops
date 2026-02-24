@@ -14,10 +14,10 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import { Trash2, Loader2 } from "lucide-react"
-import { deleteBooking } from "@/app/admin/actions"
+import { deleteParticipation } from "@/app/admin/actions"
 import { useRouter } from "next/navigation"
 
-export function DeleteBookingButton({ bookingId, eventId }: { bookingId: number; eventId: number }) {
+export function DeleteParticipationButton({ participationId, eventId }: { participationId: number; eventId: number }) {
   const router = useRouter()
   const [open, setOpen] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
@@ -26,7 +26,7 @@ export function DeleteBookingButton({ bookingId, eventId }: { bookingId: number;
     setIsDeleting(true)
 
     try {
-      await deleteBooking(bookingId, eventId)
+      await deleteParticipation(participationId, eventId)
       setOpen(false)
       router.refresh()
     } catch (err) {

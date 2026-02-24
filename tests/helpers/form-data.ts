@@ -12,9 +12,9 @@ export function createFormData(data: Record<string, string | null | undefined>):
 }
 
 /**
- * Helper to create FormData for booking
+ * Helper to create FormData for participation
  */
-export function createBookingFormData(overrides: Partial<{
+export function createParticipationFormData(overrides: Partial<{
   eventId: string
   name: string
   email: string

@@ -27,7 +27,7 @@ import {
   approveEvent,
   updateEvent,
   deleteEvent,
-  deleteBooking,
+  deleteParticipation,
   extendRecurringEvents,
   deleteEventAndFutureInstructorEvents,
 } from "./actions"

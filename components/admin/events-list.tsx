@@ -60,7 +60,7 @@ export async function EventsList() {
       startTime: events.startTime,
       endTime: events.endTime,
       location: events.location,
-      currentBookings: events.currentBookings,
+      currentParticipants: events.currentParticipants,
       isWorkshop: events.isWorkshop,
       isPublished: events.isPublished,
       propId: events.propId,
@@ -220,8 +220,8 @@ export async function EventsList() {
                 <TableCell>
                   <div className="flex items-center gap-2">
                     <span className="text-sm">
-                      {event.currentBookings}{" "}
-                      {event.currentBookings === 1
+                      {event.currentParticipants}{" "}
+                      {event.currentParticipants === 1
                         ? "participant"
                         : "participants"}
                     </span>

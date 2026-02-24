@@ -53,9 +53,9 @@ vi.mock('@/lib/email', async () => {
   
   return {
     ...actual,
-    sendBookingConfirmationEmail: vi.fn(async (props) => {
+    sendParticipationConfirmationEmail: vi.fn(async (props) => {
       sentEmails.push({
-        type: 'booking-confirmation',
+        type: 'participation-confirmation',
         to: props.participantEmail,
         props,
       })

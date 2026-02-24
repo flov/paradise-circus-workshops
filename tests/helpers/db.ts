@@ -108,7 +108,7 @@ export async function createTestEvent(
       endTime: "12:00:00",
       location: "Test Location",
       maxCapacity: 20,
-      currentBookings: 0,
+      currentParticipants: 0,
       isWorkshop: true,
       isPublished: true,
       isRecurring: false,
@@ -137,10 +137,10 @@ export async function createTestParticipation(
     })
     .returning();
 
-  // Update event booking count
+  // Update event participant count
   await db
     .update(schema.events)
-    .set({ currentBookings: sql`${schema.events.currentBookings} + 1` })
+    .set({ currentParticipants: sql`${schema.events.currentParticipants} + 1` })
     .where(sql`${schema.events.id} = ${eventId}`);
 
   return participation;

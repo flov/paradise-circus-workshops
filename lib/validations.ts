@@ -83,7 +83,7 @@ export const workshopEventSchema = z.object({
   date: z.string(),
   startTime: z.string(),
   endTime: z.string(),
-  currentBookings: z.number().int(),
+  currentParticipants: z.number().int(),
   location: z.string().nullable(),
   isRecurring: z.boolean(),
 });
@@ -155,7 +155,7 @@ export const timetableEventSchema = z.object({
   location: z.string().nullable(),
   whatToBring: z.string().nullable(),
   isWorkshop: z.boolean(),
-  currentBookings: z.number().int(),
+  currentParticipants: z.number().int(),
   propId: z.number().int().nullable(),
   isPublished: z.boolean(),
   isRecurring: z.boolean(),
@@ -179,7 +179,7 @@ export const icsContentSchema = z
   .describe("ICS calendar file content (text/calendar)");
 
 // Server action inputs
-export const createBookingSchema = z.object({
+export const createParticipationSchema = z.object({
   eventId: positiveIntSchema,
   name: z.string().min(1, "Name is required"),
   email: z.string().email("Invalid email address"),

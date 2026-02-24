@@ -12,7 +12,7 @@ import {
 } from "@react-email/components";
 import * as React from "react";
 
-export type BookingConfirmationEmailProps = {
+export type ParticipationConfirmationEmailProps = {
   participantName: string;
   eventTitle: string;
   eventDate: string;
@@ -45,7 +45,7 @@ const formatTime = (time: string) => {
   return `${displayHour}:${minutes} ${ampm}`;
 };
 
-export const BookingConfirmationEmail = ({
+export const ParticipationConfirmationEmail = ({
   participantName,
   eventTitle,
   eventDate,
@@ -56,7 +56,7 @@ export const BookingConfirmationEmail = ({
   participationId,
   confirmationToken,
   whatToBring,
-}: BookingConfirmationEmailProps) => {
+}: ParticipationConfirmationEmailProps) => {
   const formattedDate = formatDate(eventDate);
   const appUrl =
     process.env.NEXT_PUBLIC_APP_URL || "https://paradise-circus.app";
@@ -78,14 +78,14 @@ export const BookingConfirmationEmail = ({
         <Container style={container}>
           <Section style={header}>
             <Heading style={headerTitle}>🎪 Paradise Circus</Heading>
-            <Text style={headerSubtitle}>Event Booking Confirmation</Text>
+            <Text style={headerSubtitle}>Event Participation Confirmation</Text>
           </Section>
 
           <Section style={content}>
             <Text style={text}>Dear {participantName},</Text>
 
             <Text style={text}>
-              Thank you for booking an event with Paradise Circus! Your spot has
+              Thank you for signing up to participate in a Paradise Circus event! Your spot has
               been confirmed.
             </Text>
 
@@ -136,25 +136,25 @@ export const BookingConfirmationEmail = ({
 
             <Section style={buttonContainer}>
               <Link
-                href={`${appUrl}/booking-confirmation/${confirmationToken}`}
+                href={`${appUrl}/participation-confirmation/${confirmationToken}`}
                 style={button}
               >
-                View Booking Details
+                View Participation Details
               </Link>
             </Section>
 
             <Section style={cancelLinkContainer}>
               <Link
-                href={`${appUrl}/api/cancel-booking?id=${participationId}`}
+                href={`${appUrl}/api/cancel-participation?id=${participationId}`}
                 style={cancelLink}
               >
-                Cancel this booking
+                Cancel this participation
               </Link>
             </Section>
 
             <Text style={text}>
               We're excited to see you at the event! If you have any questions
-              or need to make changes to your booking, please don't hesitate to
+              or need to make changes to your participation, please don't hesitate to
               reach out.
             </Text>
 
@@ -348,4 +348,4 @@ const footerSmall = {
   color: "#6b7280",
 };
 
-export default BookingConfirmationEmail;
+export default ParticipationConfirmationEmail;

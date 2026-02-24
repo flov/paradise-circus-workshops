@@ -6,15 +6,15 @@ import { events, participations } from "@/db/schema";
 import { eq, sql, and } from "drizzle-orm";
 import { revalidatePath, revalidateTag, unstable_cache } from "next/cache";
 import {
-  sendBookingConfirmationEmail,
+  sendParticipationConfirmationEmail,
   sendAdminNotificationEmail,
   sendCommentNotificationEmail,
 } from "@/lib/email";
 import { auth, currentUser } from "@clerk/nextjs/server";
 import { getUserName, getUserEmail, createEventSlug } from "@/lib/utils";
-import { createBookingSchema, addCommentSchema } from "@/lib/validations";
+import { createParticipationSchema, addCommentSchema } from "@/lib/validations";
 
-export async function createBooking(formData: FormData) {
+export async function createParticipation(formData: FormData) {
   // Get authenticated user
   const { userId } = await auth();
 
@@ -51,24 +51,24 @@ export async function createBooking(formData: FormData) {
     console.error("Failed to fetch user displayName:", error);
   }
 
-  const bookingResult = createBookingSchema.safeParse({
+  const participationResult = createParticipationSchema.safeParse({
     eventId: formData.get("eventId"),
     name: clerkName || formData.get("name"),
     email: clerkEmail || formData.get("email"),
     phone: formData.get("phone"),
     notes: formData.get("notes"),
   });
-  if (!bookingResult.success) {
-    return { success: false, error: bookingResult.error.issues[0].message };
+  if (!participationResult.success) {
+    return { success: false, error: participationResult.error.issues[0].message };
   }
-  const { eventId, name, email, phone, notes } = bookingResult.data;
+  const { eventId, name, email, phone, notes } = participationResult.data;
 
   try {
     // Check if event exists
     const eventResults = await db
       .select({
         id: events.id,
-        currentBookings: events.currentBookings,
+        currentParticipants: events.currentParticipants,
         title: events.title,
         date: events.date,
         startTime: events.startTime,
@@ -112,11 +112,11 @@ export async function createBooking(formData: FormData) {
     // Update event booking count
     await db
       .update(events)
-      .set({ currentBookings: sql`${events.currentBookings} + 1` })
+      .set({ currentParticipants: sql`${events.currentParticipants} + 1` })
       .where(eq(events.id, eventId));
 
     try {
-      await sendBookingConfirmationEmail({
+      await sendParticipationConfirmationEmail({
         participantName: name,
         participantEmail: email,
         eventTitle: event.title,
@@ -165,7 +165,7 @@ export async function createBooking(formData: FormData) {
   }
 }
 
-export async function cancelBooking(participationId: number) {
+export async function cancelParticipation(participationId: number) {
   const { userId } = await auth();
 
   if (!userId) {
@@ -217,7 +217,7 @@ export async function cancelBooking(participationId: number) {
     // Update event participation count
     await db
       .update(events)
-      .set({ currentBookings: sql`${events.currentBookings} - 1` })
+      .set({ currentParticipants: sql`${events.currentParticipants} - 1` })
       .where(eq(events.id, participation.eventId));
 
     // Revalidate relevant pages and caches
@@ -238,7 +238,7 @@ export async function cancelBooking(participationId: number) {
   }
 }
 
-export async function cancelBookingByEvent(eventId: number) {
+export async function cancelParticipationByEvent(eventId: number) {
   const { userId } = await auth();
 
   if (!userId) {
@@ -286,7 +286,7 @@ export async function cancelBookingByEvent(eventId: number) {
     // Update event participation count
     await db
       .update(events)
-      .set({ currentBookings: sql`${events.currentBookings} - 1` })
+      .set({ currentParticipants: sql`${events.currentParticipants} - 1` })
       .where(eq(events.id, eventId));
 
     // Revalidate relevant pages and caches

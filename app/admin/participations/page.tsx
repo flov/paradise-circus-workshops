@@ -5,7 +5,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { BookingsList } from "@/components/admin/bookings-list";
+import { ParticipationsList } from "@/components/admin/participations-list";
 import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import { isAdmin } from "@/app/profile/actions";
@@ -41,7 +41,7 @@ export default async function AdminParticipationsPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <BookingsList />
+            <ParticipationsList />
           </CardContent>
         </Card>
       </main>

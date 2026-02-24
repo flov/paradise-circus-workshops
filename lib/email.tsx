@@ -1,7 +1,7 @@
 import { Resend } from "resend";
 import { render } from "@react-email/render";
 import React from "react";
-import { BookingConfirmationEmail } from "@/emails/booking-confirmation";
+import { ParticipationConfirmationEmail } from "@/emails/participation-confirmation";
 import { AdminNotificationEmail } from "@/emails/admin-notification";
 import { EventPendingApprovalEmail } from "@/emails/event-pending-approval";
 import { EventApprovedEmail } from "@/emails/event-approved";
@@ -12,7 +12,7 @@ import { InstructorAssignedEmail } from "@/emails/instructor-assigned";
 import { RecapAddedEmail } from "@/emails/recap-added";
 import { AdminPromotedEmail } from "@/emails/admin-promoted";
 
-type BookingConfirmationEmailProps = {
+type ParticipationConfirmationEmailProps = {
   participantName: string;
   participantEmail: string;
   eventTitle: string;
@@ -27,7 +27,7 @@ type BookingConfirmationEmailProps = {
 };
 
 // Helper function to generate plain text version
-const generatePlainText = (props: BookingConfirmationEmailProps) => {
+const generatePlainText = (props: ParticipationConfirmationEmailProps) => {
   const {
     participantName,
     eventTitle,
@@ -73,11 +73,11 @@ const generatePlainText = (props: BookingConfirmationEmailProps) => {
     process.env.NEXT_PUBLIC_APP_URL || "https://paradise-circus.app";
 
   return `
-Paradise Circus - Event Booking Confirmation
+Paradise Circus - Event Participation Confirmation
 
 Dear ${participantName},
 
-Thank you for booking an event with Paradise Circus! Your spot has been confirmed.
+Thank you for signing up to participate in a Paradise Circus event! Your spot has been confirmed.
 
 Event Details:
 - Title: ${eventTitle}
@@ -97,9 +97,9 @@ Important Information:
 - All equipment will be provided
 - Contact us if you need to make any changes
 
-View your participation details: ${appUrl}/booking-confirmation/${confirmationToken}
+View your participation details: ${appUrl}/participation-confirmation/${confirmationToken}
 
-Cancel this participation: ${appUrl}/api/cancel-booking?id=${participationId}
+Cancel this participation: ${appUrl}/api/cancel-participation?id=${participationId}
 
 We're excited to see you at the event!
 
@@ -109,13 +109,13 @@ The Paradise Circus Team
   `.trim();
 };
 
-export async function sendBookingConfirmationEmail(
-  props: BookingConfirmationEmailProps,
+export async function sendParticipationConfirmationEmail(
+  props: ParticipationConfirmationEmailProps,
 ) {
   const { participantEmail, eventTitle } = props;
 
   // Render React Email component to HTML
-  const emailHtml = await render(<BookingConfirmationEmail {...props} />);
+  const emailHtml = await render(<ParticipationConfirmationEmail {...props} />);
 
   // Generate plain text version
   const emailText = generatePlainText(props);
@@ -138,14 +138,14 @@ export async function sendBookingConfirmationEmail(
     await resend.emails.send({
       from: fromEmail,
       to: participantEmail,
-      subject: `Booking Confirmed: ${eventTitle}`,
+      subject: `Participation Confirmed: ${eventTitle}`,
       html: emailHtml,
       text: emailText,
     });
 
-    console.log("Booking confirmation email sent to:", participantEmail);
+    console.log("Participation confirmation email sent to:", participantEmail);
   } catch (error) {
-    console.error("Failed to send booking confirmation email:", error);
+    console.error("Failed to send participation confirmation email:", error);
     throw error;
   }
 

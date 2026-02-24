@@ -19,7 +19,7 @@ type WeekCalendarProps = {
     | "date"
     | "startTime"
     | "endTime"
-    | "currentBookings"
+    | "currentParticipants"
     | "location"
   >[];
 };

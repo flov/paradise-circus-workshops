@@ -184,7 +184,7 @@ export async function POST(request: NextRequest) {
           for (const [eventId, count] of Object.entries(participationsByEvent)) {
             await db
               .update(events)
-              .set({ currentBookings: sql`${events.currentBookings} - ${count}` })
+              .set({ currentParticipants: sql`${events.currentParticipants} - ${count}` })
               .where(eq(events.id, parseInt(eventId)))
           }
         }

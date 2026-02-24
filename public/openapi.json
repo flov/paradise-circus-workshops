@@ -308,7 +308,7 @@
           "endTime": {
             "type": "string"
           },
-          "currentBookings": {
+          "currentParticipants": {
             "type": "integer"
           },
           "location": {
@@ -327,7 +327,7 @@
           "date",
           "startTime",
           "endTime",
-          "currentBookings",
+          "currentParticipants",
           "location",
           "isRecurring"
         ]
@@ -591,7 +591,7 @@
           "isWorkshop": {
             "type": "boolean"
           },
-          "currentBookings": {
+          "currentParticipants": {
             "type": "integer"
           },
           "propId": {
@@ -662,7 +662,7 @@
           "location",
           "whatToBring",
           "isWorkshop",
-          "currentBookings",
+          "currentParticipants",
           "propId",
           "isPublished",
           "isRecurring",
@@ -675,7 +675,7 @@
           "instructorAvatarUrl"
         ]
       },
-      "createBookingSchema": {
+      "createParticipationSchema": {
         "type": "object",
         "properties": {
           "eventId": {
@@ -1007,13 +1007,13 @@
         }
       }
     },
-    "/cancel-booking": {
+    "/cancel-participation": {
       "get": {
-        "operationId": "get-cancel-booking",
+        "operationId": "get-cancel-participation",
         "summary": "",
         "description": "",
         "tags": [
-          "Cancel-booking"
+          "Cancel-participation"
         ],
         "parameters": [],
         "responses": {

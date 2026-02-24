@@ -3,9 +3,9 @@ import { participations, events } from "@/db/schema"
 import { eq, desc } from "drizzle-orm"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
-import { DeleteBookingButton } from "./delete-booking-button"
+import { DeleteParticipationButton } from "./delete-participation-button"
 
-export async function BookingsList() {
+export async function ParticipationsList() {
   const participationsList = await db
     .select({
       id: participations.id,
@@ -77,7 +77,7 @@ export async function BookingsList() {
                   {participation.phone && <div className="text-muted-foreground">{participation.phone}</div>}
                 </TableCell>
                 <TableCell className="text-right">
-                  <DeleteBookingButton bookingId={participation.id} eventId={participation.eventId} />
+                  <DeleteParticipationButton participationId={participation.id} eventId={participation.eventId} />
                 </TableCell>
               </TableRow>
             )

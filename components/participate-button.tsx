@@ -4,11 +4,11 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useUser, SignInButton } from "@clerk/nextjs";
 import { Button } from "@/components/ui/button";
-import { createBooking } from "@/app/actions";
+import { createParticipation } from "@/app/actions";
 import { Loader2 } from "lucide-react";
 import { getUserName, getUserEmail } from "@/lib/utils";
 
-interface BookEventButtonProps {
+interface ParticipateButtonProps {
   eventId: number;
   isPast: boolean;
   isAuthenticated: boolean;
@@ -16,13 +16,13 @@ interface BookEventButtonProps {
   userEmail: string;
 }
 
-export function BookEventButton({
+export function ParticipateButton({
   eventId,
   isPast,
   isAuthenticated: serverIsAuthenticated,
   userName: serverUserName,
   userEmail: serverUserEmail,
-}: BookEventButtonProps) {
+}: ParticipateButtonProps) {
   const router = useRouter();
   const { user, isLoaded } = useUser();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -33,7 +33,7 @@ export function BookEventButton({
   const userName = serverUserName || (user ? getUserName(user) : "");
   const userEmail = serverUserEmail || (user ? getUserEmail(user) : "");
 
-  async function handleBookNow() {
+  async function handleParticipateNow() {
     setIsSubmitting(true);
     setError(null);
 
@@ -43,10 +43,10 @@ export function BookEventButton({
     formData.append("email", userEmail);
 
     try {
-      const result = await createBooking(formData);
+      const result = await createParticipation(formData);
 
       if (result.success && result.confirmationToken) {
-        router.push(`/booking-confirmation/${result.confirmationToken}`);
+        router.push(`/participation-confirmation/${result.confirmationToken}`);
       } else {
         setError(result.error || "Failed to create participation. Please try again.");
       }
@@ -94,7 +94,7 @@ export function BookEventButton({
   return (
     <>
       <Button
-        onClick={handleBookNow}
+        onClick={handleParticipateNow}
         className="w-full"
         size="lg"
         disabled={isSubmitting}

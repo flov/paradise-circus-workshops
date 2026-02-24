@@ -2118,7 +2118,7 @@ export async function deleteEventAndFutureInstructorEvents(
   }
 }
 
-export async function deleteBooking(participationId: number, eventId: number) {
+export async function deleteParticipation(participationId: number, eventId: number) {
   // Check authentication
   const { userId } = await auth();
 
@@ -2142,7 +2142,7 @@ export async function deleteBooking(participationId: number, eventId: number) {
     // Update event participation count
     await db
       .update(events)
-      .set({ currentBookings: sql`${events.currentBookings} - 1` })
+      .set({ currentParticipants: sql`${events.currentParticipants} - 1` })
       .where(eq(events.id, eventId));
 
     revalidatePath("/admin");
@@ -3302,7 +3302,7 @@ export async function copySelectedRecurringEventsToNextWeek(
       recurringUntil: string | null;
       recapVideoId: string | null;
       maxCapacity: number;
-      currentBookings: number;
+      currentParticipants: number;
     }> = [];
 
     for (const sourceEvent of sourceEvents) {
@@ -3358,7 +3358,7 @@ export async function copySelectedRecurringEventsToNextWeek(
         recurringUntil: sourceEvent.recurringUntil,
         recapVideoId: sourceEvent.recapVideoId,
         maxCapacity: sourceEvent.maxCapacity,
-        currentBookings: 0, // Reset booking counter
+        currentParticipants: 0, // Reset participant counter
       });
     }
 
@@ -3898,7 +3898,7 @@ export async function deleteUser(userId: number) {
       for (const [eventId, count] of Object.entries(participationsByEvent)) {
         await db
           .update(events)
-          .set({ currentBookings: sql`${events.currentBookings} - ${count}` })
+          .set({ currentParticipants: sql`${events.currentParticipants} - ${count}` })
           .where(eq(events.id, parseInt(eventId)))
       }
     }

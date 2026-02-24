@@ -14,15 +14,15 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import { Loader2 } from "lucide-react"
-import { cancelBooking } from "@/app/actions"
+import { cancelParticipation } from "@/app/actions"
 import { useRouter } from "next/navigation"
 
-export function CancelBookingButton({ 
-  bookingId,
+export function CancelParticipationButton({
+  participationId,
   variant = "default",
   className
-}: { 
-  bookingId: number
+}: {
+  participationId: number
   variant?: "default" | "destructive" | "outline" | "ghost"
   className?: string
 }) {
@@ -36,7 +36,7 @@ export function CancelBookingButton({
     setError(null)
 
     try {
-      const result = await cancelBooking(bookingId)
+      const result = await cancelParticipation(participationId)
       
       if (result.success) {
         setOpen(false)

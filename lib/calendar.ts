@@ -121,7 +121,7 @@ export function generateICSFile(data: EventCalendarData): string {
     `ORGANIZER;CN=${escapeICS(instructor)}:mailto:${escapeICS(instructor.toLowerCase().replace(/\s+/g, "."))}@paradisecircus.com`,
   );
 
-  // Add URL - use event page if confirmationToken starts with "event-", otherwise use booking confirmation
+  // Add URL - use event page if confirmationToken starts with "event-", otherwise use participation confirmation
   const siteUrl =
     process.env.NEXT_PUBLIC_SITE_URL || "https://paradise-circus.app";
   if (confirmationToken.startsWith("event-")) {
@@ -129,7 +129,7 @@ export function generateICSFile(data: EventCalendarData): string {
     const eventSlug = confirmationToken.replace("event-", "");
     lines.push(`URL:${siteUrl}/event/${eventSlug}`);
   } else {
-    lines.push(`URL:${siteUrl}/booking-confirmation/${confirmationToken}`);
+    lines.push(`URL:${siteUrl}/participation-confirmation/${confirmationToken}`);
   }
 
   // Set status
@@ -201,7 +201,7 @@ export function generateGoogleCalendarURL(data: EventCalendarData): string {
     eventDescription += items.map((item) => `- ${item}`).join("\n");
   }
 
-  // Add URL - use event page if confirmationToken starts with "event-", otherwise use booking confirmation
+  // Add URL - use event page if confirmationToken starts with "event-", otherwise use participation confirmation
   const siteUrl =
     process.env.NEXT_PUBLIC_SITE_URL || "https://paradise-circus.app";
   if (confirmationToken.startsWith("event-")) {
@@ -209,7 +209,7 @@ export function generateGoogleCalendarURL(data: EventCalendarData): string {
     const eventSlug = confirmationToken.replace("event-", "");
     eventDescription += `\n\nView event: ${siteUrl}/event/${eventSlug}`;
   } else {
-    eventDescription += `\n\nView participation: ${siteUrl}/booking-confirmation/${confirmationToken}`;
+    eventDescription += `\n\nView participation: ${siteUrl}/participation-confirmation/${confirmationToken}`;
   }
 
   // Build Google Calendar URL with URL-encoded parameters

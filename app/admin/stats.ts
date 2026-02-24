@@ -296,7 +296,7 @@ async function getTopInstructorsUncached(
       displayName: users.displayName,
       avatarImageUrl: users.avatarImageUrl,
       workshopCount: sql<number>`CAST(COUNT(DISTINCT ${events.id}) AS INTEGER)`,
-      totalParticipants: sql<number>`CAST(COALESCE(SUM(${events.currentBookings}), 0) AS INTEGER)`,
+      totalParticipants: sql<number>`CAST(COALESCE(SUM(${events.currentParticipants}), 0) AS INTEGER)`,
     })
     .from(users)
     .innerJoin(events, eq(users.id, events.instructorId))
@@ -389,7 +389,7 @@ export async function getEventStats(): Promise<EventStatsResult> {
   const [summaryRow] = await db
     .select({
       totalWorkshops: sql<number>`CAST(COUNT(*) AS INTEGER)`,
-      totalParticipations: sql<number>`CAST(COALESCE(SUM(${events.currentBookings}), 0) AS INTEGER)`,
+      totalParticipations: sql<number>`CAST(COALESCE(SUM(${events.currentParticipants}), 0) AS INTEGER)`,
       totalCapacity: sql<number>`CAST(COALESCE(SUM(${events.maxCapacity}), 0) AS INTEGER)`,
       upcomingCount: sql<number>`CAST(COUNT(CASE WHEN ${events.date} >= ${today} THEN 1 END) AS INTEGER)`,
       pastCount: sql<number>`CAST(COUNT(CASE WHEN ${events.date} < ${today} THEN 1 END) AS INTEGER)`,
@@ -421,7 +421,7 @@ export async function getEventStats(): Promise<EventStatsResult> {
       propId: props.id,
       propName: props.name,
       eventCount: sql<number>`CAST(COUNT(${events.id}) AS INTEGER)`,
-      totalParticipants: sql<number>`CAST(COALESCE(SUM(${events.currentBookings}), 0) AS INTEGER)`,
+      totalParticipants: sql<number>`CAST(COALESCE(SUM(${events.currentParticipants}), 0) AS INTEGER)`,
     })
     .from(events)
     .innerJoin(props, eq(events.propId, props.id))

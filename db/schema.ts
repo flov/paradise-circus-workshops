@@ -27,7 +27,7 @@ export const events = pgTable(
     startTime: time("start_time").notNull(),
     endTime: time("end_time").notNull(),
     maxCapacity: integer("max_capacity").notNull().default(20),
-    currentBookings: integer("current_bookings").notNull().default(0),
+    currentParticipants: integer("current_participants").notNull().default(0),
     location: varchar("location", { length: 255 }),
     whatToBring: text("what_to_bring"),
     isWorkshop: boolean("is_workshop").notNull().default(true),

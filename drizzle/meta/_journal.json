@@ -197,6 +197,13 @@
       "when": 1771773487494,
       "tag": "0027_add_activity_logs_table",
       "breakpoints": true
+    },
+    {
+      "idx": 28,
+      "version": "7",
+      "when": 1771949019262,
+      "tag": "0028_rename-current-bookings-to-current-participants",
+      "breakpoints": true
     }
   ]
 }
