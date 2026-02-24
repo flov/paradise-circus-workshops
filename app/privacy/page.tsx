@@ -135,15 +135,10 @@ export default function PrivacyPage() {
               Booking records are kept for operational and historical purposes.
             </p>
             <p>
-              To request deletion of your account and associated data, contact
-              us at{" "}
-              <a
-                href="mailto:paradise@paradise-circus.app"
-                className="text-primary hover:underline"
-              >
-                paradise@paradise-circus.app
-              </a>
-              . We will process deletion requests within 30 days.
+              To delete your data, simply delete your account via the profile
+              menu in Clerk (click your avatar, then &quot;Manage account&quot;).
+              Deleting your account will remove your profile and associated data
+              from our systems.
             </p>
           </CardContent>
         </Card>
@@ -163,10 +158,10 @@ export default function PrivacyPage() {
             <p>
               To exercise any of these rights, contact us at{" "}
               <a
-                href="mailto:paradise@paradise-circus.app"
+                href="mailto:contact@paradise-circus.app"
                 className="text-primary hover:underline"
               >
-                paradise@paradise-circus.app
+                contact@paradise-circus.app
               </a>
               .
             </p>
@@ -183,10 +178,10 @@ export default function PrivacyPage() {
               <br />
               Email:{" "}
               <a
-                href="mailto:paradise@paradise-circus.app"
+                href="mailto:contact@paradise-circus.app"
                 className="text-primary hover:underline"
               >
-                paradise@paradise-circus.app
+                contact@paradise-circus.app
               </a>
             </p>
           </CardContent>

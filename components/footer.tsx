@@ -39,6 +39,14 @@ export function Footer() {
                   Our Artists
                 </Link>
               </li>
+              <li>
+                <Link
+                  href="/privacy"
+                  className="text-muted-foreground hover:text-primary text-sm transition-colors"
+                >
+                  Privacy Policy
+                </Link>
+              </li>
             </ul>
           </div>
 
