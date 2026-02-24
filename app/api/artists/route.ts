@@ -11,11 +11,13 @@ async function getAllArtistsUncached() {
       username: users.username,
       displayName: users.displayName,
       isInstructor: users.isInstructor,
+      isAdmin: users.isAdmin,
       avatarImageUrl: users.avatarImageUrl,
       bio: users.bio,
       youtubeVideos: users.youtubeVideos,
       vimeoVideos: users.vimeoVideos,
       instagramHandle: users.instagramHandle,
+      patreonPage: users.patreonPage,
       availableForPerformances: users.availableForPerformances,
     })
     .from(users)
@@ -79,11 +81,13 @@ async function getAllArtistsUncached() {
       avatar: artist.avatarImageUrl || undefined,
       username: artist.username,
       isInstructor: artist.isInstructor,
+      isAdmin: artist.isAdmin,
       workshopCount: workshopCountsByUserId[artist.id] || 0,
       props: propsByUserId[artist.id] || [],
       videoCount: youtubeCount + vimeoCount,
       bio: artist.bio || undefined,
       instagramHandle: artist.instagramHandle || undefined,
+      patreonPage: artist.patreonPage || undefined,
       availableForPerformances: artist.availableForPerformances || false,
     }
   })

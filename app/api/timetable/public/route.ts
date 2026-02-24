@@ -41,6 +41,7 @@ async function getPublicTimetableData(startDate: string, endDate: string) {
         username: users.username,
         bio: users.bio,
         instagramHandle: users.instagramHandle,
+        avatarImageUrl: users.avatarImageUrl,
         youtubeVideos: users.youtubeVideos,
         vimeoVideos: users.vimeoVideos,
         experienceStartDate: users.experienceStartDate,
@@ -59,6 +60,7 @@ async function getPublicTimetableData(startDate: string, endDate: string) {
     instructorDisplayName: event.instructorProfile
       ? event.instructorProfile.displayName || event.instructorProfile.username
       : null,
+    instructorAvatarUrl: event.instructorProfile?.avatarImageUrl ?? null,
   }));
 }
 

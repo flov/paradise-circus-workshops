@@ -134,6 +134,7 @@ export const timetableInstructorProfileSchema = z.object({
   username: z.string(),
   bio: z.string().nullable(),
   instagramHandle: z.string().nullable(),
+  avatarImageUrl: z.string().nullable(),
   youtubeVideos: z.array(z.string()).nullable(),
   vimeoVideos: z.array(z.string()).nullable(),
   experienceStartDate: z.string().nullable(),
@@ -166,6 +167,7 @@ export const timetableEventSchema = z.object({
   lastUpdatedByUser: userRefSchema.nullable().optional(),
   approvedByUser: userRefSchema.nullable().optional(),
   instructorDisplayName: z.string().nullable(),
+  instructorAvatarUrl: z.string().nullable(),
 });
 
 export const timetableResponseSchema = z.array(timetableEventSchema);

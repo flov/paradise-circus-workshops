@@ -501,6 +501,10 @@
             "type": "string",
             "nullable": true
           },
+          "avatarImageUrl": {
+            "type": "string",
+            "nullable": true
+          },
           "youtubeVideos": {
             "type": "array",
             "items": {
@@ -537,6 +541,7 @@
           "username",
           "bio",
           "instagramHandle",
+          "avatarImageUrl",
           "youtubeVideos",
           "vimeoVideos",
           "experienceStartDate",
@@ -639,6 +644,10 @@
           "instructorDisplayName": {
             "type": "string",
             "nullable": true
+          },
+          "instructorAvatarUrl": {
+            "type": "string",
+            "nullable": true
           }
         },
         "required": [
@@ -662,7 +671,8 @@
           "recapVideoId",
           "createdAt",
           "instructorProfile",
-          "instructorDisplayName"
+          "instructorDisplayName",
+          "instructorAvatarUrl"
         ]
       },
       "createBookingSchema": {
