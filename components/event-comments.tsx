@@ -18,29 +18,34 @@ type EventCommentsProps = {
   currentUserImageUrl?: string | null;
 };
 
-function formatRelativeTime(date: Date): string {
+function formatRelativeTime(input: Date | string | number): string {
+  const date = input instanceof Date ? input : new Date(input);
+  if (Number.isNaN(date.getTime())) {
+    return "recently";
+  }
+
   const now = new Date();
   const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
-  
+
   if (diffInSeconds < 60) {
     return "just now";
   }
-  
+
   const diffInMinutes = Math.floor(diffInSeconds / 60);
   if (diffInMinutes < 60) {
     return `${diffInMinutes}m ago`;
   }
-  
+
   const diffInHours = Math.floor(diffInMinutes / 60);
   if (diffInHours < 24) {
     return `${diffInHours}h ago`;
   }
-  
+
   const diffInDays = Math.floor(diffInHours / 24);
   if (diffInDays < 7) {
     return `${diffInDays}d ago`;
   }
-  
+
   return date.toLocaleDateString("en-US", {
     month: "short",
     day: "numeric",
@@ -73,7 +78,7 @@ function CommentItem({
     <div
       className={cn(
         "group flex gap-3 py-3 transition-colors",
-        "border-b border-border/50 last:border-b-0"
+        "border-b border-border/50 last:border-b-0",
       )}
     >
       <Avatar className="size-8 shrink-0 ring-2 ring-primary/10">
@@ -102,7 +107,7 @@ function CommentItem({
               size="sm"
               className={cn(
                 "h-7 w-7 p-0 opacity-0 group-hover:opacity-100 transition-opacity",
-                "text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                "text-muted-foreground hover:text-destructive hover:bg-destructive/10",
               )}
               onClick={handleDelete}
               disabled={isPending}
@@ -155,6 +160,8 @@ export function EventComments({
             authorImageUrl: currentUserImageUrl || null,
             content,
             createdAt: new Date(),
+            updatedAt: new Date(),
+            eventId,
             clerkUserId: currentUserId,
           },
         ]);
@@ -201,7 +208,7 @@ export function EventComments({
                 onChange={(e) => setNewComment(e.target.value)}
                 className={cn(
                   "min-h-[80px] resize-none",
-                  "focus-visible:ring-primary/50"
+                  "focus-visible:ring-primary/50",
                 )}
                 disabled={isPending}
               />
@@ -227,7 +234,10 @@ export function EventComments({
       ) : (
         <div className="text-center py-4 px-6 bg-muted/50 rounded-lg mb-4">
           <p className="text-sm text-muted-foreground">
-            <a href="/sign-in" className="text-primary hover:underline font-medium">
+            <a
+              href="/sign-in"
+              className="text-primary hover:underline font-medium"
+            >
               Sign in
             </a>{" "}
             to join the conversation
