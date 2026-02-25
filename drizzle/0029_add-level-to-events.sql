@@ -1,0 +1,1 @@
+ALTER TABLE "events" ADD COLUMN "level" varchar(50) DEFAULT 'All levels' NOT NULL;

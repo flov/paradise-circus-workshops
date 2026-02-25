@@ -1,11 +1,11 @@
-"use client";
+"use client"
 
-import type React from "react";
-import { useState, useEffect } from "react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
+import type React from "react"
+import { useState, useEffect } from "react"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -16,54 +16,55 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
-import { Loader2, Trash2 } from "lucide-react";
-import Link from "next/link";
+} from "@/components/ui/alert-dialog"
+import { Loader2, Trash2 } from "lucide-react"
+import Link from "next/link"
 import {
   getAllProps,
   getCurrentUserProfile,
   getAllInstructors,
-} from "@/app/profile/actions";
-import type { UserDisplayInfo } from "@/db/schema";
+} from "@/app/profile/actions"
+import type { UserDisplayInfo } from "@/db/schema"
 
 export type EventFormInitialValues = {
-  id?: number;
-  title?: string;
-  description?: string;
-  instructor?: string;
-  instructorId?: number | null;
-  date?: string;
-  startTime?: string;
-  endTime?: string;
-  location?: string | null;
-  whatToBring?: string | null;
-  isWorkshop?: boolean;
-  isPublished?: boolean;
-  propId?: number | null;
-  isRecurring?: boolean;
-  recurringUntil?: string;
-  createdAt?: string | Date;
-  lastUpdatedByUser?: UserDisplayInfo | null;
-  approvedByUser?: UserDisplayInfo | null;
-};
+  id?: number
+  title?: string
+  description?: string
+  instructor?: string
+  instructorId?: number | null
+  date?: string
+  startTime?: string
+  endTime?: string
+  location?: string | null
+  whatToBring?: string | null
+  isWorkshop?: boolean
+  level?: string | null
+  isPublished?: boolean
+  propId?: number | null
+  isRecurring?: boolean
+  recurringUntil?: string
+  createdAt?: string | Date
+  lastUpdatedByUser?: UserDisplayInfo | null
+  approvedByUser?: UserDisplayInfo | null
+}
 
 type EventFormProps = {
-  initialValues?: EventFormInitialValues;
-  isSubmitting: boolean;
-  onSubmit: (formData: FormData) => Promise<void>;
-  onCancel: () => void;
-  error: string | null;
-  submitButtonText?: string;
-  submittingText?: string;
+  initialValues?: EventFormInitialValues
+  isSubmitting: boolean
+  onSubmit: (formData: FormData) => Promise<void>
+  onCancel: () => void
+  error: string | null
+  submitButtonText?: string
+  submittingText?: string
   onDelete?: (
     eventId: number,
     cancellationMessage?: string | null,
-  ) => Promise<void>;
+  ) => Promise<void>
   onDeleteAllFuture?: (
     eventId: number,
     cancellationMessage?: string | null,
-  ) => Promise<void>;
-};
+  ) => Promise<void>
+}
 
 export function EventForm({
   initialValues,
@@ -78,48 +79,61 @@ export function EventForm({
 }: EventFormProps) {
   const [availableProps, setAvailableProps] = useState<
     Array<{ id: number; name: string }>
-  >([]);
-  const [selectedPropId, setSelectedPropId] = useState<number | null>(null);
+  >([])
+  const [selectedPropId, setSelectedPropId] = useState<number | null>(null)
   const [userProfile, setUserProfile] = useState<{
-    id: number;
-    displayName: string | null;
-    username: string;
-    isAdmin: boolean;
-    isInstructor: boolean;
-  } | null>(null);
+    id: number
+    displayName: string | null
+    username: string
+    isAdmin: boolean
+    isInstructor: boolean
+  } | null>(null)
   const [instructors, setInstructors] = useState<
     Array<{ id: number; displayName: string | null; username: string }>
-  >([]);
+  >([])
   const [selectedInstructorId, setSelectedInstructorId] = useState<
     number | null
-  >(null);
+  >(null)
+  const [isWorkshop, setIsWorkshop] = useState<boolean>(
+    initialValues?.isWorkshop ?? true,
+  )
+  const [level, setLevel] = useState<string>(
+    initialValues?.level ?? "All levels",
+  )
   const [isRecurring, setIsRecurring] = useState<boolean>(
     initialValues?.isRecurring ?? false,
-  );
+  )
   // Initialize recurringUntil - handle both string and undefined/null
   const getInitialRecurringUntil = (): string => {
-    if (!initialValues?.recurringUntil) return "";
+    if (!initialValues?.recurringUntil) return ""
     if (typeof initialValues.recurringUntil === "string") {
       // If it has time component, extract date part
-      if (initialValues.recurringUntil.includes("T") || initialValues.recurringUntil.includes(" ")) {
-        return new Date(initialValues.recurringUntil).toISOString().split("T")[0];
+      if (
+        initialValues.recurringUntil.includes("T") ||
+        initialValues.recurringUntil.includes(" ")
+      ) {
+        return new Date(initialValues.recurringUntil)
+          .toISOString()
+          .split("T")[0]
       }
       // Already in YYYY-MM-DD format
-      return initialValues.recurringUntil;
+      return initialValues.recurringUntil
     }
     // Date object
-    return new Date(initialValues.recurringUntil).toISOString().split("T")[0];
-  };
-  const [recurringUntil, setRecurringUntil] = useState<string>(getInitialRecurringUntil());
+    return new Date(initialValues.recurringUntil).toISOString().split("T")[0]
+  }
+  const [recurringUntil, setRecurringUntil] = useState<string>(
+    getInitialRecurringUntil(),
+  )
   const [recurringValidationError, setRecurringValidationError] = useState<
     string | null
-  >(null);
-  const [isDeleting, setIsDeleting] = useState(false);
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [isDeletingAllFuture, setIsDeletingAllFuture] = useState(false);
+  >(null)
+  const [isDeleting, setIsDeleting] = useState(false)
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [isDeletingAllFuture, setIsDeletingAllFuture] = useState(false)
   const [deleteAllFutureDialogOpen, setDeleteAllFutureDialogOpen] =
-    useState(false);
-  const [cancellationMessage, setCancellationMessage] = useState("");
+    useState(false)
+  const [cancellationMessage, setCancellationMessage] = useState("")
 
   // Initialize date state
   const getInitialDate = (): string => {
@@ -127,45 +141,45 @@ export function EventForm({
       return typeof initialValues.date === "string" &&
         initialValues.date.includes("T")
         ? new Date(initialValues.date).toISOString().split("T")[0]
-        : initialValues.date;
+        : initialValues.date
     }
-    return "";
-  };
-  const [date, setDate] = useState<string>(getInitialDate());
+    return ""
+  }
+  const [date, setDate] = useState<string>(getInitialDate())
 
   // Initialize location state based on initialValues
   const getInitialSelectedLocation = (): string => {
-    const location = initialValues?.location || "";
+    const location = initialValues?.location || ""
     if (location === "Paradise Stage" || location === "Paradise River") {
-      return location;
+      return location
     }
-    return location ? "Other" : "";
-  };
+    return location ? "Other" : ""
+  }
   const [selectedLocation, setSelectedLocation] = useState<string>(
     getInitialSelectedLocation(),
-  );
+  )
   const [customLocation, setCustomLocation] = useState(
     initialValues?.location &&
       initialValues.location !== "Paradise Stage" &&
       initialValues.location !== "Paradise River"
       ? initialValues.location
       : "",
-  );
+  )
 
   // Fetch available props, user profile, and instructors
   useEffect(() => {
     async function fetchData() {
       try {
-        const propsList = await getAllProps();
-        setAvailableProps(propsList);
+        const propsList = await getAllProps()
+        setAvailableProps(propsList)
 
         // Set the current propId from initialValues
-        setSelectedPropId(initialValues?.propId || null);
+        setSelectedPropId(initialValues?.propId || null)
 
         // Set the current instructorId from initialValues
-        setSelectedInstructorId(initialValues?.instructorId || null);
+        setSelectedInstructorId(initialValues?.instructorId || null)
 
-        const profile = await getCurrentUserProfile();
+        const profile = await getCurrentUserProfile()
         if (profile) {
           setUserProfile({
             id: profile.id,
@@ -173,7 +187,7 @@ export function EventForm({
             username: profile.username,
             isAdmin: profile.isAdmin,
             isInstructor: profile.isInstructor,
-          });
+          })
 
           // If user is instructor (not admin) and no instructorId in initialValues, set their id
           if (
@@ -181,34 +195,34 @@ export function EventForm({
             !profile.isAdmin &&
             !initialValues?.instructorId
           ) {
-            setSelectedInstructorId(profile.id);
+            setSelectedInstructorId(profile.id)
           }
         }
 
         // Fetch instructors for admin dropdown
-        const instructorsList = await getAllInstructors();
-        setInstructors(instructorsList);
+        const instructorsList = await getAllInstructors()
+        setInstructors(instructorsList)
       } catch (error) {
-        console.error("Failed to fetch data:", error);
+        console.error("Failed to fetch data:", error)
       }
     }
-    fetchData();
-  }, [initialValues?.propId, initialValues?.instructorId]);
+    fetchData()
+  }, [initialValues?.propId, initialValues?.instructorId])
 
   // Update location state when initialValues.location changes
   useEffect(() => {
-    const location = initialValues?.location || "";
+    const location = initialValues?.location || ""
     if (location === "Paradise Stage" || location === "Paradise River") {
-      setSelectedLocation(location);
-      setCustomLocation("");
+      setSelectedLocation(location)
+      setCustomLocation("")
     } else if (location) {
-      setSelectedLocation("Other");
-      setCustomLocation(location);
+      setSelectedLocation("Other")
+      setCustomLocation(location)
     } else {
-      setSelectedLocation("");
-      setCustomLocation("");
+      setSelectedLocation("")
+      setCustomLocation("")
     }
-  }, [initialValues?.location]);
+  }, [initialValues?.location])
 
   // Update recurringUntil state when initialValues.recurringUntil changes
   useEffect(() => {
@@ -217,73 +231,80 @@ export function EventForm({
     if (initialValues?.recurringUntil) {
       // recurringUntil from database is already in YYYY-MM-DD format (date type)
       // Only parse if it contains a time component (T) or is a Date object
-      let recurringUntilDate: string;
+      let recurringUntilDate: string
       if (typeof initialValues.recurringUntil === "string") {
         // Check if it's already in YYYY-MM-DD format (10 characters, no T)
-        if (initialValues.recurringUntil.includes("T") || initialValues.recurringUntil.includes(" ")) {
+        if (
+          initialValues.recurringUntil.includes("T") ||
+          initialValues.recurringUntil.includes(" ")
+        ) {
           // Has time component or space, extract date part
-          recurringUntilDate = new Date(initialValues.recurringUntil).toISOString().split("T")[0];
+          recurringUntilDate = new Date(initialValues.recurringUntil)
+            .toISOString()
+            .split("T")[0]
         } else {
           // Already in YYYY-MM-DD format, use directly
-          recurringUntilDate = initialValues.recurringUntil;
+          recurringUntilDate = initialValues.recurringUntil
         }
       } else {
         // Date object, format it
-        recurringUntilDate = new Date(initialValues.recurringUntil).toISOString().split("T")[0];
+        recurringUntilDate = new Date(initialValues.recurringUntil)
+          .toISOString()
+          .split("T")[0]
       }
-      setRecurringUntil(recurringUntilDate);
+      setRecurringUntil(recurringUntilDate)
     } else {
       // Explicitly set to empty string if not provided
-      setRecurringUntil("");
+      setRecurringUntil("")
     }
-  }, [initialValues?.recurringUntil, initialValues?.id]);
+  }, [initialValues?.recurringUntil, initialValues?.id])
 
   // Update isRecurring state when initialValues.isRecurring changes
   useEffect(() => {
-    setIsRecurring(initialValues?.isRecurring ?? false);
-  }, [initialValues?.isRecurring]);
+    setIsRecurring(initialValues?.isRecurring ?? false)
+  }, [initialValues?.isRecurring])
 
   // Reset form state when switching to create mode
   useEffect(() => {
     if (!initialValues?.id) {
       // Create mode - reset state (location is handled by the above effect)
-      setSelectedPropId(null);
-      setSelectedInstructorId(null);
+      setSelectedPropId(null)
+      setSelectedInstructorId(null)
     }
-  }, [initialValues?.id]);
+  }, [initialValues?.id])
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
+    e.preventDefault()
 
-    const formData = new FormData(e.currentTarget);
+    const formData = new FormData(e.currentTarget)
 
     // Add id if editing
     if (initialValues?.id) {
-      formData.append("id", initialValues.id.toString());
+      formData.append("id", initialValues.id.toString())
     }
 
     // Add propId if selected
     if (selectedPropId !== null) {
-      formData.append("propId", selectedPropId.toString());
+      formData.append("propId", selectedPropId.toString())
     }
 
     // Add instructorId if selected
     if (selectedInstructorId !== null) {
-      formData.append("instructorId", selectedInstructorId.toString());
+      formData.append("instructorId", selectedInstructorId.toString())
     }
 
     // If user is instructor (not admin), always include their instructorId
     if (userProfile && userProfile.isInstructor && !userProfile.isAdmin) {
-      formData.append("instructorId", userProfile.id.toString());
+      formData.append("instructorId", userProfile.id.toString())
     }
 
     // Determine location value: use selected option or custom text
     const locationValue =
-      selectedLocation === "Other" ? customLocation.trim() : selectedLocation;
-    formData.append("location", locationValue);
+      selectedLocation === "Other" ? customLocation.trim() : selectedLocation
+    formData.append("location", locationValue)
 
     // Add recurring fields - always send isRecurring value (true or false)
-    formData.append("isRecurring", isRecurring ? "true" : "false");
+    formData.append("isRecurring", isRecurring ? "true" : "false")
 
     // Validate recurringUntil for instructors
     if (
@@ -295,110 +316,110 @@ export function EventForm({
       if (!recurringUntil) {
         setRecurringValidationError(
           "Please specify an end date for recurring events",
-        );
-        return;
+        )
+        return
       }
       // Validate that recurringUntil is after the start date
       if (date && recurringUntil && new Date(recurringUntil) < new Date(date)) {
-        setRecurringValidationError("End date must be after the start date");
-        return;
+        setRecurringValidationError("End date must be after the start date")
+        return
       }
     }
-    setRecurringValidationError(null);
+    setRecurringValidationError(null)
 
     // Always add recurringUntil to formData (even if empty) so we can distinguish
     // between "not provided" and "cleared" in the server action
     // For instructors, if isRecurring is true, recurringUntil will be validated above
     if (isRecurring) {
-      formData.append("recurringUntil", recurringUntil || "");
+      formData.append("recurringUntil", recurringUntil || "")
     }
 
-    await onSubmit(formData);
+    await onSubmit(formData)
   }
 
   async function handleDelete() {
-    if (!onDelete || !initialValues?.id) return;
+    if (!onDelete || !initialValues?.id) return
 
-    setIsDeleting(true);
+    setIsDeleting(true)
     try {
-      await onDelete(initialValues.id, cancellationMessage.trim() || null);
-      setDeleteDialogOpen(false);
-      setCancellationMessage("");
+      await onDelete(initialValues.id, cancellationMessage.trim() || null)
+      setDeleteDialogOpen(false)
+      setCancellationMessage("")
     } catch (err) {
-      console.error("Failed to delete event:", err);
+      console.error("Failed to delete event:", err)
     } finally {
-      setIsDeleting(false);
+      setIsDeleting(false)
     }
   }
 
   function handleDeleteDialogOpenChange(newOpen: boolean) {
-    setDeleteDialogOpen(newOpen);
+    setDeleteDialogOpen(newOpen)
     if (!newOpen) {
       // Reset cancellation message when dialog closes
-      setCancellationMessage("");
+      setCancellationMessage("")
     }
   }
 
   async function handleDeleteAllFuture() {
-    if (!onDeleteAllFuture || !initialValues?.id) return;
+    if (!onDeleteAllFuture || !initialValues?.id) return
 
-    setIsDeletingAllFuture(true);
+    setIsDeletingAllFuture(true)
     try {
       await onDeleteAllFuture(
         initialValues.id,
         cancellationMessage.trim() || null,
-      );
-      setDeleteAllFutureDialogOpen(false);
-      setCancellationMessage("");
+      )
+      setDeleteAllFutureDialogOpen(false)
+      setCancellationMessage("")
     } catch (err) {
-      console.error("Failed to delete event and future events:", err);
+      console.error("Failed to delete event and future events:", err)
     } finally {
-      setIsDeletingAllFuture(false);
+      setIsDeletingAllFuture(false)
     }
   }
 
   function handleDeleteAllFutureDialogOpenChange(newOpen: boolean) {
-    setDeleteAllFutureDialogOpen(newOpen);
+    setDeleteAllFutureDialogOpen(newOpen)
     if (!newOpen) {
       // Reset cancellation message when dialog closes
-      setCancellationMessage("");
+      setCancellationMessage("")
     }
   }
 
-  const isEditMode = !!initialValues?.id;
+  const isEditMode = !!initialValues?.id
 
   const formatCreatedAt = (value: string | Date) => {
-    const d = typeof value === "string" ? new Date(value) : value;
+    const d = typeof value === "string" ? new Date(value) : value
     return d.toLocaleDateString("en-US", {
       weekday: "long",
       month: "long",
       day: "numeric",
       year: "numeric",
-    });
-  };
+    })
+  }
 
   // Calculate number of recurring events
   function calculateRecurringEventCount(
     startDate: string,
     endDate: string,
   ): number {
-    if (!startDate || !endDate) return 0;
+    if (!startDate || !endDate) return 0
 
-    const start = new Date(startDate);
-    const end = new Date(endDate);
+    const start = new Date(startDate)
+    const end = new Date(endDate)
 
-    if (end < start) return 0;
+    if (end < start) return 0
 
-    let count = 0;
-    let currentDate = new Date(start);
+    let count = 0
+    let currentDate = new Date(start)
 
     while (currentDate <= end) {
-      count++;
-      currentDate = new Date(currentDate);
-      currentDate.setDate(currentDate.getDate() + 7);
+      count++
+      currentDate = new Date(currentDate)
+      currentDate.setDate(currentDate.getDate() + 7)
     }
 
-    return count;
+    return count
   }
 
   // Calculate dates that will be created for recurring events
@@ -407,53 +428,54 @@ export function EventForm({
     endDate: string,
     excludeFirst: boolean = false,
   ): string[] {
-    if (!startDate || !endDate) return [];
+    if (!startDate || !endDate) return []
 
-    const start = new Date(startDate);
-    const end = new Date(endDate);
+    const start = new Date(startDate)
+    const end = new Date(endDate)
 
-    if (end < start) return [];
+    if (end < start) return []
 
-    const dates: string[] = [];
-    let currentDate = new Date(start);
-    let isFirst = true;
+    const dates: string[] = []
+    let currentDate = new Date(start)
+    let isFirst = true
 
     while (currentDate <= end) {
       if (!excludeFirst || !isFirst) {
-        dates.push(currentDate.toISOString().split("T")[0]);
+        dates.push(currentDate.toISOString().split("T")[0])
       }
-      isFirst = false;
-      currentDate = new Date(currentDate);
-      currentDate.setDate(currentDate.getDate() + 7);
+      isFirst = false
+      currentDate = new Date(currentDate)
+      currentDate.setDate(currentDate.getDate() + 7)
     }
 
-    return dates;
+    return dates
   }
 
   // Format date for display (e.g., "Mon, 14 Feb 2026")
   function formatEventDate(dateStr: string): string {
-    const date = new Date(dateStr);
-    const weekdays = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-    const weekday = weekdays[date.getDay()];
-    const day = date.getDate();
-    const month = date.toLocaleDateString("en-US", { month: "short" });
-    const year = date.getFullYear();
-    return `${weekday}, ${day} ${month} ${year}`;
+    const date = new Date(dateStr)
+    const weekdays = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
+    const weekday = weekdays[date.getDay()]
+    const day = date.getDate()
+    const month = date.toLocaleDateString("en-US", { month: "short" })
+    const year = date.getFullYear()
+    return `${weekday}, ${day} ${month} ${year}`
   }
 
   // Calculate event count: when editing, exclude the event being updated (it's updated, not created)
   const totalEventCount =
     isRecurring && date && recurringUntil
       ? calculateRecurringEventCount(date, recurringUntil)
-      : 0;
+      : 0
   // When editing, subtract 1 since the event at the new date is being updated, not created
-  const eventCount = isEditMode && totalEventCount > 0 ? totalEventCount - 1 : totalEventCount;
-  
+  const eventCount =
+    isEditMode && totalEventCount > 0 ? totalEventCount - 1 : totalEventCount
+
   // Calculate dates that will be created (exclude first date if editing)
   const eventDatesToCreate =
     isRecurring && date && recurringUntil
       ? calculateRecurringEventDates(date, recurringUntil, isEditMode)
-      : [];
+      : []
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
@@ -464,12 +486,15 @@ export function EventForm({
           {initialValues?.lastUpdatedByUser?.username && (
             <>
               {" • "}
-              <span className="font-medium text-foreground">Last Updated By: </span>
+              <span className="font-medium text-foreground">
+                Last Updated By:{" "}
+              </span>
               <Link
                 href={`/artists/${initialValues.lastUpdatedByUser.username}`}
                 className="text-primary hover:underline"
               >
-                {initialValues.lastUpdatedByUser.displayName || initialValues.lastUpdatedByUser.username}
+                {initialValues.lastUpdatedByUser.displayName ||
+                  initialValues.lastUpdatedByUser.username}
               </Link>
             </>
           )}
@@ -481,7 +506,8 @@ export function EventForm({
                 href={`/artists/${initialValues.approvedByUser.username}`}
                 className="text-primary hover:underline"
               >
-                {initialValues.approvedByUser.displayName || initialValues.approvedByUser.username}
+                {initialValues.approvedByUser.displayName ||
+                  initialValues.approvedByUser.username}
               </Link>
             </>
           )}
@@ -522,10 +548,10 @@ export function EventForm({
               name="instructorId"
               value={selectedInstructorId || ""}
               onChange={(e) => {
-                const value = e.target.value;
+                const value = e.target.value
                 setSelectedInstructorId(
                   value === "" ? null : parseInt(value, 10),
-                );
+                )
               }}
               disabled={isSubmitting}
               className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
@@ -676,20 +702,42 @@ export function EventForm({
           <input
             type="checkbox"
             id="isWorkshop"
-            name="isWorkshop"
-            defaultChecked={initialValues?.isWorkshop ?? true}
+            checked={isWorkshop}
+            onChange={(e) => setIsWorkshop(e.target.checked)}
             disabled={isSubmitting}
             className="h-4 w-4 rounded border-gray-300"
+          />
+          <input
+            type="hidden"
+            name="isWorkshop"
+            value={isWorkshop ? "on" : "off"}
           />
           <Label htmlFor="isWorkshop" className="cursor-pointer">
             Is Workshop
           </Label>
         </label>
-        <p className="text-xs text-muted-foreground">
-          Check this box if this event is a workshop. Uncheck for other event
-          types.
-        </p>
       </div>
+
+      {isWorkshop && (
+        <div className="space-y-2">
+          <Label htmlFor="level">
+            Level (Beginner, Intermediate, Advanced)
+          </Label>
+          <select
+            id="level"
+            name="level"
+            value={level}
+            onChange={(e) => setLevel(e.target.value)}
+            disabled={isSubmitting}
+            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            <option value="All levels">All levels</option>
+            <option value="Beginner">Beginner</option>
+            <option value="Intermediate">Intermediate</option>
+            <option value="Advanced">Advanced</option>
+          </select>
+        </div>
+      )}
 
       {userProfile && userProfile.isAdmin && initialValues?.id && (
         <div className="space-y-2">
@@ -720,8 +768,8 @@ export function EventForm({
           name="propId"
           value={selectedPropId || ""}
           onChange={(e) => {
-            const value = e.target.value;
-            setSelectedPropId(value === "" ? null : parseInt(value, 10));
+            const value = e.target.value
+            setSelectedPropId(value === "" ? null : parseInt(value, 10))
           }}
           disabled={isSubmitting}
           className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
@@ -748,10 +796,10 @@ export function EventForm({
                 name="isRecurring"
                 checked={isRecurring}
                 onChange={(e) => {
-                  setIsRecurring(e.target.checked);
+                  setIsRecurring(e.target.checked)
                   if (!e.target.checked) {
-                    setRecurringUntil("");
-                    setRecurringValidationError(null);
+                    setRecurringUntil("")
+                    setRecurringValidationError(null)
                   }
                 }}
                 disabled={isSubmitting}
@@ -790,8 +838,8 @@ export function EventForm({
                       type="date"
                       value={recurringUntil}
                       onChange={(e) => {
-                        setRecurringUntil(e.target.value);
-                        setRecurringValidationError(null);
+                        setRecurringUntil(e.target.value)
+                        setRecurringValidationError(null)
                       }}
                       min={date || undefined}
                       required
@@ -803,7 +851,8 @@ export function EventForm({
                     {recurringUntil && eventCount > 0 && (
                       <div className="text-xs text-muted-foreground space-y-1">
                         <p>
-                          This will create {eventCount} {isEditMode ? "additional " : ""}event
+                          This will create {eventCount}{" "}
+                          {isEditMode ? "additional " : ""}event
                           {eventCount !== 1 ? "s" : ""}.
                         </p>
                         {eventDatesToCreate.length > 0 && (
@@ -842,7 +891,8 @@ export function EventForm({
                     {recurringUntil && eventCount > 0 && (
                       <div className="text-xs text-muted-foreground space-y-1">
                         <p>
-                          This will create {eventCount} {isEditMode ? "additional " : ""}event
+                          This will create {eventCount}{" "}
+                          {isEditMode ? "additional " : ""}event
                           {eventCount !== 1 ? "s" : ""}.
                         </p>
                         {eventDatesToCreate.length > 0 && (
@@ -945,7 +995,9 @@ export function EventForm({
               </AlertDialogContent>
             </AlertDialog>
           ) : null}
-          {onDeleteAllFuture && (userProfile?.isAdmin || userProfile?.isInstructor) && initialValues?.id ? (
+          {onDeleteAllFuture &&
+          (userProfile?.isAdmin || userProfile?.isInstructor) &&
+          initialValues?.id ? (
             <AlertDialog
               open={deleteAllFutureDialogOpen}
               onOpenChange={handleDeleteAllFutureDialogOpenChange}
@@ -1051,5 +1103,5 @@ export function EventForm({
         </div>
       </div>
     </form>
-  );
+  )
 }

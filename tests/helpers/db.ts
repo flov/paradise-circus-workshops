@@ -43,7 +43,7 @@ export async function cleanupDatabase() {
     await db.execute(sql`
       TRUNCATE TABLE
         participations, comments, user_props, events,
-        users, props, admin_settings, activity_logs
+        users, props, activity_logs
       CASCADE
     `);
   } catch (error) {
@@ -57,7 +57,6 @@ export async function cleanupDatabase() {
       await db.delete(schema.events);
       await db.delete(schema.users);
       await db.delete(schema.props);
-      await db.delete(schema.adminSettings);
     } catch (deleteError) {
       // Ignore errors during cleanup - tables might be empty or not exist
       console.warn(

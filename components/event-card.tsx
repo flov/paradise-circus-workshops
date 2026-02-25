@@ -7,7 +7,7 @@ import { isEventPast, createEventSlug } from "@/lib/utils"
 import ReactMarkdown from "react-markdown"
 import type { Event } from "@/db/schema"
 
-export function EventCard({ event, instructorDisplayName }: { event: Pick<Event, "id" | "title" | "description" | "instructor" | "date" | "startTime" | "endTime" | "currentParticipants" | "location" | "isRecurring">, instructorDisplayName?: string | null }) {
+export function EventCard({ event, instructorDisplayName }: { event: Pick<Event, "id" | "title" | "description" | "instructor" | "date" | "startTime" | "endTime" | "currentParticipants" | "location" | "isRecurring" | "isWorkshop" | "level">, instructorDisplayName?: string | null }) {
   const isPast = isEventPast(event.date, event.endTime)
 
   // Format date
@@ -37,6 +37,14 @@ export function EventCard({ event, instructorDisplayName }: { event: Pick<Event,
             {isPast && (
               <Badge variant="secondary" className="bg-muted text-muted-foreground">
                 Past Event
+              </Badge>
+            )}
+            {event.isWorkshop && (
+              <Badge
+                variant="secondary"
+                className={`text-xs ${event.level === "Beginner" ? "bg-green-500/20 text-green-700 dark:text-green-400" : event.level === "Intermediate" ? "bg-yellow-500/20 text-yellow-700 dark:text-yellow-400" : event.level === "Advanced" ? "bg-red-500/20 text-red-700 dark:text-red-400" : "bg-muted text-muted-foreground"}`}
+              >
+                {event.level}
               </Badge>
             )}
             <Badge variant="outline">

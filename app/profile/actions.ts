@@ -714,8 +714,8 @@ export async function canManageEvent(eventId: number): Promise<boolean> {
  * @returns Object with upcoming and past workshops arrays
  */
 export async function getUserWorkshops(userId: number): Promise<{
-  upcoming: Array<Pick<Event, "id" | "title" | "description" | "instructor" | "date" | "startTime" | "endTime" | "currentParticipants" | "location" | "isRecurring">>;
-  past: Array<Pick<Event, "id" | "title" | "description" | "instructor" | "date" | "startTime" | "endTime" | "currentParticipants" | "location" | "isRecurring">>;
+  upcoming: Array<Pick<Event, "id" | "title" | "description" | "instructor" | "date" | "startTime" | "endTime" | "currentParticipants" | "location" | "isRecurring" | "isWorkshop" | "level">>;
+  past: Array<Pick<Event, "id" | "title" | "description" | "instructor" | "date" | "startTime" | "endTime" | "currentParticipants" | "location" | "isRecurring" | "isWorkshop" | "level">>;
 }> {
   try {
     const workshops = await db
@@ -730,6 +730,8 @@ export async function getUserWorkshops(userId: number): Promise<{
         currentParticipants: events.currentParticipants,
         location: events.location,
         isRecurring: events.isRecurring,
+        isWorkshop: events.isWorkshop,
+        level: events.level,
       })
       .from(events)
       .where(

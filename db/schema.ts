@@ -31,6 +31,7 @@ export const events = pgTable(
     location: varchar("location", { length: 255 }),
     whatToBring: text("what_to_bring"),
     isWorkshop: boolean("is_workshop").notNull().default(true),
+    level: varchar("level", { length: 50 }).notNull().default("All levels"),
     isPublished: boolean("is_published").notNull().default(true),
     propId: integer("prop_id").references(() => props.id, {
       onDelete: "set null",
@@ -144,13 +145,6 @@ export const commentsRelations = relations(comments, ({ one }) => ({
     references: [events.id],
   }),
 }))
-
-export const adminSettings = pgTable("admin_settings", {
-  id: serial("id").primaryKey(),
-  settingKey: varchar("setting_key", { length: 100 }).notNull().unique(),
-  settingValue: text("setting_value"),
-  updatedAt: timestamp("updated_at").defaultNow().notNull(),
-})
 
 export const users = pgTable(
   "users",
@@ -291,9 +285,6 @@ export type NewProp = InferInsertModel<typeof props>
 
 export type UserProp = InferSelectModel<typeof userProps>
 export type NewUserProp = InferInsertModel<typeof userProps>
-
-export type AdminSetting = InferSelectModel<typeof adminSettings>
-export type NewAdminSetting = InferInsertModel<typeof adminSettings>
 
 export type ActivityLog = InferSelectModel<typeof activityLogs>
 export type NewActivityLog = InferInsertModel<typeof activityLogs>

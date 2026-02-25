@@ -47,6 +47,7 @@ type TimeSlot = {
   location: string | null;
   whatToBring: string | null;
   isWorkshop: boolean;
+  level: string;
   propId: number | null;
   isPublished: boolean;
   isRecurring: boolean;
@@ -178,6 +179,7 @@ function organizeEvents(events: any[]): TimetableData {
       location: event.location,
       whatToBring: event.whatToBring,
       isWorkshop: event.isWorkshop,
+      level: event.level ?? "All levels",
       propId: event.propId || null,
       isPublished: event.isPublished !== undefined ? event.isPublished : true,
       isRecurring: event.isRecurring ?? false,
@@ -736,6 +738,11 @@ export function WeeklyTimetable() {
                                             slot.instructor ||
                                             ""}
                                         </div>
+                                        {slot.isWorkshop && slot.level !== "All levels" && (
+                                          <span className={`text-xs px-1 rounded shrink-0 ${slot.level === "Beginner" ? "bg-green-500/20 text-green-700 dark:text-green-400" : slot.level === "Intermediate" ? "bg-yellow-500/20 text-yellow-700 dark:text-yellow-400" : "bg-red-500/20 text-red-700 dark:text-red-400"}`}>
+                                            {slot.level}
+                                          </span>
+                                        )}
                                         {slot.isRecurring && (
                                           <span
                                             className="inline-flex items-center gap-0.5 text-xs font-normal text-muted-foreground"
@@ -783,6 +790,7 @@ export function WeeklyTimetable() {
                                             location: slot.location,
                                             whatToBring: slot.whatToBring,
                                             isWorkshop: slot.isWorkshop,
+                                            level: slot.level,
                                             propId: slot.propId,
                                             isPublished: slot.isPublished,
                                             isRecurring: slot.isRecurring,
@@ -1012,10 +1020,17 @@ export function WeeklyTimetable() {
                                           )}
                                         </span>
                                       </div>
-                                      <div className="text-sm text-muted-foreground">
-                                        {slot.instructorDisplayName ||
-                                          slot.instructor ||
-                                          "Unknown"}
+                                      <div className="flex items-center gap-2">
+                                        <div className="text-sm text-muted-foreground">
+                                          {slot.instructorDisplayName ||
+                                            slot.instructor ||
+                                            "Unknown"}
+                                        </div>
+                                        {slot.isWorkshop && slot.level !== "All levels" && (
+                                          <span className={`text-xs px-1.5 py-0.5 rounded ${slot.level === "Beginner" ? "bg-green-500/20 text-green-700 dark:text-green-400" : slot.level === "Intermediate" ? "bg-yellow-500/20 text-yellow-700 dark:text-yellow-400" : "bg-red-500/20 text-red-700 dark:text-red-400"}`}>
+                                            {slot.level}
+                                          </span>
+                                        )}
                                       </div>
                                     </div>
                                   </a>
@@ -1044,6 +1059,7 @@ export function WeeklyTimetable() {
                                           location: slot.location,
                                           whatToBring: slot.whatToBring,
                                           isWorkshop: slot.isWorkshop,
+                                          level: slot.level,
                                           propId: slot.propId,
                                           isPublished: slot.isPublished,
                                           isRecurring: slot.isRecurring,

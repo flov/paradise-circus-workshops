@@ -91,6 +91,7 @@ export async function GET(request: NextRequest) {
         location: events.location,
         whatToBring: events.whatToBring,
         isWorkshop: events.isWorkshop,
+        level: events.level,
         currentParticipants: events.currentParticipants,
         propId: events.propId,
         isPublished: events.isPublished,

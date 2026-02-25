@@ -35,6 +35,7 @@ type EditEventButtonProps = {
     | "location"
     | "whatToBring"
     | "isWorkshop"
+    | "level"
     | "isPublished"
     | "propId"
     | "isRecurring"
@@ -146,6 +147,7 @@ export function EditEventButton({ event }: EditEventButtonProps) {
     location: event.location,
     whatToBring: event.whatToBring,
     isWorkshop: event.isWorkshop ?? true,
+    level: event.level ?? "All levels",
     isPublished: event.isPublished ?? true,
     propId: event.propId,
     isRecurring: event.isRecurring ?? false,

@@ -169,6 +169,7 @@ export async function createEvent(formData: FormData) {
   const isWorkshop =
     formData.get("isWorkshop") === "on" ||
     formData.get("isWorkshop") === "true";
+  const level = (formData.get("level") as string) || "All levels";
   const isRecurringInput = formData.get("isRecurring") as string;
   const isRecurring = isRecurringInput === "on" || isRecurringInput === "true";
   const recurringUntilInput = formData.get("recurringUntil") as string | null;
@@ -321,6 +322,7 @@ export async function createEvent(formData: FormData) {
         location,
         whatToBring: whatToBring || null,
         isWorkshop,
+        level,
         isPublished,
         propId: propId || null,
         recurringSeriesId,
@@ -523,6 +525,7 @@ export async function createEvent(formData: FormData) {
         location,
         whatToBring: whatToBring || null,
         isWorkshop,
+        level,
         isPublished,
         propId: propId || null,
         isRecurring: false,
@@ -864,6 +867,7 @@ export async function updateEvent(formData: FormData) {
   const isWorkshop =
     formData.get("isWorkshop") === "on" ||
     formData.get("isWorkshop") === "true";
+  const level = (formData.get("level") as string) || "All levels";
   const isPublishedInput = formData.get("isPublished") as string;
   const isPublished = isPublishedInput === "on" || isPublishedInput === "true";
   const isRecurringInput = formData.get("isRecurring") as string;
@@ -917,6 +921,7 @@ export async function updateEvent(formData: FormData) {
       whatToBring: events.whatToBring,
       propId: events.propId,
       isWorkshop: events.isWorkshop,
+      level: events.level,
       instructor: events.instructor,
       recurringSeriesId: events.recurringSeriesId,
       isRecurring: events.isRecurring,
@@ -1075,6 +1080,7 @@ export async function updateEvent(formData: FormData) {
       location: string;
       whatToBring: string | null;
       isWorkshop: boolean;
+      level: string;
       propId: number | null;
       updatedAt: ReturnType<typeof sql>;
       lastUpdatedBy?: number | null;
@@ -1094,6 +1100,7 @@ export async function updateEvent(formData: FormData) {
       location,
       whatToBring: whatToBring || null,
       isWorkshop,
+      level,
       propId: propId || null,
       updatedAt: sql`CURRENT_TIMESTAMP`,
       lastUpdatedBy: currentUserId,
@@ -1127,6 +1134,7 @@ export async function updateEvent(formData: FormData) {
       (location || null) === (currentEvent.location || null) &&
       (whatToBring || null) === (currentEvent.whatToBring || null) &&
       isWorkshop === currentEvent.isWorkshop &&
+      level === currentEvent.level &&
       (propId ?? null) === (currentEvent.propId ?? null) &&
       isRecurring === currentEvent.isRecurring &&
       (recurringUntil ?? null) === (currentEvent.recurringUntil ?? null);
@@ -1382,6 +1390,7 @@ export async function updateEvent(formData: FormData) {
           location,
           whatToBring: whatToBring || null,
           isWorkshop,
+          level,
           isPublished,
           propId: propId || null,
           recurringSeriesId,
@@ -2242,6 +2251,7 @@ export async function extendRecurringEvents() {
           location: events.location,
           whatToBring: events.whatToBring,
           isWorkshop: events.isWorkshop,
+          level: events.level,
           isPublished: events.isPublished,
           propId: events.propId,
           recapVideoId: events.recapVideoId,
@@ -2303,6 +2313,7 @@ export async function extendRecurringEvents() {
             location: string | null;
             whatToBring: string | null;
             isWorkshop: boolean;
+            level: string;
             isPublished: boolean;
             propId: number | null;
             recurringSeriesId: string;
@@ -2332,6 +2343,7 @@ export async function extendRecurringEvents() {
                 location: latestEvent.location,
                 whatToBring: latestEvent.whatToBring,
                 isWorkshop: latestEvent.isWorkshop,
+                level: latestEvent.level,
                 isPublished: latestEvent.isPublished,
                 propId: latestEvent.propId,
                 recurringSeriesId: series.recurringSeriesId,
@@ -2387,6 +2399,7 @@ export async function extendRecurringEvents() {
           location: string | null;
           whatToBring: string | null;
           isWorkshop: boolean;
+          level: string;
           isPublished: boolean;
           propId: number | null;
           recurringSeriesId: string;
@@ -2417,6 +2430,7 @@ export async function extendRecurringEvents() {
                 location: latestEvent.location,
                 whatToBring: latestEvent.whatToBring,
                 isWorkshop: latestEvent.isWorkshop,
+                level: latestEvent.level,
                 isPublished: latestEvent.isPublished,
                 propId: latestEvent.propId,
                 recurringSeriesId: series.recurringSeriesId,
@@ -2911,6 +2925,7 @@ export async function fillRecurringSeriesGaps(
         location: events.location,
         whatToBring: events.whatToBring,
         isWorkshop: events.isWorkshop,
+        level: events.level,
         isPublished: events.isPublished,
         propId: events.propId,
         recurringUntil: events.recurringUntil,
@@ -2948,6 +2963,7 @@ export async function fillRecurringSeriesGaps(
       location: string | null;
       whatToBring: string | null;
       isWorkshop: boolean;
+      level: string;
       isPublished: boolean;
       propId: number | null;
       recurringSeriesId: string;
@@ -2970,6 +2986,7 @@ export async function fillRecurringSeriesGaps(
           location: template.location,
           whatToBring: template.whatToBring,
           isWorkshop: template.isWorkshop,
+          level: template.level,
           isPublished: template.isPublished,
           propId: template.propId,
           recurringSeriesId,
@@ -3260,6 +3277,7 @@ export async function copySelectedRecurringEventsToNextWeek(
         location: events.location,
         whatToBring: events.whatToBring,
         isWorkshop: events.isWorkshop,
+        level: events.level,
         isPublished: events.isPublished,
         propId: events.propId,
         recurringSeriesId: events.recurringSeriesId,
@@ -3295,6 +3313,7 @@ export async function copySelectedRecurringEventsToNextWeek(
       location: string | null;
       whatToBring: string | null;
       isWorkshop: boolean;
+      level: string;
       isPublished: boolean;
       propId: number | null;
       recurringSeriesId: string | null;
@@ -3351,6 +3370,7 @@ export async function copySelectedRecurringEventsToNextWeek(
         location: sourceEvent.location,
         whatToBring: sourceEvent.whatToBring,
         isWorkshop: sourceEvent.isWorkshop,
+        level: sourceEvent.level,
         isPublished: sourceEvent.isPublished,
         propId: sourceEvent.propId,
         recurringSeriesId: sourceEvent.recurringSeriesId,

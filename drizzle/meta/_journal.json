@@ -204,6 +204,20 @@
       "when": 1771949019262,
       "tag": "0028_rename-current-bookings-to-current-participants",
       "breakpoints": true
+    },
+    {
+      "idx": 29,
+      "version": "7",
+      "when": 1772034428557,
+      "tag": "0029_add-level-to-events",
+      "breakpoints": true
+    },
+    {
+      "idx": 30,
+      "version": "7",
+      "when": 1772038146454,
+      "tag": "0030_drop-admin-settings",
+      "breakpoints": true
     }
   ]
 }

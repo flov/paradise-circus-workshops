@@ -27,6 +27,7 @@ async function getPublicTimetableData(startDate: string, endDate: string) {
       location: events.location,
       whatToBring: events.whatToBring,
       isWorkshop: events.isWorkshop,
+      level: events.level,
       currentParticipants: events.currentParticipants,
       propId: events.propId,
       isPublished: events.isPublished,
