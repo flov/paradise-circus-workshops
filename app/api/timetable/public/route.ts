@@ -29,6 +29,7 @@ async function getPublicTimetableData(startDate: string, endDate: string) {
       isWorkshop: events.isWorkshop,
       level: events.level,
       currentParticipants: events.currentParticipants,
+      maxCapacity: events.maxCapacity,
       propId: events.propId,
       isPublished: events.isPublished,
       isRecurring: events.isRecurring,
