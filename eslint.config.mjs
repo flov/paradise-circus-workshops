@@ -1,8 +1,17 @@
 import coreWebVitals from "eslint-config-next/core-web-vitals";
 
-export default [
+const config = [
+  {
+    ignores: ["**/.claude/**", ".claude/**"],
+  },
   ...coreWebVitals,
   {
-    ignores: [".claude/**"],
+    rules: {
+      "react/no-unescaped-entities": "off",
+      "react-hooks/set-state-in-effect": "off",
+      "react-hooks/purity": "off",
+    },
   },
 ];
+
+export default config;

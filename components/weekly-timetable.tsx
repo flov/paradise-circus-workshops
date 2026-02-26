@@ -28,7 +28,7 @@ type UserDisplayInfo = {
 
 /** Normalize API user data to schema's UserDisplayInfo (username must be string) */
 function toSchemaUserDisplayInfo(
-  user: UserDisplayInfo | null | undefined
+  user: UserDisplayInfo | null | undefined,
 ): SchemaUserDisplayInfo | null {
   if (!user) return null;
   return { ...user, username: user.username ?? "" };
@@ -161,10 +161,14 @@ function organizeEvents(events: any[]): TimetableData {
 
     const startHour = Number.parseInt(event.startTime.split(":")[0]);
     const startTimeSlot = hourToTimeSlot(startHour);
-    const durationHours = calculateDurationHours(event.startTime, event.endTime);
+    const durationHours = calculateDurationHours(
+      event.startTime,
+      event.endTime,
+    );
 
     if (!organized[dayName]) organized[dayName] = {};
-    if (!organized[dayName][startTimeSlot]) organized[dayName][startTimeSlot] = [];
+    if (!organized[dayName][startTimeSlot])
+      organized[dayName][startTimeSlot] = [];
 
     const baseSlot = {
       id: event.id,
@@ -199,7 +203,8 @@ function organizeEvents(events: any[]): TimetableData {
       const nextTimeSlot = hourToTimeSlot(nextHour);
 
       if (TIME_SLOTS.indexOf(nextTimeSlot) !== -1) {
-        if (!organized[dayName][nextTimeSlot]) organized[dayName][nextTimeSlot] = [];
+        if (!organized[dayName][nextTimeSlot])
+          organized[dayName][nextTimeSlot] = [];
         organized[dayName][nextTimeSlot].push({ ...baseSlot, isBlocked: true });
       }
     }
@@ -245,7 +250,11 @@ export function WeeklyTimetable() {
   const { data: timetableData = {}, isLoading } = useQuery<TimetableData>({
     queryKey: ["timetable", currentWeek, authContext?.userId ?? null],
     queryFn: async ({ queryKey }) => {
-      const [, weekOffset, userId] = queryKey as [string, number, number | null];
+      const [, weekOffset, userId] = queryKey as [
+        string,
+        number,
+        number | null,
+      ];
       const dates = getWeekDates(weekOffset);
       const startDate = formatLocalDate(dates[0]);
       const endDate = formatLocalDate(dates[6]);
@@ -738,37 +747,50 @@ export function WeeklyTimetable() {
                                             slot.instructor ||
                                             ""}
                                         </div>
-                                        {slot.isWorkshop && slot.level !== "All levels" && (
-                                          <span className={`text-xs px-1 rounded shrink-0 ${slot.level === "Beginner" ? "bg-green-500/20 text-green-700 dark:text-green-400" : slot.level === "Intermediate" ? "bg-yellow-500/20 text-yellow-700 dark:text-yellow-400" : "bg-red-500/20 text-red-700 dark:text-red-400"}`}>
-                                            {slot.level}
-                                          </span>
-                                        )}
-                                        {slot.isRecurring && (
-                                          <span
-                                            className="inline-flex items-center gap-0.5 text-xs font-normal text-muted-foreground"
-                                            title={
-                                              slot.recurringUntil
-                                                ? `Recurring event until ${new Date(slot.recurringUntil).toLocaleDateString()}`
-                                                : "Recurring event"
-                                            }
-                                          >
-                                            <Repeat className="h-3 w-3" />
-                                            {slot.recurringUntil && (
-                                              <Calendar className="h-3 w-3" />
-                                            )}
-                                            <span className="sr-only">
-                                              {slot.recurringUntil
-                                                ? "Recurring event with end date"
-                                                : "Recurring event"}
+                                        {slot.isWorkshop &&
+                                          slot.level !== "All levels" && (
+                                            <span
+                                              className={`text-xs px-1 rounded shrink-0 border bg-transparent ${
+                                                slot.level === "Beginner"
+                                                  ? "border-green-500/60 text-green-700 dark:text-green-400"
+                                                  : slot.level ===
+                                                      "Intermediate"
+                                                    ? "border-yellow-500/60 text-yellow-700 dark:text-yellow-400"
+                                                    : "border-red-500/60 text-red-700 dark:text-red-400"
+                                              }`}
+                                            >
+                                              {slot.level}
                                             </span>
-                                          </span>
-                                        )}
+                                          )}
+                                        {(authContext?.isAdmin ||
+                                          authContext?.isInstructor) &&
+                                          slot.isRecurring && (
+                                            <span
+                                              className="inline-flex items-center gap-0.5 text-xs font-normal text-muted-foreground"
+                                              title={
+                                                slot.recurringUntil
+                                                  ? `Recurring event until ${new Date(slot.recurringUntil).toLocaleDateString()}`
+                                                  : "Recurring event"
+                                              }
+                                            >
+                                              <Repeat className="h-3 w-3" />
+                                              {slot.recurringUntil && (
+                                                <Calendar className="h-3 w-3" />
+                                              )}
+                                              <span className="sr-only">
+                                                {slot.recurringUntil
+                                                  ? "Recurring event with end date"
+                                                  : "Recurring event"}
+                                              </span>
+                                            </span>
+                                          )}
                                       </div>
                                     </a>
                                     {(authContext?.isAdmin ||
                                       (authContext?.isInstructor &&
                                         slot.instructorId !== null &&
-                                        slot.instructorId === authContext?.userId)) && (
+                                        slot.instructorId ===
+                                          authContext?.userId)) && (
                                       <div
                                         className="absolute top-1 right-1 z-10"
                                         onClick={(e) => e.stopPropagation()}
@@ -796,14 +818,17 @@ export function WeeklyTimetable() {
                                             isRecurring: slot.isRecurring,
                                             recurringUntil:
                                               slot.recurringUntil ?? null,
-                                            lastUpdatedBy: slot.lastUpdatedBy ?? null,
+                                            lastUpdatedBy:
+                                              slot.lastUpdatedBy ?? null,
                                             approvedBy: slot.approvedBy ?? null,
-                                            lastUpdatedByUser: toSchemaUserDisplayInfo(
-                                              slot.lastUpdatedByUser
-                                            ),
-                                            approvedByUser: toSchemaUserDisplayInfo(
-                                              slot.approvedByUser
-                                            ),
+                                            lastUpdatedByUser:
+                                              toSchemaUserDisplayInfo(
+                                                slot.lastUpdatedByUser,
+                                              ),
+                                            approvedByUser:
+                                              toSchemaUserDisplayInfo(
+                                                slot.approvedByUser,
+                                              ),
                                             createdAt: slot.createdAt
                                               ? new Date(slot.createdAt)
                                               : new Date(),
@@ -816,7 +841,8 @@ export function WeeklyTimetable() {
                               })}
                               {/* Show "+" button if less than 4 events and user is instructor or admin */}
                               {slots.length < 4 &&
-                                (authContext?.isInstructor || authContext?.isAdmin) && (
+                                (authContext?.isInstructor ||
+                                  authContext?.isAdmin) && (
                                   <Button
                                     variant="ghost"
                                     size="icon"
@@ -832,7 +858,8 @@ export function WeeklyTimetable() {
                             </div>
                           ) : (
                             <div className="p-2 h-full min-h-[60px] bg-muted/20 rounded relative group">
-                              {(authContext?.isInstructor || authContext?.isAdmin) && (
+                              {(authContext?.isInstructor ||
+                                authContext?.isAdmin) && (
                                 <Button
                                   variant="ghost"
                                   size="icon"
@@ -989,26 +1016,28 @@ export function WeeklyTimetable() {
                                               (Pending Approval)
                                             </span>
                                           )}
-                                          {slot.isRecurring && (
-                                            <span
-                                              className="inline-flex items-center gap-0.5 text-xs font-normal text-muted-foreground"
-                                              title={
-                                                slot.recurringUntil
-                                                  ? `Recurring event until ${new Date(slot.recurringUntil).toLocaleDateString()}`
-                                                  : "Recurring event"
-                                              }
-                                            >
-                                              <Repeat className="h-3 w-3" />
-                                              {slot.recurringUntil && (
-                                                <Calendar className="h-3 w-3" />
-                                              )}
-                                              <span className="sr-only">
-                                                {slot.recurringUntil
-                                                  ? "Recurring event with end date"
-                                                  : "Recurring event"}
+                                          {(authContext?.isAdmin ||
+                                            authContext?.isInstructor) &&
+                                            slot.isRecurring && (
+                                              <span
+                                                className="inline-flex items-center gap-0.5 text-xs font-normal text-muted-foreground"
+                                                title={
+                                                  slot.recurringUntil
+                                                    ? `Recurring event until ${new Date(slot.recurringUntil).toLocaleDateString()}`
+                                                    : "Recurring event"
+                                                }
+                                              >
+                                                <Repeat className="h-3 w-3" />
+                                                {slot.recurringUntil && (
+                                                  <Calendar className="h-3 w-3" />
+                                                )}
+                                                <span className="sr-only">
+                                                  {slot.recurringUntil
+                                                    ? "Recurring event with end date"
+                                                    : "Recurring event"}
+                                                </span>
                                               </span>
-                                            </span>
-                                          )}
+                                            )}
                                         </span>
                                         <span className="text-sm font-normal text-muted-foreground whitespace-nowrap">
                                           {formatTime(slot.startTime)}
@@ -1026,18 +1055,29 @@ export function WeeklyTimetable() {
                                             slot.instructor ||
                                             "Unknown"}
                                         </div>
-                                        {slot.isWorkshop && slot.level !== "All levels" && (
-                                          <span className={`text-xs px-1.5 py-0.5 rounded ${slot.level === "Beginner" ? "bg-green-500/20 text-green-700 dark:text-green-400" : slot.level === "Intermediate" ? "bg-yellow-500/20 text-yellow-700 dark:text-yellow-400" : "bg-red-500/20 text-red-700 dark:text-red-400"}`}>
-                                            {slot.level}
-                                          </span>
-                                        )}
+                                        {slot.isWorkshop &&
+                                          slot.level !== "All levels" && (
+                                            <span
+                                              className={`text-xs px-1.5 py-0.5 rounded border bg-transparent ${
+                                                slot.level === "Beginner"
+                                                  ? "border-green-500/60 text-green-700 dark:text-green-400"
+                                                  : slot.level ===
+                                                      "Intermediate"
+                                                    ? "border-yellow-500/60 text-yellow-700 dark:text-yellow-400"
+                                                    : "border-red-500/60 text-red-700 dark:text-red-400"
+                                              }`}
+                                            >
+                                              {slot.level}
+                                            </span>
+                                          )}
                                       </div>
                                     </div>
                                   </a>
                                   {(authContext?.isAdmin ||
                                     (authContext?.isInstructor &&
                                       slot.instructorId !== null &&
-                                      slot.instructorId === authContext?.userId)) && (
+                                      slot.instructorId ===
+                                        authContext?.userId)) && (
                                     <div
                                       className="absolute top-2 right-2 z-10"
                                       onClick={(e) => e.stopPropagation()}
@@ -1065,14 +1105,17 @@ export function WeeklyTimetable() {
                                           isRecurring: slot.isRecurring,
                                           recurringUntil:
                                             slot.recurringUntil ?? null,
-                                          lastUpdatedBy: slot.lastUpdatedBy ?? null,
+                                          lastUpdatedBy:
+                                            slot.lastUpdatedBy ?? null,
                                           approvedBy: slot.approvedBy ?? null,
-                                          lastUpdatedByUser: toSchemaUserDisplayInfo(
-                                            slot.lastUpdatedByUser
-                                          ),
-                                          approvedByUser: toSchemaUserDisplayInfo(
-                                            slot.approvedByUser
-                                          ),
+                                          lastUpdatedByUser:
+                                            toSchemaUserDisplayInfo(
+                                              slot.lastUpdatedByUser,
+                                            ),
+                                          approvedByUser:
+                                            toSchemaUserDisplayInfo(
+                                              slot.approvedByUser,
+                                            ),
                                           createdAt: slot.createdAt
                                             ? new Date(slot.createdAt)
                                             : new Date(),

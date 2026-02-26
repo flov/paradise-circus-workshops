@@ -23,6 +23,12 @@ const badgeVariants = cva(
           'border-purple-500/20 bg-gradient-to-r from-purple-500/10 to-pink-500/10 text-purple-700 dark:text-purple-400 [a&]:hover:from-purple-500/20 [a&]:hover:to-pink-500/20',
         amber:
           'border-amber-500/20 bg-amber-500/10 text-amber-700 dark:text-amber-400 [a&]:hover:bg-amber-500/20',
+        green:
+          'border-transparent bg-green-950 text-green-300 dark:bg-green-900 dark:text-green-200',
+        yellow:
+          'border-transparent bg-yellow-950 text-yellow-300 dark:bg-yellow-900 dark:text-yellow-200',
+        red:
+          'border-transparent bg-red-950 text-red-300 dark:bg-red-900 dark:text-red-200',
       },
     },
     defaultVariants: {

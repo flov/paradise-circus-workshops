@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import Link from "next/link";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -234,12 +235,12 @@ export function EventComments({
       ) : (
         <div className="text-center py-4 px-6 bg-muted/50 rounded-lg mb-4">
           <p className="text-sm text-muted-foreground">
-            <a
+            <Link
               href="/sign-in"
               className="text-primary hover:underline font-medium"
             >
               Sign in
-            </a>{" "}
+            </Link>{" "}
             to join the conversation
           </p>
         </div>
