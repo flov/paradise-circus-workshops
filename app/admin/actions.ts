@@ -1,12 +1,31 @@
-"use server";
+"use server"
 
-import { db } from "@/db";
-import { events, participations, props, users, userProps, comments } from "@/db/schema";
-import { eq, sql, inArray, asc, desc, isNotNull, isNull, and, gte, lte, or } from "drizzle-orm";
-import { revalidatePath, revalidateTag } from "next/cache";
-import { createEventSlug, getUserEmail } from "@/lib/utils";
-import { auth, currentUser } from "@clerk/nextjs/server";
-import { isAdmin, isInstructor, getAllAdmins } from "@/app/profile/actions";
+import { db } from "@/db"
+import {
+  events,
+  participations,
+  props,
+  users,
+  userProps,
+  comments,
+} from "@/db/schema"
+import {
+  eq,
+  sql,
+  inArray,
+  asc,
+  desc,
+  isNotNull,
+  isNull,
+  and,
+  gte,
+  lte,
+  or,
+} from "drizzle-orm"
+import { revalidatePath, revalidateTag } from "next/cache"
+import { createEventSlug, getUserEmail } from "@/lib/utils"
+import { auth, currentUser } from "@clerk/nextjs/server"
+import { isAdmin, isInstructor, getAllAdmins } from "@/app/profile/actions"
 import {
   sendEventPendingApprovalEmail,
   sendAdminEventPendingEmail,
@@ -15,20 +34,31 @@ import {
   sendInstructorAssignedEmail,
   sendRecapAddedEmail,
   sendAdminPromotedEmail,
-} from "@/lib/email";
-import { randomUUID } from "crypto";
-import { logActivity } from "@/lib/activity-log";
-import { createEventSchema } from "@/lib/validations";
+} from "@/lib/email"
+import { randomUUID } from "crypto"
+import { logActivity } from "@/lib/activity-log"
+import { createEventSchema } from "@/lib/validations"
 
 /** Resolve the current user's DB id, display name, and username for activity logging. */
-async function getActorInfo(clerkUserId: string): Promise<{ id: number | null; name: string; username: string }> {
+async function getActorInfo(
+  clerkUserId: string,
+): Promise<{ id: number | null; name: string; username: string }> {
   const result = await db
-    .select({ id: users.id, displayName: users.displayName, username: users.username })
+    .select({
+      id: users.id,
+      displayName: users.displayName,
+      username: users.username,
+    })
     .from(users)
     .where(eq(users.clerkUserId, clerkUserId))
-    .limit(1);
-  if (result.length === 0) return { id: null, name: "Unknown", username: "unknown" };
-  return { id: result[0].id, name: result[0].displayName || result[0].username, username: result[0].username };
+    .limit(1)
+  if (result.length === 0)
+    return { id: null, name: "Unknown", username: "unknown" }
+  return {
+    id: result[0].id,
+    name: result[0].displayName || result[0].username,
+    username: result[0].username,
+  }
 }
 
 /**
@@ -36,30 +66,33 @@ async function getActorInfo(clerkUserId: string): Promise<{ id: number | null; n
  * Avoids timezone bugs when server runs in different timezone than user.
  * Dates must be in YYYY-MM-DD format.
  */
-function getWeeklyDatesUntil(startDateStr: string, endDateStr: string): string[] {
-  const [startYear, startMonth, startDay] = startDateStr.split("-").map(Number);
-  const [endYear, endMonth, endDay] = endDateStr.split("-").map(Number);
+function getWeeklyDatesUntil(
+  startDateStr: string,
+  endDateStr: string,
+): string[] {
+  const [startYear, startMonth, startDay] = startDateStr.split("-").map(Number)
+  const [endYear, endMonth, endDay] = endDateStr.split("-").map(Number)
 
-  const startDate = new Date(Date.UTC(startYear, startMonth - 1, startDay));
-  const endDate = new Date(Date.UTC(endYear, endMonth - 1, endDay));
+  const startDate = new Date(Date.UTC(startYear, startMonth - 1, startDay))
+  const endDate = new Date(Date.UTC(endYear, endMonth - 1, endDay))
 
-  const dates: string[] = [];
-  let currentDate = new Date(startDate);
+  const dates: string[] = []
+  let currentDate = new Date(startDate)
 
   while (currentDate <= endDate) {
     dates.push(
-      `${currentDate.getUTCFullYear()}-${String(currentDate.getUTCMonth() + 1).padStart(2, "0")}-${String(currentDate.getUTCDate()).padStart(2, "0")}`
-    );
+      `${currentDate.getUTCFullYear()}-${String(currentDate.getUTCMonth() + 1).padStart(2, "0")}-${String(currentDate.getUTCDate()).padStart(2, "0")}`,
+    )
     currentDate = new Date(
       Date.UTC(
         currentDate.getUTCFullYear(),
         currentDate.getUTCMonth(),
-        currentDate.getUTCDate() + 7
-      )
-    );
+        currentDate.getUTCDate() + 7,
+      ),
+    )
   }
 
-  return dates;
+  return dates
 }
 
 /**
@@ -72,16 +105,16 @@ async function findLocationCollision(
   startTime: string,
   endTime: string,
   location: string,
-  excludeEventId?: number
+  excludeEventId?: number,
 ) {
   const conditions = [
     eq(events.date, date),
     sql`LOWER(TRIM(COALESCE(${events.location}, ''))) = LOWER(TRIM(${location}))`,
     sql`${events.startTime} < ${endTime}::time`,
     sql`${events.endTime} > ${startTime}::time`,
-  ];
+  ]
   if (excludeEventId !== undefined) {
-    conditions.push(sql`${events.id} != ${excludeEventId}`);
+    conditions.push(sql`${events.id} != ${excludeEventId}`)
   }
   const colliding = await db
     .select({
@@ -93,8 +126,8 @@ async function findLocationCollision(
     })
     .from(events)
     .where(and(...conditions))
-    .limit(1);
-  return colliding[0] ?? null;
+    .limit(1)
+  return colliding[0] ?? null
 }
 
 /** Returns an error object if a location collision exists, null otherwise. */
@@ -104,49 +137,49 @@ async function getLocationCollisionError(
   endTime: string,
   location: string,
   excludeEventId: number | undefined,
-  context: "create" | "update" | "convert" = "update"
+  context: "create" | "update" | "convert" = "update",
 ): Promise<{ success: false; error: string } | null> {
   const collision = await findLocationCollision(
     date,
     startTime,
     endTime,
     location,
-    excludeEventId
-  );
-  if (!collision) return null;
-  const collisionTime = `${collision.startTime}–${collision.endTime}`;
+    excludeEventId,
+  )
+  if (!collision) return null
+  const collisionTime = `${collision.startTime}–${collision.endTime}`
   const prefix =
     context === "create"
       ? "This event would collide"
       : context === "update"
         ? "This update would collide"
-        : "This would collide";
+        : "This would collide"
   return {
     success: false,
     error: `${prefix} with "${collision.title}" at ${collision.date} (${collisionTime}) in the same location. Please choose a different time or location.`,
-  };
+  }
 }
 
 export async function createEvent(formData: FormData) {
   // Check authentication
-  const { userId } = await auth();
+  const { userId } = await auth()
 
   if (!userId) {
     return {
       success: false,
       error: "Unauthorized. You must be signed in to create events.",
-    };
+    }
   }
 
   // Check authorization: must be instructor OR admin
-  const userIsAdmin = await isAdmin();
-  const userIsInstructor = await isInstructor();
+  const userIsAdmin = await isAdmin()
+  const userIsInstructor = await isInstructor()
 
   if (!userIsAdmin && !userIsInstructor) {
     return {
       success: false,
       error: "Unauthorized. Only instructors and admins can create events.",
-    };
+    }
   }
 
   const eventFieldsResult = createEventSchema.safeParse({
@@ -156,25 +189,25 @@ export async function createEvent(formData: FormData) {
     start_time: formData.get("start_time"),
     end_time: formData.get("end_time"),
     location: formData.get("location"),
-  });
+  })
   if (!eventFieldsResult.success) {
-    return { success: false, error: eventFieldsResult.error.issues[0].message };
+    return { success: false, error: eventFieldsResult.error.issues[0].message }
   }
-  const { title, description, date, start_time, end_time, location } = eventFieldsResult.data;
+  const { title, description, date, start_time, end_time, location } =
+    eventFieldsResult.data
 
-  const instructor = formData.get("instructor") as string;
-  const instructorIdInput = formData.get("instructorId") as string;
-  const whatToBring = formData.get("whatToBring") as string;
-  const propIdInput = formData.get("propId") as string;
+  const instructor = formData.get("instructor") as string
+  const instructorIdInput = formData.get("instructorId") as string
+  const whatToBring = formData.get("whatToBring") as string
+  const propIdInput = formData.get("propId") as string
   const isWorkshop =
-    formData.get("isWorkshop") === "on" ||
-    formData.get("isWorkshop") === "true";
-  const level = (formData.get("level") as string) || "All levels";
-  const isRecurringInput = formData.get("isRecurring") as string;
-  const isRecurring = isRecurringInput === "on" || isRecurringInput === "true";
-  const recurringUntilInput = formData.get("recurringUntil") as string | null;
+    formData.get("isWorkshop") === "on" || formData.get("isWorkshop") === "true"
+  const level = (formData.get("level") as string) || "All levels"
+  const isRecurringInput = formData.get("isRecurring") as string
+  const isRecurring = isRecurringInput === "on" || isRecurringInput === "true"
+  const recurringUntilInput = formData.get("recurringUntil") as string | null
   // For createEvent, if recurringUntil is provided, use it (empty string becomes null)
-  const recurringUntil = recurringUntilInput || null;
+  const recurringUntil = recurringUntilInput || null
 
   // Recurring events are allowed for both admins and instructors
 
@@ -183,7 +216,7 @@ export async function createEvent(formData: FormData) {
     return {
       success: false,
       error: "Either instructorId or instructor name must be provided",
-    };
+    }
   }
 
   try {
@@ -192,21 +225,22 @@ export async function createEvent(formData: FormData) {
       .select({ id: users.id })
       .from(users)
       .where(eq(users.clerkUserId, userId))
-      .limit(1);
+      .limit(1)
 
-    const currentUserId = currentUserResult.length > 0 ? currentUserResult[0].id : null;
+    const currentUserId =
+      currentUserResult.length > 0 ? currentUserResult[0].id : null
 
     // Parse propId if provided
-    const propId = propIdInput ? parseInt(propIdInput, 10) : null;
+    const propId = propIdInput ? parseInt(propIdInput, 10) : null
 
-    let instructorId: number | null = null;
-    let instructorName: string | null = null;
+    let instructorId: number | null = null
+    let instructorName: string | null = null
 
     // If instructorId is provided, fetch user info and use it
     if (instructorIdInput) {
-      instructorId = parseInt(instructorIdInput, 10);
+      instructorId = parseInt(instructorIdInput, 10)
       if (isNaN(instructorId)) {
-        return { success: false, error: "Invalid instructorId" };
+        return { success: false, error: "Invalid instructorId" }
       }
 
       // Fetch user's displayName || username to populate instructor string
@@ -214,42 +248,42 @@ export async function createEvent(formData: FormData) {
         .select({ displayName: users.displayName, username: users.username })
         .from(users)
         .where(eq(users.id, instructorId))
-        .limit(1);
+        .limit(1)
 
       if (userResult.length === 0) {
-        return { success: false, error: "Instructor user not found" };
+        return { success: false, error: "Instructor user not found" }
       }
 
-      instructorName = userResult[0].displayName || userResult[0].username;
+      instructorName = userResult[0].displayName || userResult[0].username
     } else {
       // Only instructor string provided (admin-only case)
-      instructorName = instructor;
-      instructorId = null;
+      instructorName = instructor
+      instructorId = null
     }
 
     // If user is instructor (not admin), ensure instructorId matches their user id
     if (!userIsAdmin && userIsInstructor) {
       if (currentUserId === null) {
-        return { success: false, error: "User record not found" };
+        return { success: false, error: "User record not found" }
       }
 
       // Force instructorId to be the current user's id
-      instructorId = currentUserId;
+      instructorId = currentUserId
 
       // Fetch user's displayName || username
       const userResult = await db
         .select({ displayName: users.displayName, username: users.username })
         .from(users)
         .where(eq(users.id, instructorId))
-        .limit(1);
+        .limit(1)
 
       if (userResult.length > 0) {
-        instructorName = userResult[0].displayName || userResult[0].username;
+        instructorName = userResult[0].displayName || userResult[0].username
       }
     }
 
     // Determine isPublished: true for admins, false for instructors
-    const isPublished = userIsAdmin;
+    const isPublished = userIsAdmin
 
     // Validate recurringUntil for instructors
     if (isRecurring && !userIsAdmin && userIsInstructor) {
@@ -257,44 +291,44 @@ export async function createEvent(formData: FormData) {
         return {
           success: false,
           error: "Please specify an end date for recurring events.",
-        };
+        }
       }
       // Validate that recurringUntil is after the start date
-      const startDateObj = new Date(date);
-      const endDateObj = new Date(recurringUntil);
+      const startDateObj = new Date(date)
+      const endDateObj = new Date(recurringUntil)
       if (endDateObj < startDateObj) {
         return {
           success: false,
           error: "End date must be after the start date.",
-        };
+        }
       }
     }
 
     // Handle recurring events
     if (isRecurring) {
       // Generate UUID for recurring series
-      const recurringSeriesId = randomUUID();
+      const recurringSeriesId = randomUUID()
 
-      const startDate = new Date(date);
-      const eventDates: string[] = [];
+      const startDate = new Date(date)
+      const eventDates: string[] = []
 
       if (recurringUntil) {
         // If recurringUntil is set, create all weekly events up to that date
-        eventDates.push(...getWeeklyDatesUntil(date, recurringUntil));
+        eventDates.push(...getWeeklyDatesUntil(date, recurringUntil))
       } else {
         // No recurringUntil: create only 1 week ahead (initial event + next week = 2 events total)
         // Events will be automatically extended weekly by the cron job
-        eventDates.push(startDate.toISOString().split("T")[0]);
-        const nextWeekDate = new Date(startDate);
-        nextWeekDate.setDate(nextWeekDate.getDate() + 7);
-        eventDates.push(nextWeekDate.toISOString().split("T")[0]);
+        eventDates.push(startDate.toISOString().split("T")[0])
+        const nextWeekDate = new Date(startDate)
+        nextWeekDate.setDate(nextWeekDate.getDate() + 7)
+        eventDates.push(nextWeekDate.toISOString().split("T")[0])
       }
 
       if (eventDates.length === 0) {
         return {
           success: false,
           error: "No valid dates found for recurring event.",
-        };
+        }
       }
 
       // Check for location collisions before creating recurring events
@@ -305,9 +339,9 @@ export async function createEvent(formData: FormData) {
           end_time,
           location,
           undefined,
-          "create"
-        );
-        if (err) return err;
+          "create",
+        )
+        if (err) return err
       }
 
       // Create all events in a transaction
@@ -330,12 +364,12 @@ export async function createEvent(formData: FormData) {
         recurringUntil: recurringUntil || null,
         lastUpdatedBy: currentUserId,
         approvedBy: isPublished && currentUserId ? currentUserId : null,
-      }));
+      }))
 
       const newEvents = await db
         .insert(events)
         .values(eventValues)
-        .returning({ id: events.id });
+        .returning({ id: events.id })
 
       // Send instructor assignment email if admin assigned an instructorId (for recurring events, send for first event)
       if (userIsAdmin && instructorId && newEvents.length > 0) {
@@ -349,24 +383,24 @@ export async function createEvent(formData: FormData) {
             })
             .from(users)
             .where(eq(users.id, instructorId))
-            .limit(1);
+            .limit(1)
 
           if (instructorResult.length > 0) {
-            const instructorEmail = instructorResult[0].email;
+            const instructorEmail = instructorResult[0].email
             const instructorDisplayName =
-              instructorResult[0].displayName || instructorResult[0].username;
+              instructorResult[0].displayName || instructorResult[0].username
 
             if (!instructorEmail) {
               console.error(
                 `Instructor ${instructorId} (${instructorDisplayName}) does not have an email address. Cannot send assignment email.`,
-              );
+              )
             } else {
               try {
                 const eventSlug = createEventSlug(
                   newEvents[0].id,
                   title,
                   instructorName,
-                );
+                )
                 await sendInstructorAssignedEmail({
                   instructorName: instructorDisplayName,
                   instructorEmail,
@@ -376,21 +410,21 @@ export async function createEvent(formData: FormData) {
                   eventEndTime: end_time,
                   eventLocation: location,
                   eventSlug,
-                });
+                })
               } catch (emailError) {
                 console.error(
                   `Failed to send instructor assignment email to ${instructorEmail}:`,
                   emailError,
-                );
+                )
               }
             }
           } else {
             console.error(
               `Instructor with id ${instructorId} not found. Cannot send assignment email.`,
-            );
+            )
           }
         } catch (error) {
-          console.error("Error sending instructor assignment email:", error);
+          console.error("Error sending instructor assignment email:", error)
           // Don't fail the event creation if email fails
         }
       }
@@ -407,17 +441,17 @@ export async function createEvent(formData: FormData) {
             })
             .from(users)
             .where(eq(users.id, instructorId))
-            .limit(1);
+            .limit(1)
 
           if (instructorResult.length > 0) {
-            const instructorEmail = instructorResult[0].email;
+            const instructorEmail = instructorResult[0].email
             const instructorDisplayName =
-              instructorResult[0].displayName || instructorResult[0].username;
+              instructorResult[0].displayName || instructorResult[0].username
 
             if (!instructorEmail) {
               console.error(
                 `Instructor ${instructorId} (${instructorDisplayName}) does not have an email address. Cannot send pending approval email.`,
-              );
+              )
             } else {
               // Send email to instructor about pending approval (mentioning recurring)
               try {
@@ -429,17 +463,17 @@ export async function createEvent(formData: FormData) {
                   eventStartTime: start_time,
                   eventEndTime: end_time,
                   eventLocation: location,
-                });
+                })
               } catch (emailError) {
                 console.error(
                   `Failed to send pending approval email to instructor ${instructorEmail}:`,
                   emailError,
-                );
+                )
               }
 
               // Send email to all admins about pending recurring events
               try {
-                const adminUsers = await getAllAdmins();
+                const adminUsers = await getAllAdmins()
                 for (const admin of adminUsers) {
                   if (admin.email) {
                     await sendAdminEventPendingEmail(
@@ -458,29 +492,29 @@ export async function createEvent(formData: FormData) {
                       console.error(
                         `Failed to send admin notification to ${admin.email}:`,
                         error,
-                      );
-                    });
+                      )
+                    })
                   }
                 }
               } catch (adminEmailError) {
                 console.error(
                   "Error sending admin notifications:",
                   adminEmailError,
-                );
+                )
               }
             }
           } else {
             console.error(
               `Instructor with id ${instructorId} not found. Cannot send pending approval email.`,
-            );
+            )
           }
         } catch (error) {
-          console.error("Error sending event creation emails:", error);
+          console.error("Error sending event creation emails:", error)
           // Don't fail the event creation if emails fail
         }
       }
 
-      const actor = await getActorInfo(userId);
+      const actor = await getActorInfo(userId)
       logActivity({
         userId: actor.id,
         actorName: actor.name,
@@ -490,14 +524,14 @@ export async function createEvent(formData: FormData) {
         entityId: String(newEvents[0]?.id),
         entityLabel: title,
         metadata: { count: eventDates.length, recurringSeriesId },
-      });
+      })
 
-      revalidatePath("/admin");
-      revalidatePath("/");
-      revalidatePath("/api/timetable");
-      revalidateTag("timetable-public");
+      revalidatePath("/admin")
+      revalidatePath("/")
+      revalidatePath("/api/timetable")
+      revalidateTag("timetable-public")
 
-      return { success: true };
+      return { success: true }
     }
 
     // Check for location collision before creating single event
@@ -507,9 +541,9 @@ export async function createEvent(formData: FormData) {
       end_time,
       location,
       undefined,
-      "create"
-    );
-    if (createErr) return createErr;
+      "create",
+    )
+    if (createErr) return createErr
 
     // Insert single event (non-recurring)
     const [newEvent] = await db
@@ -532,7 +566,7 @@ export async function createEvent(formData: FormData) {
         lastUpdatedBy: currentUserId,
         approvedBy: isPublished && currentUserId ? currentUserId : null,
       })
-      .returning({ id: events.id });
+      .returning({ id: events.id })
 
     // Send instructor assignment email if admin assigned an instructorId
     if (userIsAdmin && instructorId) {
@@ -546,24 +580,24 @@ export async function createEvent(formData: FormData) {
           })
           .from(users)
           .where(eq(users.id, instructorId))
-          .limit(1);
+          .limit(1)
 
         if (instructorResult.length > 0) {
-          const instructorEmail = instructorResult[0].email;
+          const instructorEmail = instructorResult[0].email
           const instructorDisplayName =
-            instructorResult[0].displayName || instructorResult[0].username;
+            instructorResult[0].displayName || instructorResult[0].username
 
           if (!instructorEmail) {
             console.error(
               `Instructor ${instructorId} (${instructorDisplayName}) does not have an email address. Cannot send assignment email.`,
-            );
+            )
           } else {
             try {
               const eventSlug = createEventSlug(
                 newEvent.id,
                 title,
                 instructorName,
-              );
+              )
               await sendInstructorAssignedEmail({
                 instructorName: instructorDisplayName,
                 instructorEmail,
@@ -573,21 +607,21 @@ export async function createEvent(formData: FormData) {
                 eventEndTime: end_time,
                 eventLocation: location,
                 eventSlug,
-              });
+              })
             } catch (emailError) {
               console.error(
                 `Failed to send instructor assignment email to ${instructorEmail}:`,
                 emailError,
-              );
+              )
             }
           }
         } else {
           console.error(
             `Instructor with id ${instructorId} not found. Cannot send assignment email.`,
-          );
+          )
         }
       } catch (error) {
-        console.error("Error sending instructor assignment email:", error);
+        console.error("Error sending instructor assignment email:", error)
         // Don't fail the event creation if email fails
       }
     }
@@ -604,17 +638,17 @@ export async function createEvent(formData: FormData) {
           })
           .from(users)
           .where(eq(users.id, instructorId))
-          .limit(1);
+          .limit(1)
 
         if (instructorResult.length > 0) {
-          const instructorEmail = instructorResult[0].email;
+          const instructorEmail = instructorResult[0].email
           const instructorDisplayName =
-            instructorResult[0].displayName || instructorResult[0].username;
+            instructorResult[0].displayName || instructorResult[0].username
 
           if (!instructorEmail) {
             console.error(
               `Instructor ${instructorId} (${instructorDisplayName}) does not have an email address. Cannot send pending approval email.`,
-            );
+            )
           } else {
             // Send email to instructor about pending approval
             try {
@@ -626,17 +660,17 @@ export async function createEvent(formData: FormData) {
                 eventStartTime: start_time,
                 eventEndTime: end_time,
                 eventLocation: location,
-              });
+              })
             } catch (emailError) {
               console.error(
                 `Failed to send pending approval email to instructor ${instructorEmail}:`,
                 emailError,
-              );
+              )
             }
 
             // Send email to all admins about pending event
             try {
-              const adminUsers = await getAllAdmins();
+              const adminUsers = await getAllAdmins()
               for (const admin of adminUsers) {
                 if (admin.email) {
                   await sendAdminEventPendingEmail(
@@ -655,30 +689,30 @@ export async function createEvent(formData: FormData) {
                     console.error(
                       `Failed to send admin notification to ${admin.email}:`,
                       error,
-                    );
-                  });
+                    )
+                  })
                 }
               }
             } catch (adminEmailError) {
               console.error(
                 "Error sending admin notifications:",
                 adminEmailError,
-              );
+              )
             }
           }
         } else {
           console.error(
             `Instructor with id ${instructorId} not found. Cannot send pending approval email.`,
-          );
+          )
         }
       } catch (error) {
-        console.error("Error sending event creation emails:", error);
+        console.error("Error sending event creation emails:", error)
         // Don't fail the event creation if emails fail
       }
     } else {
     }
 
-    const actor = await getActorInfo(userId);
+    const actor = await getActorInfo(userId)
     logActivity({
       userId: actor.id,
       actorName: actor.name,
@@ -686,39 +720,39 @@ export async function createEvent(formData: FormData) {
       entityType: "event",
       entityId: String(newEvent.id),
       entityLabel: title,
-    });
+    })
 
-    revalidatePath("/admin");
-    revalidatePath("/");
-    revalidatePath("/api/timetable");
-    revalidateTag("timetable-public");
+    revalidatePath("/admin")
+    revalidatePath("/")
+    revalidatePath("/api/timetable")
+    revalidateTag("timetable-public")
 
-    return { success: true };
+    return { success: true }
   } catch (error) {
-    console.error("Error creating event:", error);
-    return { success: false, error: "Failed to create event" };
+    console.error("Error creating event:", error)
+    return { success: false, error: "Failed to create event" }
   }
 }
 
 export async function approveEvent(eventId: number) {
   // Check authentication
-  const { userId } = await auth();
+  const { userId } = await auth()
 
   if (!userId) {
     return {
       success: false,
       error: "Unauthorized. You must be signed in to approve events.",
-    };
+    }
   }
 
   // Check authorization: must be admin
-  const userIsAdmin = await isAdmin();
+  const userIsAdmin = await isAdmin()
 
   if (!userIsAdmin) {
     return {
       success: false,
       error: "Unauthorized. Only admins can approve events.",
-    };
+    }
   }
 
   try {
@@ -727,9 +761,10 @@ export async function approveEvent(eventId: number) {
       .select({ id: users.id })
       .from(users)
       .where(eq(users.clerkUserId, userId))
-      .limit(1);
+      .limit(1)
 
-    const currentUserId = currentUserResult.length > 0 ? currentUserResult[0].id : null;
+    const currentUserId =
+      currentUserResult.length > 0 ? currentUserResult[0].id : null
 
     // Fetch event details
     const eventResult = await db
@@ -746,28 +781,28 @@ export async function approveEvent(eventId: number) {
       })
       .from(events)
       .where(eq(events.id, eventId))
-      .limit(1);
+      .limit(1)
 
     if (eventResult.length === 0) {
-      return { success: false, error: "Event not found." };
+      return { success: false, error: "Event not found." }
     }
 
-    const event = eventResult[0];
+    const event = eventResult[0]
 
     // If already published, no need to do anything
     if (event.isPublished) {
-      return { success: true, message: "Event is already published." };
+      return { success: true, message: "Event is already published." }
     }
 
     // Update event to published and set approvedBy
     await db
       .update(events)
-      .set({ 
-        isPublished: true, 
+      .set({
+        isPublished: true,
         updatedAt: sql`CURRENT_TIMESTAMP`,
         approvedBy: currentUserId,
       })
-      .where(eq(events.id, eventId));
+      .where(eq(events.id, eventId))
 
     // Send approval email to instructor
     if (event.instructorId) {
@@ -780,17 +815,17 @@ export async function approveEvent(eventId: number) {
           })
           .from(users)
           .where(eq(users.id, event.instructorId))
-          .limit(1);
+          .limit(1)
 
         if (instructorResult.length > 0) {
-          const instructorEmail = instructorResult[0].email;
+          const instructorEmail = instructorResult[0].email
           const instructorDisplayName =
-            instructorResult[0].displayName || instructorResult[0].username;
+            instructorResult[0].displayName || instructorResult[0].username
 
           if (!instructorEmail) {
             console.error(
               `Instructor ${event.instructorId} (${instructorDisplayName}) does not have an email address. Cannot send approval email.`,
-            );
+            )
           } else {
             try {
               await sendEventApprovedEmail({
@@ -802,26 +837,26 @@ export async function approveEvent(eventId: number) {
                 eventEndTime: event.endTime,
                 eventLocation: event.location || "",
                 eventId: event.id,
-              });
+              })
             } catch (emailError) {
               console.error(
                 `Failed to send approval email to instructor ${instructorEmail}:`,
                 emailError,
-              );
+              )
             }
           }
         } else {
           console.error(
             `Instructor with id ${event.instructorId} not found. Cannot send approval email.`,
-          );
+          )
         }
       } catch (error) {
-        console.error("Error sending approval email:", error);
+        console.error("Error sending approval email:", error)
         // Don't fail the approval if email fails
       }
     }
 
-    const actor = await getActorInfo(userId);
+    const actor = await getActorInfo(userId)
     logActivity({
       userId: actor.id,
       actorName: actor.name,
@@ -829,55 +864,53 @@ export async function approveEvent(eventId: number) {
       entityType: "event",
       entityId: String(eventId),
       entityLabel: event.title,
-    });
+    })
 
-    revalidatePath("/admin");
-    revalidatePath("/admin/pending-approval");
-    revalidatePath("/");
+    revalidatePath("/admin")
+    revalidatePath("/admin/pending-approval")
+    revalidatePath("/")
 
-    return { success: true };
+    return { success: true }
   } catch (error) {
-    console.error("Error approving event:", error);
-    return { success: false, error: "Failed to approve event" };
+    console.error("Error approving event:", error)
+    return { success: false, error: "Failed to approve event" }
   }
 }
 
 export async function updateEvent(formData: FormData) {
   // Check authentication
-  const { userId } = await auth();
+  const { userId } = await auth()
 
   if (!userId) {
     return {
       success: false,
       error: "Unauthorized. You must be signed in to update events.",
-    };
+    }
   }
 
-  const id = formData.get("id") as string;
-  const title = formData.get("title") as string;
-  const description = formData.get("description") as string;
-  const instructor = formData.get("instructor") as string;
-  const instructorIdInput = formData.get("instructorId") as string;
-  const date = formData.get("date") as string;
-  const start_time = formData.get("start_time") as string;
-  const end_time = formData.get("end_time") as string;
-  const location = formData.get("location") as string;
-  const whatToBring = formData.get("whatToBring") as string;
-  const propIdInput = formData.get("propId") as string;
+  const id = formData.get("id") as string
+  const title = formData.get("title") as string
+  const description = formData.get("description") as string
+  const instructor = formData.get("instructor") as string
+  const instructorIdInput = formData.get("instructorId") as string
+  const date = formData.get("date") as string
+  const start_time = formData.get("start_time") as string
+  const end_time = formData.get("end_time") as string
+  const location = formData.get("location") as string
+  const whatToBring = formData.get("whatToBring") as string
+  const propIdInput = formData.get("propId") as string
   const isWorkshop =
-    formData.get("isWorkshop") === "on" ||
-    formData.get("isWorkshop") === "true";
-  const level = (formData.get("level") as string) || "All levels";
-  const isPublishedInput = formData.get("isPublished") as string;
-  const isPublished = isPublishedInput === "on" || isPublishedInput === "true";
-  const isRecurringInput = formData.get("isRecurring") as string;
-  const isRecurring = isRecurringInput === "on" || isRecurringInput === "true";
-  const recurringUntilInput = formData.get("recurringUntil") as string | null;
+    formData.get("isWorkshop") === "on" || formData.get("isWorkshop") === "true"
+  const level = (formData.get("level") as string) || "All levels"
+  const isPublishedInput = formData.get("isPublished") as string
+  const isPublished = isPublishedInput === "on" || isPublishedInput === "true"
+  const isRecurringInput = formData.get("isRecurring") as string
+  const isRecurring = isRecurringInput === "on" || isRecurringInput === "true"
+  const recurringUntilInput = formData.get("recurringUntil") as string | null
   // If recurringUntil is in formData, use it (even if empty string - will become null)
   // If not in formData, it means the event is not recurring, so don't update the field
-  const recurringUntil = recurringUntilInput !== null 
-    ? (recurringUntilInput || null) 
-    : undefined;
+  const recurringUntil =
+    recurringUntilInput !== null ? recurringUntilInput || null : undefined
 
   if (
     !id ||
@@ -888,7 +921,7 @@ export async function updateEvent(formData: FormData) {
     !end_time ||
     !location
   ) {
-    return { success: false, error: "Missing required fields" };
+    return { success: false, error: "Missing required fields" }
   }
 
   // Validate that either instructorId or instructor string is provided
@@ -896,14 +929,14 @@ export async function updateEvent(formData: FormData) {
     return {
       success: false,
       error: "Either instructorId or instructor name must be provided",
-    };
+    }
   }
 
-  const eventId = parseInt(id);
+  const eventId = parseInt(id)
 
   // Check authorization: must be admin OR (instructor AND matching event instructor)
-  const userIsAdmin = await isAdmin();
-  const userIsInstructor = await isInstructor();
+  const userIsAdmin = await isAdmin()
+  const userIsInstructor = await isInstructor()
 
   // Recurring events are allowed for both admins and instructors
 
@@ -929,16 +962,16 @@ export async function updateEvent(formData: FormData) {
     })
     .from(events)
     .where(eq(events.id, eventId))
-    .limit(1);
+    .limit(1)
 
   if (currentEventResult.length === 0) {
-    return { success: false, error: "Event not found." };
+    return { success: false, error: "Event not found." }
   }
 
-    const currentEvent = currentEventResult[0];
-    const wasPublished = currentEvent.isPublished;
-    const isRecurringEvent =
-      currentEvent.recurringSeriesId !== null && currentEvent.isRecurring;
+  const currentEvent = currentEventResult[0]
+  const wasPublished = currentEvent.isPublished
+  const isRecurringEvent =
+    currentEvent.recurringSeriesId !== null && currentEvent.isRecurring
 
   // Instructors can update their own recurring events, but only single instances
   // Admins can update all instances in a recurring series
@@ -957,17 +990,17 @@ export async function updateEvent(formData: FormData) {
       })
       .from(users)
       .where(eq(users.clerkUserId, userId))
-      .limit(1);
+      .limit(1)
 
     if (userResult.length === 0 || !userResult[0].isInstructor) {
       return {
         success: false,
         error:
           "Unauthorized. Only admins and event instructors can update events.",
-      };
+      }
     }
 
-    const currentUserId = userResult[0].id;
+    const currentUserId = userResult[0].id
 
     // Fetch event to check instructor
     const eventResult = await db
@@ -977,14 +1010,14 @@ export async function updateEvent(formData: FormData) {
       })
       .from(events)
       .where(eq(events.id, eventId))
-      .limit(1);
+      .limit(1)
 
     if (eventResult.length === 0) {
-      return { success: false, error: "Event not found." };
+      return { success: false, error: "Event not found." }
     }
 
     // Check authorization: if instructorId exists, check that; otherwise check instructor string
-    const eventInstructorId = eventResult[0].instructorId;
+    const eventInstructorId = eventResult[0].instructorId
     if (eventInstructorId !== null) {
       // Match instructorId
       if (eventInstructorId !== currentUserId) {
@@ -992,7 +1025,7 @@ export async function updateEvent(formData: FormData) {
           success: false,
           error:
             "Unauthorized. You can only update events you are instructing.",
-        };
+        }
       }
     } else {
       // Fallback to instructor string comparison
@@ -1001,7 +1034,7 @@ export async function updateEvent(formData: FormData) {
           success: false,
           error:
             "Unauthorized. You can only update events you are instructing.",
-        };
+        }
       }
     }
   }
@@ -1012,21 +1045,22 @@ export async function updateEvent(formData: FormData) {
       .select({ id: users.id })
       .from(users)
       .where(eq(users.clerkUserId, userId))
-      .limit(1);
+      .limit(1)
 
-    const currentUserId = currentUserResult.length > 0 ? currentUserResult[0].id : null;
+    const currentUserId =
+      currentUserResult.length > 0 ? currentUserResult[0].id : null
 
     // Parse propId if provided
-    const propId = propIdInput ? parseInt(propIdInput, 10) : null;
+    const propId = propIdInput ? parseInt(propIdInput, 10) : null
 
-    let instructorId: number | null = null;
-    let instructorName: string | null = null;
+    let instructorId: number | null = null
+    let instructorName: string | null = null
 
     // If instructorId is provided, fetch user info and use it
     if (instructorIdInput) {
-      instructorId = parseInt(instructorIdInput, 10);
+      instructorId = parseInt(instructorIdInput, 10)
       if (isNaN(instructorId)) {
-        return { success: false, error: "Invalid instructorId" };
+        return { success: false, error: "Invalid instructorId" }
       }
 
       // Fetch user's displayName || username to populate instructor string
@@ -1034,61 +1068,61 @@ export async function updateEvent(formData: FormData) {
         .select({ displayName: users.displayName, username: users.username })
         .from(users)
         .where(eq(users.id, instructorId))
-        .limit(1);
+        .limit(1)
 
       if (userResult.length === 0) {
-        return { success: false, error: "Instructor user not found" };
+        return { success: false, error: "Instructor user not found" }
       }
 
-      instructorName = userResult[0].displayName || userResult[0].username;
+      instructorName = userResult[0].displayName || userResult[0].username
     } else {
       // Only instructor string provided (admin-only case)
-      instructorName = instructor;
-      instructorId = null;
+      instructorName = instructor
+      instructorId = null
     }
 
     // If user is instructor (not admin), ensure instructorId matches their user id
     if (!userIsAdmin && userIsInstructor) {
       if (currentUserId === null) {
-        return { success: false, error: "User record not found" };
+        return { success: false, error: "User record not found" }
       }
 
       // Force instructorId to be the current user's id
-      instructorId = currentUserId;
+      instructorId = currentUserId
 
       // Fetch user's displayName || username
       const userResult = await db
         .select({ displayName: users.displayName, username: users.username })
         .from(users)
         .where(eq(users.id, instructorId))
-        .limit(1);
+        .limit(1)
 
       if (userResult.length > 0) {
-        instructorName = userResult[0].displayName || userResult[0].username;
+        instructorName = userResult[0].displayName || userResult[0].username
       }
     }
 
     // Only allow admins to change isPublished and isRecurring
     const updateData: {
-      title: string;
-      description: string;
-      instructor: string | null;
-      instructorId: number | null;
-      date: string;
-      startTime: string;
-      endTime: string;
-      location: string;
-      whatToBring: string | null;
-      isWorkshop: boolean;
-      level: string;
-      propId: number | null;
-      updatedAt: ReturnType<typeof sql>;
-      lastUpdatedBy?: number | null;
-      approvedBy?: number | null;
-      isPublished?: boolean;
-      isRecurring?: boolean;
-      recurringSeriesId?: string | null;
-      recurringUntil?: string | null;
+      title: string
+      description: string
+      instructor: string | null
+      instructorId: number | null
+      date: string
+      startTime: string
+      endTime: string
+      location: string
+      whatToBring: string | null
+      isWorkshop: boolean
+      level: string
+      propId: number | null
+      updatedAt: ReturnType<typeof sql>
+      lastUpdatedBy?: number | null
+      approvedBy?: number | null
+      isPublished?: boolean
+      isRecurring?: boolean
+      recurringSeriesId?: string | null
+      recurringUntil?: string | null
     } = {
       title,
       description,
@@ -1104,24 +1138,24 @@ export async function updateEvent(formData: FormData) {
       propId: propId || null,
       updatedAt: sql`CURRENT_TIMESTAMP`,
       lastUpdatedBy: currentUserId,
-    };
+    }
 
     // Check if event is being published (changing from unpublished to published)
-    const wasPublished = currentEvent.isPublished;
-    const isBeingPublished = isPublished && !wasPublished && userIsAdmin;
+    const wasPublished = currentEvent.isPublished
+    const isBeingPublished = isPublished && !wasPublished && userIsAdmin
 
     // Only update isPublished if user is admin
     if (userIsAdmin) {
-      updateData.isPublished = isPublished;
+      updateData.isPublished = isPublished
       // Set approvedBy when publishing an event (changing from unpublished to published)
       if (isBeingPublished && currentUserId !== null) {
-        updateData.approvedBy = currentUserId;
+        updateData.approvedBy = currentUserId
       }
     }
 
     // When admin publishes without changing anything else, don't update lastUpdatedBy
     const normalizeTime = (t: string | null) =>
-      t ? (t.length === 5 ? `${t}:00` : t) : null;
+      t ? (t.length === 5 ? `${t}:00` : t) : null
     const isPublishOnly =
       isBeingPublished &&
       title === currentEvent.title &&
@@ -1137,34 +1171,34 @@ export async function updateEvent(formData: FormData) {
       level === currentEvent.level &&
       (propId ?? null) === (currentEvent.propId ?? null) &&
       isRecurring === currentEvent.isRecurring &&
-      (recurringUntil ?? null) === (currentEvent.recurringUntil ?? null);
+      (recurringUntil ?? null) === (currentEvent.recurringUntil ?? null)
 
     if (isPublishOnly) {
-      delete updateData.lastUpdatedBy;
+      delete updateData.lastUpdatedBy
     }
     // Both admins and instructors can update isRecurring
     // Only update isRecurring if not converting to recurring (that's handled separately)
     // For existing recurring events, preserve isRecurring: true
     // For non-recurring events being updated, set based on form value
     if (!isRecurringEvent) {
-      updateData.isRecurring = isRecurring;
+      updateData.isRecurring = isRecurring
     } else {
       // Preserve isRecurring for existing recurring events
-      updateData.isRecurring = true;
+      updateData.isRecurring = true
     }
-    
+
     // Update recurringUntil if it was provided in the form
     // If recurringUntil is undefined, it means the field wasn't in the form (non-recurring event)
     // If recurringUntil is null, it means user cleared it (set to null)
     // If recurringUntil has a value, use it
     if (recurringUntil !== undefined) {
-      updateData.recurringUntil = recurringUntil;
+      updateData.recurringUntil = recurringUntil
     }
 
     // CRITICAL: Check if event has recurringSeriesId BEFORE any conversion logic
     // This prevents accidentally triggering conversion when event is already part of a series
     // even if isRecurring flag is temporarily false
-    const hasRecurringSeriesId = currentEvent.recurringSeriesId !== null;
+    const hasRecurringSeriesId = currentEvent.recurringSeriesId !== null
 
     // Handle converting recurring event to non-recurring (admins and instructors)
     // Note: This only converts the current event, not the entire series
@@ -1175,9 +1209,9 @@ export async function updateEvent(formData: FormData) {
         end_time,
         location,
         eventId,
-        "update"
-      );
-      if (err) return err;
+        "update",
+      )
+      if (err) return err
       // Convert only the current event to non-recurring
       // Other events in the series remain as recurring events
       await db
@@ -1187,23 +1221,23 @@ export async function updateEvent(formData: FormData) {
           isRecurring: false,
           recurringSeriesId: null,
         })
-        .where(eq(events.id, eventId));
+        .where(eq(events.id, eventId))
 
-      revalidatePath("/admin");
-      revalidatePath("/");
-      revalidatePath("/api/timetable");
-      revalidateTag("timetable-public");
-      revalidateTag("events");
-      revalidateTag(`event-${eventId}`);
+      revalidatePath("/admin")
+      revalidatePath("/")
+      revalidatePath("/api/timetable")
+      revalidateTag("timetable-public")
+      revalidateTag("events")
+      revalidateTag(`event-${eventId}`)
 
       // Ensure title and instructorName are not null before creating slug
       if (title && instructorName) {
         revalidatePath(
           `/event/${createEventSlug(eventId, title, instructorName)}`,
-        );
+        )
       }
 
-      return { success: true };
+      return { success: true }
     }
 
     // Handle case where event has recurringSeriesId but isRecurring is false
@@ -1215,9 +1249,9 @@ export async function updateEvent(formData: FormData) {
         end_time,
         location,
         eventId,
-        "update"
-      );
-      if (err) return err;
+        "update",
+      )
+      if (err) return err
       // Event is part of a series but isRecurring flag was false - restore it
       await db
         .update(events)
@@ -1225,20 +1259,22 @@ export async function updateEvent(formData: FormData) {
           ...updateData,
           isRecurring: true, // Restore the flag
         })
-        .where(eq(events.id, eventId));
-      
-      revalidatePath("/admin");
-      revalidatePath("/");
-      revalidatePath("/api/timetable");
-      revalidateTag("timetable-public");
-      revalidateTag("events");
-      revalidateTag(`event-${eventId}`);
-      
+        .where(eq(events.id, eventId))
+
+      revalidatePath("/admin")
+      revalidatePath("/")
+      revalidatePath("/api/timetable")
+      revalidateTag("timetable-public")
+      revalidateTag("events")
+      revalidateTag(`event-${eventId}`)
+
       if (title && instructorName) {
-        revalidatePath(`/event/${createEventSlug(eventId, title, instructorName)}`);
+        revalidatePath(
+          `/event/${createEventSlug(eventId, title, instructorName)}`,
+        )
       }
-      
-      return { success: true };
+
+      return { success: true }
     }
 
     // Handle converting non-recurring event to recurring (admins and instructors)
@@ -1251,16 +1287,16 @@ export async function updateEvent(formData: FormData) {
           return {
             success: false,
             error: "Please specify an end date for recurring events.",
-          };
+          }
         }
         // Validate that recurringUntil is after the start date
-        const startDateObj = new Date(date);
-        const endDateObj = new Date(recurringUntil);
+        const startDateObj = new Date(date)
+        const endDateObj = new Date(recurringUntil)
         if (endDateObj < startDateObj) {
           return {
             success: false,
             error: "End date must be after the start date.",
-          };
+          }
         }
       }
 
@@ -1273,10 +1309,10 @@ export async function updateEvent(formData: FormData) {
         })
         .from(events)
         .where(eq(events.id, eventId))
-        .limit(1);
+        .limit(1)
 
       if (verifyEvent.length === 0) {
-        return { success: false, error: "Event not found." };
+        return { success: false, error: "Event not found." }
       }
 
       // If event already has a recurringSeriesId, don't convert (it's already part of a series)
@@ -1287,64 +1323,66 @@ export async function updateEvent(formData: FormData) {
           end_time,
           location,
           eventId,
-          "update"
-        );
-        if (err) return err;
+          "update",
+        )
+        if (err) return err
         // Event is already part of a recurring series, just update it normally
         // This prevents duplicate creation when updating recurring events
-        await db.update(events).set(updateData).where(eq(events.id, eventId));
-        
-        revalidatePath("/admin");
-        revalidatePath("/");
-        revalidatePath("/api/timetable");
-        revalidateTag("timetable-public");
-        revalidateTag("events");
-        revalidateTag(`event-${eventId}`);
-        
+        await db.update(events).set(updateData).where(eq(events.id, eventId))
+
+        revalidatePath("/admin")
+        revalidatePath("/")
+        revalidatePath("/api/timetable")
+        revalidateTag("timetable-public")
+        revalidateTag("events")
+        revalidateTag(`event-${eventId}`)
+
         if (title && instructorName) {
-          revalidatePath(`/event/${createEventSlug(eventId, title, instructorName)}`);
+          revalidatePath(
+            `/event/${createEventSlug(eventId, title, instructorName)}`,
+          )
         }
-        
-        return { success: true };
+
+        return { success: true }
       }
 
       // Generate UUID for recurring series
-      const recurringSeriesId = randomUUID();
+      const recurringSeriesId = randomUUID()
 
-      const startDate = new Date(date);
-      const eventDates: string[] = [];
+      const startDate = new Date(date)
+      const eventDates: string[] = []
 
       if (recurringUntil) {
         // If recurringUntil is set, create all weekly events up to that date
-        eventDates.push(...getWeeklyDatesUntil(date, recurringUntil));
+        eventDates.push(...getWeeklyDatesUntil(date, recurringUntil))
       } else {
         // No recurringUntil: create only 1 week ahead (initial event + next week = 2 events total)
         // Events will be automatically extended weekly by the cron job
-        eventDates.push(startDate.toISOString().split("T")[0]);
-        const nextWeekDate = new Date(startDate);
-        nextWeekDate.setDate(nextWeekDate.getDate() + 7);
-        eventDates.push(nextWeekDate.toISOString().split("T")[0]);
+        eventDates.push(startDate.toISOString().split("T")[0])
+        const nextWeekDate = new Date(startDate)
+        nextWeekDate.setDate(nextWeekDate.getDate() + 7)
+        eventDates.push(nextWeekDate.toISOString().split("T")[0])
       }
 
       if (eventDates.length === 0) {
         return {
           success: false,
           error: "No valid dates found for recurring event.",
-        };
+        }
       }
 
       // Check for location collisions before converting to recurring
       for (const eventDate of eventDates) {
-        const excludeId = eventDate === date ? eventId : undefined;
+        const excludeId = eventDate === date ? eventId : undefined
         const err = await getLocationCollisionError(
           eventDate,
           start_time,
           end_time,
           location,
           excludeId,
-          "convert"
-        );
-        if (err) return err;
+          "convert",
+        )
+        if (err) return err
       }
 
       // Check if events with these dates already exist to prevent duplicates
@@ -1357,11 +1395,11 @@ export async function updateEvent(formData: FormData) {
           and(
             inArray(events.date, eventDates),
             eq(events.title, title),
-            eq(events.instructor, instructorName)
-          )
-        );
+            eq(events.instructor, instructorName),
+          ),
+        )
 
-      const existingDates = new Set(existingEvents.map((e) => e.date));
+      const existingDates = new Set(existingEvents.map((e) => e.date))
 
       // Update the current event to be part of the recurring series
       await db
@@ -1372,12 +1410,14 @@ export async function updateEvent(formData: FormData) {
           isRecurring: true,
           recurringUntil: recurringUntil || null,
         })
-        .where(eq(events.id, eventId));
+        .where(eq(events.id, eventId))
 
       // Create additional events for remaining dates (skip the first date as it's the current event)
       // Only create events that don't already exist
-      const datesToCreate = eventDates.slice(1).filter((eventDate) => !existingDates.has(eventDate));
-      
+      const datesToCreate = eventDates
+        .slice(1)
+        .filter((eventDate) => !existingDates.has(eventDate))
+
       if (datesToCreate.length > 0) {
         const additionalEventValues = datesToCreate.map((eventDate) => ({
           title,
@@ -1398,17 +1438,17 @@ export async function updateEvent(formData: FormData) {
           recurringUntil: recurringUntil || null,
           lastUpdatedBy: currentUserId,
           approvedBy: isPublished && currentUserId ? currentUserId : null,
-        }));
+        }))
 
-        await db.insert(events).values(additionalEventValues);
+        await db.insert(events).values(additionalEventValues)
       }
 
-      revalidatePath("/admin");
-      revalidatePath("/");
-      revalidatePath("/api/timetable");
-      revalidateTag("timetable-public");
+      revalidatePath("/admin")
+      revalidatePath("/")
+      revalidatePath("/api/timetable")
+      revalidateTag("timetable-public")
 
-      return { success: true };
+      return { success: true }
     }
 
     // Handle recurring events - update all events in the series (admin only)
@@ -1423,42 +1463,47 @@ export async function updateEvent(formData: FormData) {
         })
         .from(events)
         .where(eq(events.id, eventId))
-        .limit(1);
+        .limit(1)
 
       if (verifySeriesEvent.length === 0) {
-        return { success: false, error: "Event not found." };
+        return { success: false, error: "Event not found." }
       }
 
       // If event is no longer part of a recurring series, just update the single event
-      if (verifySeriesEvent[0].recurringSeriesId !== currentEvent.recurringSeriesId || 
-          !verifySeriesEvent[0].isRecurring) {
+      if (
+        verifySeriesEvent[0].recurringSeriesId !==
+          currentEvent.recurringSeriesId ||
+        !verifySeriesEvent[0].isRecurring
+      ) {
         const err = await getLocationCollisionError(
           date,
           start_time,
           end_time,
           location,
           eventId,
-          "update"
-        );
-        if (err) return err;
-        await db.update(events).set(updateData).where(eq(events.id, eventId));
-        
-        revalidatePath("/admin");
-        revalidatePath("/");
-        revalidatePath("/api/timetable");
-        revalidateTag("timetable-public");
-        revalidateTag("events");
-        revalidateTag(`event-${eventId}`);
-        
+          "update",
+        )
+        if (err) return err
+        await db.update(events).set(updateData).where(eq(events.id, eventId))
+
+        revalidatePath("/admin")
+        revalidatePath("/")
+        revalidatePath("/api/timetable")
+        revalidateTag("timetable-public")
+        revalidateTag("events")
+        revalidateTag(`event-${eventId}`)
+
         if (title && instructorName) {
-          revalidatePath(`/event/${createEventSlug(eventId, title, instructorName)}`);
+          revalidatePath(
+            `/event/${createEventSlug(eventId, title, instructorName)}`,
+          )
         }
-        
-        return { success: true };
+
+        return { success: true }
       }
 
       // Check if start date changed - if so, we need to recalculate dates
-      const startDateChanged = currentEvent.date !== date;
+      const startDateChanged = currentEvent.date !== date
 
       if (startDateChanged) {
         // For recurring events, we need to find all events in the series and update their dates
@@ -1470,64 +1515,71 @@ export async function updateEvent(formData: FormData) {
           })
           .from(events)
           .where(eq(events.recurringSeriesId, currentEvent.recurringSeriesId))
-          .orderBy(asc(events.date));
+          .orderBy(asc(events.date))
 
         if (seriesEvents.length > 0) {
-          const originalStartDate = new Date(currentEvent.date);
-          const newStartDate = new Date(date);
+          const originalStartDate = new Date(currentEvent.date)
+          const newStartDate = new Date(date)
           const dateDiff = Math.round(
             (newStartDate.getTime() - originalStartDate.getTime()) /
               (1000 * 60 * 60 * 24),
-          );
+          )
 
           // Collect all new dates to check for duplicates before updating
-          const newDates = new Map<number, string>();
+          const newDates = new Map<number, string>()
           for (const seriesEvent of seriesEvents) {
-            const originalDate = new Date(seriesEvent.date);
-            const newDate = new Date(originalDate);
-            newDate.setDate(newDate.getDate() + dateDiff);
-            const newDateStr = newDate.toISOString().split("T")[0];
-            newDates.set(seriesEvent.id, newDateStr);
+            const originalDate = new Date(seriesEvent.date)
+            const newDate = new Date(originalDate)
+            newDate.setDate(newDate.getDate() + dateDiff)
+            const newDateStr = newDate.toISOString().split("T")[0]
+            newDates.set(seriesEvent.id, newDateStr)
           }
 
           // Check if any of the new dates already exist in the series (to prevent duplicates)
-          const dateValues = Array.from(newDates.values());
+          const dateValues = Array.from(newDates.values())
           const existingEvents = await db
             .select({ id: events.id, date: events.date })
             .from(events)
             .where(
               and(
                 eq(events.recurringSeriesId, currentEvent.recurringSeriesId),
-                inArray(events.date, dateValues)
-              )
-            );
+                inArray(events.date, dateValues),
+              ),
+            )
 
-          const existingDates = new Set(existingEvents.map((e) => e.date));
+          const existingDates = new Set(existingEvents.map((e) => e.date))
 
           // Check for location collisions before updating
           for (const seriesEvent of seriesEvents) {
-            const newDateStr = newDates.get(seriesEvent.id);
-            if (!newDateStr) continue;
+            const newDateStr = newDates.get(seriesEvent.id)
+            if (!newDateStr) continue
             const err = await getLocationCollisionError(
               newDateStr,
               start_time,
               end_time,
               location,
               seriesEvent.id,
-              "update"
-            );
-            if (err) return err;
+              "update",
+            )
+            if (err) return err
           }
 
           // Update all events in the series with new dates, but skip if date already exists
           for (const seriesEvent of seriesEvents) {
-            const newDateStr = newDates.get(seriesEvent.id);
-            if (!newDateStr) continue;
+            const newDateStr = newDates.get(seriesEvent.id)
+            if (!newDateStr) continue
 
             // Skip updating if this date already exists for another event in the series
-            if (existingDates.has(newDateStr) && existingEvents.some(e => e.id !== seriesEvent.id && e.date === newDateStr)) {
-              console.warn(`Skipping update for event ${seriesEvent.id}: date ${newDateStr} already exists in series`);
-              continue;
+            if (
+              existingDates.has(newDateStr) &&
+              existingEvents.some(
+                (e) => e.id !== seriesEvent.id && e.date === newDateStr,
+              )
+            ) {
+              console.warn(
+                `Skipping update for event ${seriesEvent.id}: date ${newDateStr} already exists in series`,
+              )
+              continue
             }
 
             await db
@@ -1536,7 +1588,7 @@ export async function updateEvent(formData: FormData) {
                 ...updateData,
                 date: newDateStr,
               })
-              .where(eq(events.id, seriesEvent.id));
+              .where(eq(events.id, seriesEvent.id))
           }
         }
       } else {
@@ -1544,7 +1596,7 @@ export async function updateEvent(formData: FormData) {
         const seriesEvents = await db
           .select({ id: events.id, date: events.date })
           .from(events)
-          .where(eq(events.recurringSeriesId, currentEvent.recurringSeriesId));
+          .where(eq(events.recurringSeriesId, currentEvent.recurringSeriesId))
         for (const seriesEvent of seriesEvents) {
           const err = await getLocationCollisionError(
             seriesEvent.date,
@@ -1552,19 +1604,16 @@ export async function updateEvent(formData: FormData) {
             end_time,
             location,
             seriesEvent.id,
-            "update"
-          );
-          if (err) return err;
+            "update",
+          )
+          if (err) return err
         }
         // First, update the specific event being edited with all fields (including date)
-        await db
-          .update(events)
-          .set(updateData)
-          .where(eq(events.id, eventId));
+        await db.update(events).set(updateData).where(eq(events.id, eventId))
 
         // Then, update other events in the series with all fields EXCEPT date
         // (they should keep their original dates to maintain the weekly schedule)
-        const { date: _, ...updateDataWithoutDate } = updateData;
+        const { date: _, ...updateDataWithoutDate } = updateData
         await db
           .update(events)
           .set(updateDataWithoutDate)
@@ -1572,9 +1621,9 @@ export async function updateEvent(formData: FormData) {
             and(
               eq(events.recurringSeriesId, currentEvent.recurringSeriesId),
               eq(events.isRecurring, true),
-              sql`${events.id} != ${eventId}` // Exclude the event we just updated
-            )
-          );
+              sql`${events.id} != ${eventId}`, // Exclude the event we just updated
+            ),
+          )
       }
     } else {
       // Non-recurring event or non-admin updating - update single event
@@ -1584,16 +1633,16 @@ export async function updateEvent(formData: FormData) {
         end_time,
         location,
         eventId,
-        "update"
-      );
-      if (err) return err;
-      await db.update(events).set(updateData).where(eq(events.id, eventId));
+        "update",
+      )
+      if (err) return err
+      await db.update(events).set(updateData).where(eq(events.id, eventId))
     }
 
     // Send instructor assignment email if admin assigned/changed instructorId
-    const oldInstructorId = currentEvent.instructorId;
+    const oldInstructorId = currentEvent.instructorId
     const instructorIdChanged =
-      oldInstructorId !== instructorId && instructorId !== null;
+      oldInstructorId !== instructorId && instructorId !== null
     if (userIsAdmin && instructorIdChanged && instructorId !== null) {
       try {
         // Fetch instructor details for email
@@ -1606,20 +1655,20 @@ export async function updateEvent(formData: FormData) {
           })
           .from(users)
           .where(eq(users.id, instructorId!))
-          .limit(1);
+          .limit(1)
 
         if (instructorResult.length > 0) {
-          const instructorEmail = instructorResult[0].email;
+          const instructorEmail = instructorResult[0].email
           const instructorDisplayName =
-            instructorResult[0].displayName || instructorResult[0].username;
+            instructorResult[0].displayName || instructorResult[0].username
 
           if (!instructorEmail) {
             console.error(
               `Instructor ${instructorId} (${instructorDisplayName}) does not have an email address. Cannot send assignment email.`,
-            );
+            )
           } else {
             try {
-              const eventSlug = createEventSlug(eventId, title, instructorName);
+              const eventSlug = createEventSlug(eventId, title, instructorName)
               await sendInstructorAssignedEmail({
                 instructorName: instructorDisplayName,
                 instructorEmail,
@@ -1629,21 +1678,21 @@ export async function updateEvent(formData: FormData) {
                 eventEndTime: end_time,
                 eventLocation: location,
                 eventSlug,
-              });
+              })
             } catch (emailError) {
               console.error(
                 `Failed to send instructor assignment email to ${instructorEmail}:`,
                 emailError,
-              );
+              )
             }
           }
         } else {
           console.error(
             `Instructor with id ${instructorId} not found. Cannot send assignment email.`,
-          );
+          )
         }
       } catch (error) {
-        console.error("Error sending instructor assignment email:", error);
+        console.error("Error sending instructor assignment email:", error)
         // Don't fail the update if email fails
       }
     }
@@ -1659,17 +1708,17 @@ export async function updateEvent(formData: FormData) {
           })
           .from(users)
           .where(eq(users.id, currentEvent.instructorId))
-          .limit(1);
+          .limit(1)
 
         if (instructorResult.length > 0) {
-          const instructorEmail = instructorResult[0].email;
+          const instructorEmail = instructorResult[0].email
           const instructorDisplayName =
-            instructorResult[0].displayName || instructorResult[0].username;
+            instructorResult[0].displayName || instructorResult[0].username
 
           if (!instructorEmail) {
             console.error(
               `Instructor ${currentEvent.instructorId} (${instructorDisplayName}) does not have an email address. Cannot send approval email.`,
-            );
+            )
           } else {
             try {
               await sendEventApprovedEmail({
@@ -1681,38 +1730,51 @@ export async function updateEvent(formData: FormData) {
                 eventEndTime: currentEvent.endTime,
                 eventLocation: currentEvent.location || "",
                 eventId: eventId,
-              });
+              })
             } catch (emailError) {
               console.error(
                 `Failed to send approval email to instructor ${instructorEmail}:`,
                 emailError,
-              );
+              )
             }
           }
         } else {
           console.error(
             `Instructor with id ${currentEvent.instructorId} not found. Cannot send approval email.`,
-          );
+          )
         }
       } catch (error) {
-        console.error("Error sending approval email:", error);
+        console.error("Error sending approval email:", error)
         // Don't fail the update if email fails
       }
     }
 
     // Log activity for update
-    const actor = await getActorInfo(userId);
-    const changedFields: string[] = [];
-    if (title !== currentEvent.title) changedFields.push("title");
-    if ((description || null) !== (currentEvent.description || null)) changedFields.push("description");
-    if ((instructorName || null) !== (currentEvent.instructor || null)) changedFields.push("instructor");
-    if (date !== currentEvent.date) changedFields.push("date");
-    const normalizeTimeForLog = (t: string | null) => t ? (t.length === 5 ? `${t}:00` : t) : null;
-    if (normalizeTimeForLog(start_time) !== normalizeTimeForLog(currentEvent.startTime)) changedFields.push("startTime");
-    if (normalizeTimeForLog(end_time) !== normalizeTimeForLog(currentEvent.endTime)) changedFields.push("endTime");
-    if ((location || null) !== (currentEvent.location || null)) changedFields.push("location");
-    if (isWorkshop !== currentEvent.isWorkshop) changedFields.push("isWorkshop");
-    if (isPublished !== currentEvent.isPublished) changedFields.push("isPublished");
+    const actor = await getActorInfo(userId)
+    const changedFields: string[] = []
+    if (title !== currentEvent.title) changedFields.push("title")
+    if ((description || null) !== (currentEvent.description || null))
+      changedFields.push("description")
+    if ((instructorName || null) !== (currentEvent.instructor || null))
+      changedFields.push("instructor")
+    if (date !== currentEvent.date) changedFields.push("date")
+    const normalizeTimeForLog = (t: string | null) =>
+      t ? (t.length === 5 ? `${t}:00` : t) : null
+    if (
+      normalizeTimeForLog(start_time) !==
+      normalizeTimeForLog(currentEvent.startTime)
+    )
+      changedFields.push("startTime")
+    if (
+      normalizeTimeForLog(end_time) !==
+      normalizeTimeForLog(currentEvent.endTime)
+    )
+      changedFields.push("endTime")
+    if ((location || null) !== (currentEvent.location || null))
+      changedFields.push("location")
+    if (isWorkshop !== currentEvent.isWorkshop) changedFields.push("isWorkshop")
+    if (isPublished !== currentEvent.isPublished)
+      changedFields.push("isPublished")
     logActivity({
       userId: actor.id,
       actorName: actor.name,
@@ -1721,24 +1783,24 @@ export async function updateEvent(formData: FormData) {
       entityId: String(eventId),
       entityLabel: title,
       metadata: changedFields.length > 0 ? { changedFields } : undefined,
-    });
+    })
 
-    revalidatePath("/admin");
-    revalidatePath("/");
-    revalidatePath("/api/timetable");
-    revalidateTag("timetable-public");
+    revalidatePath("/admin")
+    revalidatePath("/")
+    revalidatePath("/api/timetable")
+    revalidateTag("timetable-public")
 
     // Ensure title and instructorName are not null before creating slug
     if (title && instructorName) {
       revalidatePath(
         `/event/${createEventSlug(eventId, title, instructorName)}`,
-      );
+      )
     }
 
-    return { success: true };
+    return { success: true }
   } catch (error) {
-    console.error("Error updating event:", error);
-    return { success: false, error: "Failed to update event" };
+    console.error("Error updating event:", error)
+    return { success: false, error: "Failed to update event" }
   }
 }
 
@@ -1747,14 +1809,14 @@ export async function deleteEvent(
   cancellationMessage?: string | null,
 ) {
   // Check authentication
-  const { userId } = await auth();
+  const { userId } = await auth()
 
   if (!userId) {
-    throw new Error("Unauthorized. You must be signed in to delete events.");
+    throw new Error("Unauthorized. You must be signed in to delete events.")
   }
 
   // Check authorization: must be admin OR (instructor AND matching event instructor)
-  const userIsAdmin = await isAdmin();
+  const userIsAdmin = await isAdmin()
 
   if (!userIsAdmin) {
     // Check if user is instructor
@@ -1766,15 +1828,15 @@ export async function deleteEvent(
       })
       .from(users)
       .where(eq(users.clerkUserId, userId))
-      .limit(1);
+      .limit(1)
 
     if (userResult.length === 0 || !userResult[0].isInstructor) {
       throw new Error(
         "Unauthorized. Only admins and event instructors can delete events.",
-      );
+      )
     }
 
-    const currentUserId = userResult[0].id;
+    const currentUserId = userResult[0].id
 
     // Fetch event to check instructor
     const eventResult = await db
@@ -1784,27 +1846,27 @@ export async function deleteEvent(
       })
       .from(events)
       .where(eq(events.id, eventId))
-      .limit(1);
+      .limit(1)
 
     if (eventResult.length === 0) {
-      throw new Error("Event not found.");
+      throw new Error("Event not found.")
     }
 
     // Check authorization: if instructorId exists, check that; otherwise check instructor string
-    const eventInstructorId = eventResult[0].instructorId;
+    const eventInstructorId = eventResult[0].instructorId
     if (eventInstructorId !== null) {
       // Match instructorId
       if (eventInstructorId !== currentUserId) {
         throw new Error(
           "Unauthorized. You can only delete events you are instructing.",
-        );
+        )
       }
     } else {
       // Fallback to instructor string comparison
       if (eventResult[0].instructor !== userResult[0].username) {
         throw new Error(
           "Unauthorized. You can only delete events you are instructing.",
-        );
+        )
       }
     }
   }
@@ -1829,18 +1891,18 @@ export async function deleteEvent(
       .from(events)
       .leftJoin(users, eq(events.instructorId, users.id))
       .where(eq(events.id, eventId))
-      .limit(1);
+      .limit(1)
 
     if (eventResults.length === 0) {
-      throw new Error("Event not found.");
+      throw new Error("Event not found.")
     }
 
-    const event = eventResults[0];
+    const event = eventResults[0]
 
     // Get instructor name (prefer displayName, fallback to username, then instructor string)
     const instructorName = event.instructorProfile
       ? event.instructorProfile.displayName || event.instructorProfile.username
-      : event.instructor || "Unknown Instructor";
+      : event.instructor || "Unknown Instructor"
 
     // Fetch all participations for this event
     const eventParticipations = await db
@@ -1849,7 +1911,7 @@ export async function deleteEvent(
         participantEmail: participations.participantEmail,
       })
       .from(participations)
-      .where(eq(participations.eventId, eventId));
+      .where(eq(participations.eventId, eventId))
 
     // Send cancellation emails to all participants
     if (eventParticipations.length > 0) {
@@ -1869,16 +1931,16 @@ export async function deleteEvent(
           console.error(
             `Failed to send cancellation email to ${participation.participantEmail}:`,
             error,
-          );
+          )
         }),
-      );
+      )
 
       // Wait for all emails to be sent (or fail gracefully)
-      await Promise.allSettled(emailPromises);
+      await Promise.allSettled(emailPromises)
     }
 
     // Log activity before deletion
-    const actor = await getActorInfo(userId);
+    const actor = await getActorInfo(userId)
     logActivity({
       userId: actor.id,
       actorName: actor.name,
@@ -1887,20 +1949,20 @@ export async function deleteEvent(
       entityId: String(eventId),
       entityLabel: event.title,
       metadata: cancellationMessage ? { cancellationMessage } : undefined,
-    });
+    })
 
     // Delete the event (this will cascade delete participations due to foreign key constraint)
-    await db.delete(events).where(eq(events.id, eventId));
+    await db.delete(events).where(eq(events.id, eventId))
 
-    revalidatePath("/admin");
-    revalidatePath("/");
-    revalidatePath("/api/timetable");
-    revalidateTag("timetable-public");
-    revalidateTag("events");
-    revalidateTag(`event-${eventId}`);
+    revalidatePath("/admin")
+    revalidatePath("/")
+    revalidatePath("/api/timetable")
+    revalidateTag("timetable-public")
+    revalidateTag("events")
+    revalidateTag(`event-${eventId}`)
   } catch (error) {
-    console.error("Error deleting workshop:", error);
-    throw error;
+    console.error("Error deleting workshop:", error)
+    throw error
   }
 }
 
@@ -1909,14 +1971,14 @@ export async function deleteEventAndFutureInstructorEvents(
   cancellationMessage?: string | null,
 ) {
   // Check authentication
-  const { userId } = await auth();
+  const { userId } = await auth()
 
   if (!userId) {
-    throw new Error("Unauthorized. You must be signed in to delete events.");
+    throw new Error("Unauthorized. You must be signed in to delete events.")
   }
 
   // Check authorization: must be admin OR (instructor AND matching event instructor)
-  const userIsAdmin = await isAdmin();
+  const userIsAdmin = await isAdmin()
 
   if (!userIsAdmin) {
     // Check if user is instructor
@@ -1928,15 +1990,15 @@ export async function deleteEventAndFutureInstructorEvents(
       })
       .from(users)
       .where(eq(users.clerkUserId, userId))
-      .limit(1);
+      .limit(1)
 
     if (userResult.length === 0 || !userResult[0].isInstructor) {
       throw new Error(
         "Unauthorized. Only admins and event instructors can delete events and all future instructor events.",
-      );
+      )
     }
 
-    const currentUserId = userResult[0].id;
+    const currentUserId = userResult[0].id
 
     // Fetch event to check instructor
     const eventResult = await db
@@ -1946,27 +2008,27 @@ export async function deleteEventAndFutureInstructorEvents(
       })
       .from(events)
       .where(eq(events.id, eventId))
-      .limit(1);
+      .limit(1)
 
     if (eventResult.length === 0) {
-      throw new Error("Event not found.");
+      throw new Error("Event not found.")
     }
 
     // Check authorization: if instructorId exists, check that; otherwise check instructor string
-    const eventInstructorId = eventResult[0].instructorId;
+    const eventInstructorId = eventResult[0].instructorId
     if (eventInstructorId !== null) {
       // Match instructorId
       if (eventInstructorId !== currentUserId) {
         throw new Error(
           "Unauthorized. You can only delete events and future events you are instructing.",
-        );
+        )
       }
     } else {
       // Fallback to instructor string comparison
       if (eventResult[0].instructor !== userResult[0].username) {
         throw new Error(
           "Unauthorized. You can only delete events and future events you are instructing.",
-        );
+        )
       }
     }
   }
@@ -1993,36 +2055,36 @@ export async function deleteEventAndFutureInstructorEvents(
       .from(events)
       .leftJoin(users, eq(events.instructorId, users.id))
       .where(eq(events.id, eventId))
-      .limit(1);
+      .limit(1)
 
     if (currentEventResult.length === 0) {
-      throw new Error("Event not found.");
+      throw new Error("Event not found.")
     }
 
-    const currentEvent = currentEventResult[0];
-    const currentEventDate = currentEvent.date;
-    const currentInstructorId = currentEvent.instructorId;
-    const currentInstructor = currentEvent.instructor;
+    const currentEvent = currentEventResult[0]
+    const currentEventDate = currentEvent.date
+    const currentInstructorId = currentEvent.instructorId
+    const currentInstructor = currentEvent.instructor
 
     // Build matching conditions for future events
-    let matchingCondition;
+    let matchingCondition
     if (currentInstructorId !== null && currentInstructorId !== undefined) {
       // Match by instructorId
       matchingCondition = and(
         eq(events.instructorId, currentInstructorId),
         gte(events.date, currentEventDate),
-      );
+      )
     } else {
       // Match by instructor string
       if (!currentInstructor) {
         throw new Error(
           "Cannot delete future events: event has no instructor information.",
-        );
+        )
       }
       matchingCondition = and(
         eq(events.instructor, currentInstructor),
         gte(events.date, currentEventDate),
-      );
+      )
     }
 
     // Fetch all matching future events (including the current one)
@@ -2044,20 +2106,20 @@ export async function deleteEventAndFutureInstructorEvents(
       .from(events)
       .leftJoin(users, eq(events.instructorId, users.id))
       .where(matchingCondition)
-      .orderBy(asc(events.date), asc(events.startTime));
+      .orderBy(asc(events.date), asc(events.startTime))
 
     if (eventsToDelete.length === 0) {
-      throw new Error("No events found to delete.");
+      throw new Error("No events found to delete.")
     }
 
     // Get instructor name for emails (prefer displayName, fallback to username, then instructor string)
     const instructorName = currentEvent.instructorProfile
       ? currentEvent.instructorProfile.displayName ||
         currentEvent.instructorProfile.username
-      : currentEvent.instructor || "Unknown Instructor";
+      : currentEvent.instructor || "Unknown Instructor"
 
     // Log activity before deletion
-    const actor = await getActorInfo(userId);
+    const actor = await getActorInfo(userId)
     logActivity({
       userId: actor.id,
       actorName: actor.name,
@@ -2065,8 +2127,11 @@ export async function deleteEventAndFutureInstructorEvents(
       entityType: "event",
       entityId: String(eventId),
       entityLabel: currentEvent.title,
-      metadata: { count: eventsToDelete.length, ...(cancellationMessage ? { cancellationMessage } : {}) },
-    });
+      metadata: {
+        count: eventsToDelete.length,
+        ...(cancellationMessage ? { cancellationMessage } : {}),
+      },
+    })
 
     // Process each event: send cancellation emails and delete
     for (const eventToDelete of eventsToDelete) {
@@ -2077,7 +2142,7 @@ export async function deleteEventAndFutureInstructorEvents(
           participantEmail: participations.participantEmail,
         })
         .from(participations)
-        .where(eq(participations.eventId, eventToDelete.id));
+        .where(eq(participations.eventId, eventToDelete.id))
 
       // Send cancellation emails to all participants
       if (eventParticipations.length > 0) {
@@ -2097,16 +2162,16 @@ export async function deleteEventAndFutureInstructorEvents(
             console.error(
               `Failed to send cancellation email to ${participation.participantEmail}:`,
               error,
-            );
+            )
           }),
-        );
+        )
 
         // Wait for all emails to be sent (or fail gracefully)
-        await Promise.allSettled(emailPromises);
+        await Promise.allSettled(emailPromises)
       }
 
       // Delete the event (this will cascade delete participations due to foreign key constraint)
-      await db.delete(events).where(eq(events.id, eventToDelete.id));
+      await db.delete(events).where(eq(events.id, eventToDelete.id))
     }
 
     // If the event was part of a recurring series, unset isRecurring for all events in that series
@@ -2114,27 +2179,30 @@ export async function deleteEventAndFutureInstructorEvents(
       await db
         .update(events)
         .set({ isRecurring: false })
-        .where(eq(events.recurringSeriesId, currentEvent.recurringSeriesId));
+        .where(eq(events.recurringSeriesId, currentEvent.recurringSeriesId))
     }
 
-    revalidatePath("/admin");
-    revalidatePath("/");
-    revalidatePath("/api/timetable");
-    revalidateTag("timetable-public");
+    revalidatePath("/admin")
+    revalidatePath("/")
+    revalidatePath("/api/timetable")
+    revalidateTag("timetable-public")
   } catch (error) {
-    console.error("Error deleting event and future instructor events:", error);
-    throw error;
+    console.error("Error deleting event and future instructor events:", error)
+    throw error
   }
 }
 
-export async function deleteParticipation(participationId: number, eventId: number) {
+export async function deleteParticipation(
+  participationId: number,
+  eventId: number,
+) {
   // Check authentication
-  const { userId } = await auth();
+  const { userId } = await auth()
 
   if (!userId) {
     throw new Error(
       "Unauthorized. You must be signed in to delete participations.",
-    );
+    )
   }
 
   try {
@@ -2142,28 +2210,28 @@ export async function deleteParticipation(participationId: number, eventId: numb
     const eventResults = await db
       .select({ title: events.title, instructor: events.instructor })
       .from(events)
-      .where(eq(events.id, eventId));
+      .where(eq(events.id, eventId))
 
     await db
       .delete(participations)
-      .where(eq(participations.id, participationId));
+      .where(eq(participations.id, participationId))
 
     // Update event participation count
     await db
       .update(events)
       .set({ currentParticipants: sql`${events.currentParticipants} - 1` })
-      .where(eq(events.id, eventId));
+      .where(eq(events.id, eventId))
 
-    revalidatePath("/admin");
-    revalidatePath("/");
+    revalidatePath("/admin")
+    revalidatePath("/")
     if (eventResults.length > 0 && eventResults[0].instructor) {
       revalidatePath(
         `/event/${createEventSlug(eventId, eventResults[0].title, eventResults[0].instructor)}`,
-      );
+      )
     }
   } catch (error) {
-    console.error("Error deleting booking:", error);
-    throw error;
+    console.error("Error deleting booking:", error)
+    throw error
   }
 }
 
@@ -2172,11 +2240,23 @@ export async function deleteParticipation(participationId: number, eventId: numb
  * E.g. if today is Monday Feb 2, returns Sunday Feb 15.
  */
 function getNextWeekSundayUTC(todayUTC: Date): Date {
-  const dayOfWeek = todayUTC.getUTCDay(); // 0=Sun, 1=Mon, ..., 6=Sat
-  const daysSinceMonday = (dayOfWeek + 6) % 7; // Mon=0, Tue=1, ..., Sun=6
-  const currentWeekMonday = new Date(Date.UTC(todayUTC.getUTCFullYear(), todayUTC.getUTCMonth(), todayUTC.getUTCDate() - daysSinceMonday));
-  const nextWeekSunday = new Date(Date.UTC(currentWeekMonday.getUTCFullYear(), currentWeekMonday.getUTCMonth(), currentWeekMonday.getUTCDate() + 7 + 6));
-  return nextWeekSunday;
+  const dayOfWeek = todayUTC.getUTCDay() // 0=Sun, 1=Mon, ..., 6=Sat
+  const daysSinceMonday = (dayOfWeek + 6) % 7 // Mon=0, Tue=1, ..., Sun=6
+  const currentWeekMonday = new Date(
+    Date.UTC(
+      todayUTC.getUTCFullYear(),
+      todayUTC.getUTCMonth(),
+      todayUTC.getUTCDate() - daysSinceMonday,
+    ),
+  )
+  const nextWeekSunday = new Date(
+    Date.UTC(
+      currentWeekMonday.getUTCFullYear(),
+      currentWeekMonday.getUTCMonth(),
+      currentWeekMonday.getUTCDate() + 7 + 6,
+    ),
+  )
+  return nextWeekSunday
 }
 
 /**
@@ -2184,33 +2264,56 @@ function getNextWeekSundayUTC(todayUTC: Date): Date {
  * Returns: { previousWeekMonday: string, currentWeekSunday: string }
  * Dates are formatted as YYYY-MM-DD strings.
  */
-function getCurrentAndPreviousWeekRange(): { previousWeekMonday: string; currentWeekSunday: string } {
-  const today = new Date();
-  const todayUTC = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate()));
-  
+function getCurrentAndPreviousWeekRange(): {
+  previousWeekMonday: string
+  currentWeekSunday: string
+} {
+  const today = new Date()
+  const todayUTC = new Date(
+    Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate()),
+  )
+
   // Calculate current week Monday
-  const dayOfWeek = todayUTC.getUTCDay(); // 0=Sun, 1=Mon, ..., 6=Sat
-  const daysSinceMonday = (dayOfWeek + 6) % 7; // Mon=0, Tue=1, ..., Sun=6
-  const currentWeekMonday = new Date(Date.UTC(todayUTC.getUTCFullYear(), todayUTC.getUTCMonth(), todayUTC.getUTCDate() - daysSinceMonday));
-  
+  const dayOfWeek = todayUTC.getUTCDay() // 0=Sun, 1=Mon, ..., 6=Sat
+  const daysSinceMonday = (dayOfWeek + 6) % 7 // Mon=0, Tue=1, ..., Sun=6
+  const currentWeekMonday = new Date(
+    Date.UTC(
+      todayUTC.getUTCFullYear(),
+      todayUTC.getUTCMonth(),
+      todayUTC.getUTCDate() - daysSinceMonday,
+    ),
+  )
+
   // Calculate current week Sunday
-  const currentWeekSunday = new Date(Date.UTC(currentWeekMonday.getUTCFullYear(), currentWeekMonday.getUTCMonth(), currentWeekMonday.getUTCDate() + 6));
-  
+  const currentWeekSunday = new Date(
+    Date.UTC(
+      currentWeekMonday.getUTCFullYear(),
+      currentWeekMonday.getUTCMonth(),
+      currentWeekMonday.getUTCDate() + 6,
+    ),
+  )
+
   // Calculate previous week Monday (7 days before current week Monday)
-  const previousWeekMonday = new Date(Date.UTC(currentWeekMonday.getUTCFullYear(), currentWeekMonday.getUTCMonth(), currentWeekMonday.getUTCDate() - 7));
-  
+  const previousWeekMonday = new Date(
+    Date.UTC(
+      currentWeekMonday.getUTCFullYear(),
+      currentWeekMonday.getUTCMonth(),
+      currentWeekMonday.getUTCDate() - 7,
+    ),
+  )
+
   // Format as YYYY-MM-DD
   const formatDate = (date: Date): string => {
-    const year = date.getUTCFullYear();
-    const month = String(date.getUTCMonth() + 1).padStart(2, "0");
-    const day = String(date.getUTCDate()).padStart(2, "0");
-    return `${year}-${month}-${day}`;
-  };
-  
+    const year = date.getUTCFullYear()
+    const month = String(date.getUTCMonth() + 1).padStart(2, "0")
+    const day = String(date.getUTCDate()).padStart(2, "0")
+    return `${year}-${month}-${day}`
+  }
+
   return {
     previousWeekMonday: formatDate(previousWeekMonday),
     currentWeekSunday: formatDate(currentWeekSunday),
-  };
+  }
 }
 
 /**
@@ -2225,17 +2328,19 @@ export async function extendRecurringEvents() {
       .from(events)
       .where(
         and(eq(events.isRecurring, true), isNotNull(events.recurringSeriesId)),
-      );
+      )
 
     // Use UTC dates to avoid timezone issues; extend to Sunday of the next week
-    const today = new Date();
-    const todayUTC = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate()));
-    const targetDate = getNextWeekSundayUTC(todayUTC);
+    const today = new Date()
+    const todayUTC = new Date(
+      Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate()),
+    )
+    const targetDate = getNextWeekSundayUTC(todayUTC)
 
-    let totalEventsCreated = 0;
+    let totalEventsCreated = 0
 
     for (const series of recurringSeries) {
-      if (!series.recurringSeriesId) continue;
+      if (!series.recurringSeriesId) continue
 
       // Get all events in this series that are still marked as recurring, ordered by date descending
       const seriesEvents = await db
@@ -2264,71 +2369,76 @@ export async function extendRecurringEvents() {
             eq(events.isRecurring, true),
           ),
         )
-        .orderBy(desc(events.date));
+        .orderBy(desc(events.date))
 
-      if (seriesEvents.length === 0) continue;
+      if (seriesEvents.length === 0) continue
 
       // Get the latest event (first in descending order)
-      const latestEvent = seriesEvents[0];
-      
+      const latestEvent = seriesEvents[0]
+
       // Check if this series has a recurringUntil date
-      const recurringUntil = latestEvent.recurringUntil;
-      
+      const recurringUntil = latestEvent.recurringUntil
+
       // If recurringUntil exists, check if we've already reached or passed it
       if (recurringUntil) {
-        const [endYear, endMonth, endDay] = recurringUntil.split("-").map(Number);
-        const recurringUntilDate = new Date(Date.UTC(endYear, endMonth - 1, endDay));
-        
+        const [endYear, endMonth, endDay] = recurringUntil
+          .split("-")
+          .map(Number)
+        const recurringUntilDate = new Date(
+          Date.UTC(endYear, endMonth - 1, endDay),
+        )
+
         // If recurringUntil is in the past or today, don't extend
         if (recurringUntilDate < todayUTC) {
-          continue; // Skip this series, it has ended
+          continue // Skip this series, it has ended
         }
-        
+
         // Use recurringUntil as the target date if it's earlier than the default target
-        const effectiveTargetDate = recurringUntilDate < targetDate ? recurringUntilDate : targetDate;
-        
+        const effectiveTargetDate =
+          recurringUntilDate < targetDate ? recurringUntilDate : targetDate
+
         // Parse date string (YYYY-MM-DD) and work with UTC to avoid timezone issues
-        const latestEventDateStr = latestEvent.date;
-        const [year, month, day] = latestEventDateStr.split("-").map(Number);
-        const latestEventDate = new Date(Date.UTC(year, month - 1, day));
-        
+        const latestEventDateStr = latestEvent.date
+        const [year, month, day] = latestEventDateStr.split("-").map(Number)
+        const latestEventDate = new Date(Date.UTC(year, month - 1, day))
+
         // Check if we need to extend (latest event date is before effective target date)
         if (latestEventDate < effectiveTargetDate) {
           // Get ALL existing dates in the series (including non-recurring events) to avoid duplicates
           const allSeriesEvents = await db
             .select({ date: events.date })
             .from(events)
-            .where(eq(events.recurringSeriesId, series.recurringSeriesId));
-          const existingDates = new Set(allSeriesEvents.map((e) => e.date));
+            .where(eq(events.recurringSeriesId, series.recurringSeriesId))
+          const existingDates = new Set(allSeriesEvents.map((e) => e.date))
 
           // Create events until the effective target date is covered
           const eventsToCreate: Array<{
-            title: string;
-            description: string | null;
-            instructor: string | null;
-            instructorId: number | null;
-            date: string;
-            startTime: string;
-            endTime: string;
-            location: string | null;
-            whatToBring: string | null;
-            isWorkshop: boolean;
-            level: string;
-            isPublished: boolean;
-            propId: number | null;
-            recurringSeriesId: string;
-            isRecurring: boolean;
-            recapVideoId: string | null;
-            recurringUntil: string | null;
-          }> = [];
+            title: string
+            description: string | null
+            instructor: string | null
+            instructorId: number | null
+            date: string
+            startTime: string
+            endTime: string
+            location: string | null
+            whatToBring: string | null
+            isWorkshop: boolean
+            level: string
+            isPublished: boolean
+            propId: number | null
+            recurringSeriesId: string
+            isRecurring: boolean
+            recapVideoId: string | null
+            recurringUntil: string | null
+          }> = []
 
           // Start from 7 days after the latest event date
-          let currentDate = new Date(Date.UTC(year, month - 1, day + 7));
+          let currentDate = new Date(Date.UTC(year, month - 1, day + 7))
 
           // Create events until we've reached the effective target date
           while (currentDate <= effectiveTargetDate) {
             // Format as YYYY-MM-DD using UTC methods to avoid timezone shifts
-            const dateStr = `${currentDate.getUTCFullYear()}-${String(currentDate.getUTCMonth() + 1).padStart(2, "0")}-${String(currentDate.getUTCDate()).padStart(2, "0")}`;
+            const dateStr = `${currentDate.getUTCFullYear()}-${String(currentDate.getUTCMonth() + 1).padStart(2, "0")}-${String(currentDate.getUTCDate()).padStart(2, "0")}`
 
             // Only create if it doesn't already exist
             if (!existingDates.has(dateStr)) {
@@ -2350,33 +2460,35 @@ export async function extendRecurringEvents() {
                 isRecurring: true,
                 recapVideoId: latestEvent.recapVideoId,
                 recurringUntil: recurringUntil,
-              });
+              })
             }
 
             // Add 7 days using UTC date arithmetic
-            currentDate = new Date(Date.UTC(
-              currentDate.getUTCFullYear(),
-              currentDate.getUTCMonth(),
-              currentDate.getUTCDate() + 7
-            ));
+            currentDate = new Date(
+              Date.UTC(
+                currentDate.getUTCFullYear(),
+                currentDate.getUTCMonth(),
+                currentDate.getUTCDate() + 7,
+              ),
+            )
           }
 
           // Insert new events if any
           if (eventsToCreate.length > 0) {
-            await db.insert(events).values(eventsToCreate);
-            totalEventsCreated += eventsToCreate.length;
+            await db.insert(events).values(eventsToCreate)
+            totalEventsCreated += eventsToCreate.length
           }
         }
-        continue; // Skip the default extension logic for series with recurringUntil
+        continue // Skip the default extension logic for series with recurringUntil
       }
-      
+
       // For series without recurringUntil (indefinite), use default extension logic
       // Parse date string (YYYY-MM-DD) and work with UTC to avoid timezone issues
       // Date strings from database are in YYYY-MM-DD format
-      const latestEventDateStr = latestEvent.date;
-      const [year, month, day] = latestEventDateStr.split("-").map(Number);
-      const latestEventDate = new Date(Date.UTC(year, month - 1, day));
-      
+      const latestEventDateStr = latestEvent.date
+      const [year, month, day] = latestEventDateStr.split("-").map(Number)
+      const latestEventDate = new Date(Date.UTC(year, month - 1, day))
+
       // Check if we need to extend (latest event is today or in the past — future events mean no extension needed)
       if (latestEventDate <= todayUTC) {
         // Get ALL existing dates in the series (including non-recurring events) to avoid duplicates
@@ -2384,97 +2496,99 @@ export async function extendRecurringEvents() {
         const allSeriesEvents = await db
           .select({ date: events.date })
           .from(events)
-          .where(eq(events.recurringSeriesId, series.recurringSeriesId));
-        const existingDates = new Set(allSeriesEvents.map((e) => e.date));
+          .where(eq(events.recurringSeriesId, series.recurringSeriesId))
+        const existingDates = new Set(allSeriesEvents.map((e) => e.date))
 
         // Create events until the Sunday of the next week is covered
         const eventsToCreate: Array<{
-          title: string;
-          description: string | null;
-          instructor: string | null;
-          instructorId: number | null;
-          date: string;
-          startTime: string;
-          endTime: string;
-          location: string | null;
-          whatToBring: string | null;
-          isWorkshop: boolean;
-          level: string;
-          isPublished: boolean;
-          propId: number | null;
-          recurringSeriesId: string;
-          isRecurring: boolean;
-          recapVideoId: string | null;
-          recurringUntil: string | null;
-        }> = [];
+          title: string
+          description: string | null
+          instructor: string | null
+          instructorId: number | null
+          date: string
+          startTime: string
+          endTime: string
+          location: string | null
+          whatToBring: string | null
+          isWorkshop: boolean
+          level: string
+          isPublished: boolean
+          propId: number | null
+          recurringSeriesId: string
+          isRecurring: boolean
+          recapVideoId: string | null
+          recurringUntil: string | null
+        }> = []
 
         // Start from 7 days after the latest event date
         // Use UTC date arithmetic to avoid timezone issues
-        let currentDate = new Date(Date.UTC(year, month - 1, day + 7));
+        let currentDate = new Date(Date.UTC(year, month - 1, day + 7))
 
         // Create events until we've reached the Sunday of the next week
         while (currentDate <= targetDate) {
           // Format as YYYY-MM-DD using UTC methods to avoid timezone shifts
-          const dateStr = `${currentDate.getUTCFullYear()}-${String(currentDate.getUTCMonth() + 1).padStart(2, "0")}-${String(currentDate.getUTCDate()).padStart(2, "0")}`;
+          const dateStr = `${currentDate.getUTCFullYear()}-${String(currentDate.getUTCMonth() + 1).padStart(2, "0")}-${String(currentDate.getUTCDate()).padStart(2, "0")}`
 
-            // Only create if it doesn't already exist
-            if (!existingDates.has(dateStr)) {
-              eventsToCreate.push({
-                title: latestEvent.title,
-                description: latestEvent.description,
-                instructor: latestEvent.instructor,
-                instructorId: latestEvent.instructorId,
-                date: dateStr,
-                startTime: latestEvent.startTime,
-                endTime: latestEvent.endTime,
-                location: latestEvent.location,
-                whatToBring: latestEvent.whatToBring,
-                isWorkshop: latestEvent.isWorkshop,
-                level: latestEvent.level,
-                isPublished: latestEvent.isPublished,
-                propId: latestEvent.propId,
-                recurringSeriesId: series.recurringSeriesId,
-                isRecurring: true,
-                recapVideoId: latestEvent.recapVideoId,
-                recurringUntil: null, // Indefinite recurring events have null recurringUntil
-              });
-            }
+          // Only create if it doesn't already exist
+          if (!existingDates.has(dateStr)) {
+            eventsToCreate.push({
+              title: latestEvent.title,
+              description: latestEvent.description,
+              instructor: latestEvent.instructor,
+              instructorId: latestEvent.instructorId,
+              date: dateStr,
+              startTime: latestEvent.startTime,
+              endTime: latestEvent.endTime,
+              location: latestEvent.location,
+              whatToBring: latestEvent.whatToBring,
+              isWorkshop: latestEvent.isWorkshop,
+              level: latestEvent.level,
+              isPublished: latestEvent.isPublished,
+              propId: latestEvent.propId,
+              recurringSeriesId: series.recurringSeriesId,
+              isRecurring: true,
+              recapVideoId: latestEvent.recapVideoId,
+              recurringUntil: null, // Indefinite recurring events have null recurringUntil
+            })
+          }
 
           // Add 7 days using UTC date arithmetic
-          currentDate = new Date(Date.UTC(
-            currentDate.getUTCFullYear(),
-            currentDate.getUTCMonth(),
-            currentDate.getUTCDate() + 7
-          ));
+          currentDate = new Date(
+            Date.UTC(
+              currentDate.getUTCFullYear(),
+              currentDate.getUTCMonth(),
+              currentDate.getUTCDate() + 7,
+            ),
+          )
         }
 
         // Insert new events if any
         if (eventsToCreate.length > 0) {
-          await db.insert(events).values(eventsToCreate);
-          totalEventsCreated += eventsToCreate.length;
+          await db.insert(events).values(eventsToCreate)
+          totalEventsCreated += eventsToCreate.length
         }
       }
     }
 
     // Revalidate paths
-    revalidatePath("/admin");
-    revalidatePath("/");
-    revalidatePath("/api/timetable");
-    revalidateTag("timetable-public");
+    revalidatePath("/admin")
+    revalidatePath("/")
+    revalidatePath("/api/timetable")
+    revalidateTag("timetable-public")
 
     return {
       success: true,
       eventsCreated: totalEventsCreated,
       seriesProcessed: recurringSeries.length,
-    };
+    }
   } catch (error) {
-    console.error("Error extending recurring events:", error);
+    console.error("Error extending recurring events:", error)
     return {
       success: false,
       error: "Failed to extend recurring events",
       eventsCreated: 0,
       seriesProcessed: 0,
-    };
+    }
   }
 }
 
@@ -2490,36 +2604,37 @@ export async function getRecurringEventsCopyCandidates(
 ) {
   try {
     // Check authentication
-    const { userId } = await auth();
+    const { userId } = await auth()
 
     if (!userId) {
       return {
         success: false,
         error: "Unauthorized. You must be signed in.",
-      };
+      }
     }
 
     // Check admin authorization
-    const userIsAdmin = await isAdmin();
+    const userIsAdmin = await isAdmin()
     if (!userIsAdmin) {
       return {
         success: false,
         error: "Unauthorized. Only admins can access this function.",
-      };
+      }
     }
 
     // Use provided date range or calculate default (current and previous week)
-    let startDate: string;
-    let endDate: string;
-    
+    let startDate: string
+    let endDate: string
+
     if (dateFrom && dateTo) {
-      startDate = dateFrom;
-      endDate = dateTo;
+      startDate = dateFrom
+      endDate = dateTo
     } else {
       // Fallback to default range if not provided
-      const { previousWeekMonday, currentWeekSunday } = getCurrentAndPreviousWeekRange();
-      startDate = previousWeekMonday;
-      endDate = currentWeekSunday;
+      const { previousWeekMonday, currentWeekSunday } =
+        getCurrentAndPreviousWeekRange()
+      startDate = previousWeekMonday
+      endDate = currentWeekSunday
     }
 
     // Validate date range
@@ -2527,7 +2642,7 @@ export async function getRecurringEventsCopyCandidates(
       return {
         success: false,
         error: "Start date must be before end date",
-      };
+      }
     }
 
     // Query events
@@ -2552,18 +2667,18 @@ export async function getRecurringEventsCopyCandidates(
           lte(events.date, endDate),
         ),
       )
-      .orderBy(asc(events.date), asc(events.startTime));
+      .orderBy(asc(events.date), asc(events.startTime))
 
     return {
       success: true,
       events: candidateEvents,
-    };
+    }
   } catch (error) {
-    console.error("Error fetching recurring events candidates:", error);
+    console.error("Error fetching recurring events candidates:", error)
     return {
       success: false,
       error: "Failed to fetch recurring events candidates",
-    };
+    }
   }
 }
 
@@ -2575,26 +2690,26 @@ export async function getRecurringEventsCopyCandidates(
  */
 export async function getRecurringWorkshopsWithoutEndDate(weekStart: string) {
   try {
-    const { userId } = await auth();
+    const { userId } = await auth()
     if (!userId) {
-      return { success: false, error: "Unauthorized", events: [] };
+      return { success: false, error: "Unauthorized", events: [] }
     }
-    const userIsAdmin = await isAdmin();
+    const userIsAdmin = await isAdmin()
     if (!userIsAdmin) {
-      return { success: false, error: "Unauthorized", events: [] };
+      return { success: false, error: "Unauthorized", events: [] }
     }
 
     // Validate and parse week start (Monday)
-    const [year, month, day] = weekStart.split("-").map(Number);
-    const monday = new Date(Date.UTC(year, month - 1, day));
+    const [year, month, day] = weekStart.split("-").map(Number)
+    const monday = new Date(Date.UTC(year, month - 1, day))
     if (isNaN(monday.getTime())) {
-      return { success: false, error: "Invalid week start date", events: [] };
+      return { success: false, error: "Invalid week start date", events: [] }
     }
 
     // Calculate Sunday (6 days after Monday)
-    const sunday = new Date(monday);
-    sunday.setUTCDate(sunday.getUTCDate() + 6);
-    const weekEnd = `${sunday.getUTCFullYear()}-${String(sunday.getUTCMonth() + 1).padStart(2, "0")}-${String(sunday.getUTCDate()).padStart(2, "0")}`;
+    const sunday = new Date(monday)
+    sunday.setUTCDate(sunday.getUTCDate() + 6)
+    const weekEnd = `${sunday.getUTCFullYear()}-${String(sunday.getUTCMonth() + 1).padStart(2, "0")}-${String(sunday.getUTCDate()).padStart(2, "0")}`
 
     const workshopEvents = await db
       .select({
@@ -2617,16 +2732,16 @@ export async function getRecurringWorkshopsWithoutEndDate(weekStart: string) {
           lte(events.date, weekEnd),
         ),
       )
-      .orderBy(asc(events.date), asc(events.startTime));
+      .orderBy(asc(events.date), asc(events.startTime))
 
-    return { success: true, events: workshopEvents, weekStart, weekEnd };
+    return { success: true, events: workshopEvents, weekStart, weekEnd }
   } catch (error) {
-    console.error("Error fetching recurring workshops without end date:", error);
+    console.error("Error fetching recurring workshops without end date:", error)
     return {
       success: false,
       error: "Failed to fetch recurring workshops",
       events: [],
-    };
+    }
   }
 }
 
@@ -2635,91 +2750,94 @@ export async function getRecurringWorkshopsWithoutEndDate(weekStart: string) {
  * Uses UTC to avoid timezone issues.
  */
 function getWeekMondayUTC(dateStr: string): string {
-  const [year, month, day] = dateStr.split("-").map(Number);
-  const date = new Date(Date.UTC(year, month - 1, day));
-  const dayOfWeek = date.getUTCDay(); // 0=Sun, 1=Mon, ..., 6=Sat
-  const daysSinceMonday = (dayOfWeek + 6) % 7;
-  const monday = new Date(date);
-  monday.setUTCDate(date.getUTCDate() - daysSinceMonday);
-  return `${monday.getUTCFullYear()}-${String(monday.getUTCMonth() + 1).padStart(2, "0")}-${String(monday.getUTCDate()).padStart(2, "0")}`;
+  const [year, month, day] = dateStr.split("-").map(Number)
+  const date = new Date(Date.UTC(year, month - 1, day))
+  const dayOfWeek = date.getUTCDay() // 0=Sun, 1=Mon, ..., 6=Sat
+  const daysSinceMonday = (dayOfWeek + 6) % 7
+  const monday = new Date(date)
+  monday.setUTCDate(date.getUTCDate() - daysSinceMonday)
+  return `${monday.getUTCFullYear()}-${String(monday.getUTCMonth() + 1).padStart(2, "0")}-${String(monday.getUTCDate()).padStart(2, "0")}`
 }
 
 /**
  * Get all week Mondays from startDate to endDate (inclusive).
  * Each week is identified by its Monday (YYYY-MM-DD).
  */
-function getWeekMondaysInRange(startDateStr: string, endDateStr: string): string[] {
-  const startMonday = getWeekMondayUTC(startDateStr);
-  const endMonday = getWeekMondayUTC(endDateStr);
+function getWeekMondaysInRange(
+  startDateStr: string,
+  endDateStr: string,
+): string[] {
+  const startMonday = getWeekMondayUTC(startDateStr)
+  const endMonday = getWeekMondayUTC(endDateStr)
 
-  const [startYear, startMonth, startDay] = startMonday.split("-").map(Number);
-  const [endYear, endMonth, endDay] = endMonday.split("-").map(Number);
+  const [startYear, startMonth, startDay] = startMonday.split("-").map(Number)
+  const [endYear, endMonth, endDay] = endMonday.split("-").map(Number)
 
-  const start = new Date(Date.UTC(startYear, startMonth - 1, startDay));
-  const end = new Date(Date.UTC(endYear, endMonth - 1, endDay));
+  const start = new Date(Date.UTC(startYear, startMonth - 1, startDay))
+  const end = new Date(Date.UTC(endYear, endMonth - 1, endDay))
 
-  const mondays: string[] = [];
-  let current = new Date(start);
+  const mondays: string[] = []
+  let current = new Date(start)
 
   while (current <= end) {
     mondays.push(
-      `${current.getUTCFullYear()}-${String(current.getUTCMonth() + 1).padStart(2, "0")}-${String(current.getUTCDate()).padStart(2, "0")}`
-    );
-    current.setUTCDate(current.getUTCDate() + 7);
+      `${current.getUTCFullYear()}-${String(current.getUTCMonth() + 1).padStart(2, "0")}-${String(current.getUTCDate()).padStart(2, "0")}`,
+    )
+    current.setUTCDate(current.getUTCDate() + 7)
   }
 
-  return mondays;
+  return mondays
 }
 
 /**
  * Check if a date falls within a week (Monday-Sunday).
  */
 function dateInWeek(dateStr: string, weekMondayStr: string): boolean {
-  const [year, month, day] = dateStr.split("-").map(Number);
-  const date = new Date(Date.UTC(year, month - 1, day));
+  const [year, month, day] = dateStr.split("-").map(Number)
+  const date = new Date(Date.UTC(year, month - 1, day))
 
-  const [wYear, wMonth, wDay] = weekMondayStr.split("-").map(Number);
-  const weekMonday = new Date(Date.UTC(wYear, wMonth - 1, wDay));
-  const weekSunday = new Date(weekMonday);
-  weekSunday.setUTCDate(weekSunday.getUTCDate() + 6);
+  const [wYear, wMonth, wDay] = weekMondayStr.split("-").map(Number)
+  const weekMonday = new Date(Date.UTC(wYear, wMonth - 1, wDay))
+  const weekSunday = new Date(weekMonday)
+  weekSunday.setUTCDate(weekSunday.getUTCDate() + 6)
 
-  return date >= weekMonday && date <= weekSunday;
+  return date >= weekMonday && date <= weekSunday
 }
 
 /** Get today's date as YYYY-MM-DD in UTC. */
 function getTodayUTC(): string {
-  const now = new Date();
-  const y = now.getUTCFullYear();
-  const m = String(now.getUTCMonth() + 1).padStart(2, "0");
-  const d = String(now.getUTCDate()).padStart(2, "0");
-  return `${y}-${m}-${d}`;
+  const now = new Date()
+  const y = now.getUTCFullYear()
+  const m = String(now.getUTCMonth() + 1).padStart(2, "0")
+  const d = String(now.getUTCDate()).padStart(2, "0")
+  return `${y}-${m}-${d}`
 }
 
 /** True if the week (Monday-Sunday) is in the future or current (week Sunday >= today). */
 function isWeekInFutureOrCurrent(weekMondayStr: string): boolean {
-  const [wYear, wMonth, wDay] = weekMondayStr.split("-").map(Number);
-  const weekMonday = new Date(Date.UTC(wYear, wMonth - 1, wDay));
-  const weekSunday = new Date(weekMonday);
-  weekSunday.setUTCDate(weekSunday.getUTCDate() + 6);
-  const todayStr = getTodayUTC();
-  const [tYear, tMonth, tDay] = todayStr.split("-").map(Number);
-  const today = new Date(Date.UTC(tYear, tMonth - 1, tDay));
-  return weekSunday >= today;
+  const [wYear, wMonth, wDay] = weekMondayStr.split("-").map(Number)
+  const weekMonday = new Date(Date.UTC(wYear, wMonth - 1, wDay))
+  const weekSunday = new Date(weekMonday)
+  weekSunday.setUTCDate(weekSunday.getUTCDate() + 6)
+  const todayStr = getTodayUTC()
+  const [tYear, tMonth, tDay] = todayStr.split("-").map(Number)
+  const today = new Date(Date.UTC(tYear, tMonth - 1, tDay))
+  return weekSunday >= today
 }
 
 export type RecurringSeriesWithGaps = {
-  recurringSeriesId: string;
-  title: string;
-  instructorDisplayName: string | null;
-  instructorUsername: string | null;
-  firstEventDate: string;
-  startTime: string;
-  endTime: string;
-  recurringUntil: string;
-  totalWeeks: number;
-  missingWeeks: string[]; // Week Monday dates that are missing events
-  eventCount: number;
-};
+  recurringSeriesId: string
+  title: string
+  instructorDisplayName: string | null
+  instructorUsername: string | null
+  firstEventDate: string
+  startTime: string
+  endTime: string
+  recurringUntil: string
+  totalWeeks: number
+  missingWeeks: string[] // Week Monday dates that are missing events
+  eventCount: number
+}
 
 /**
  * Find all recurring events with recurring_until set and check whether
@@ -2727,18 +2845,18 @@ export type RecurringSeriesWithGaps = {
  * Returns series that have gaps (missing weeks).
  */
 export async function getRecurringEventsWithGaps(): Promise<{
-  success: boolean;
-  seriesWithGaps?: RecurringSeriesWithGaps[];
-  error?: string;
+  success: boolean
+  seriesWithGaps?: RecurringSeriesWithGaps[]
+  error?: string
 }> {
   try {
-    const { userId } = await auth();
+    const { userId } = await auth()
     if (!userId) {
-      return { success: false, error: "Unauthorized" };
+      return { success: false, error: "Unauthorized" }
     }
-    const userIsAdmin = await isAdmin();
+    const userIsAdmin = await isAdmin()
     if (!userIsAdmin) {
-      return { success: false, error: "Unauthorized" };
+      return { success: false, error: "Unauthorized" }
     }
 
     // Get all events with recurring_until set (join users for instructor displayName)
@@ -2763,33 +2881,36 @@ export async function getRecurringEventsWithGaps(): Promise<{
           isNotNull(events.recurringSeriesId),
           isNotNull(events.recurringUntil),
         ),
-      );
+      )
 
     // Group by recurring_series_id
     const seriesMap = new Map<
       string,
       {
-        title: string;
-        dates: string[];
-        recurringUntil: string;
-        startTime: string;
-        endTime: string;
-        instructorDisplayName: string | null;
-        instructorUsername: string | null;
+        title: string
+        dates: string[]
+        recurringUntil: string
+        startTime: string
+        endTime: string
+        instructorDisplayName: string | null
+        instructorUsername: string | null
       }
-    >();
+    >()
 
     for (const ev of eventsWithRecurringUntil) {
-      if (!ev.recurringSeriesId || !ev.recurringUntil) continue;
+      if (!ev.recurringSeriesId || !ev.recurringUntil) continue
 
       const instructorDisplayName =
-        ev.instructorDisplayName || ev.instructorUsername || ev.instructor || null;
-      const instructorUsername = ev.instructorUsername || null;
+        ev.instructorDisplayName ||
+        ev.instructorUsername ||
+        ev.instructor ||
+        null
+      const instructorUsername = ev.instructorUsername || null
 
-      const existing = seriesMap.get(ev.recurringSeriesId);
+      const existing = seriesMap.get(ev.recurringSeriesId)
       if (existing) {
         if (!existing.dates.includes(ev.date)) {
-          existing.dates.push(ev.date);
+          existing.dates.push(ev.date)
         }
       } else {
         seriesMap.set(ev.recurringSeriesId, {
@@ -2800,34 +2921,37 @@ export async function getRecurringEventsWithGaps(): Promise<{
           endTime: ev.endTime,
           instructorDisplayName,
           instructorUsername,
-        });
+        })
       }
     }
 
-    const seriesWithGaps: RecurringSeriesWithGaps[] = [];
-    const totalSeriesWithRecurringUntil = seriesMap.size;
+    const seriesWithGaps: RecurringSeriesWithGaps[] = []
+    const totalSeriesWithRecurringUntil = seriesMap.size
 
     for (const [recurringSeriesId, data] of seriesMap) {
-      const firstDate = data.dates.sort()[0];
-      if (!firstDate) continue;
+      const firstDate = data.dates.sort()[0]
+      if (!firstDate) continue
 
-      const allWeekMondays = getWeekMondaysInRange(firstDate, data.recurringUntil);
+      const allWeekMondays = getWeekMondaysInRange(
+        firstDate,
+        data.recurringUntil,
+      )
 
       // Only consider weeks where the actual event date would be on or before recurringUntil.
       // E.g. if workshop is every Sunday and recurringUntil is March 2 (Monday), the week of
       // March 2 would create an event on March 8 (Sunday) - which is after March 2, so skip it.
       const expectedWeekMondays = allWeekMondays.filter((weekMonday) => {
-        const eventDate = getEventDateForWeek(weekMonday, firstDate);
-        return eventDate <= data.recurringUntil;
-      });
+        const eventDate = getEventDateForWeek(weekMonday, firstDate)
+        return eventDate <= data.recurringUntil
+      })
 
-      const missingWeeks: string[] = [];
+      const missingWeeks: string[] = []
       for (const weekMonday of expectedWeekMondays) {
         // Only consider weeks in the future or current week (don't create events for past weeks)
-        if (!isWeekInFutureOrCurrent(weekMonday)) continue;
-        const hasEventInWeek = data.dates.some((d) => dateInWeek(d, weekMonday));
+        if (!isWeekInFutureOrCurrent(weekMonday)) continue
+        const hasEventInWeek = data.dates.some((d) => dateInWeek(d, weekMonday))
         if (!hasEventInWeek) {
-          missingWeeks.push(weekMonday);
+          missingWeeks.push(weekMonday)
         }
       }
 
@@ -2844,7 +2968,7 @@ export async function getRecurringEventsWithGaps(): Promise<{
           totalWeeks: expectedWeekMondays.length,
           missingWeeks,
           eventCount: data.dates.length,
-        });
+        })
       }
     }
 
@@ -2852,13 +2976,13 @@ export async function getRecurringEventsWithGaps(): Promise<{
       success: true,
       seriesWithGaps,
       totalSeriesWithRecurringUntil,
-    };
+    }
   } catch (error) {
-    console.error("Error fetching recurring events with gaps:", error);
+    console.error("Error fetching recurring events with gaps:", error)
     return {
       success: false,
       error: "Failed to fetch recurring events with gaps",
-    };
+    }
   }
 }
 
@@ -2870,19 +2994,19 @@ function getEventDateForWeek(
   weekMondayStr: string,
   firstEventDateStr: string,
 ): string {
-  const [wYear, wMonth, wDay] = weekMondayStr.split("-").map(Number);
-  const weekMonday = new Date(Date.UTC(wYear, wMonth - 1, wDay));
+  const [wYear, wMonth, wDay] = weekMondayStr.split("-").map(Number)
+  const weekMonday = new Date(Date.UTC(wYear, wMonth - 1, wDay))
 
-  const [fYear, fMonth, fDay] = firstEventDateStr.split("-").map(Number);
-  const firstEvent = new Date(Date.UTC(fYear, fMonth - 1, fDay));
-  const firstEventWeekday = firstEvent.getUTCDay(); // 0=Sun, 1=Mon, ...
-  const mondayWeekday = 1;
-  const daysToAdd = (firstEventWeekday - mondayWeekday + 7) % 7;
+  const [fYear, fMonth, fDay] = firstEventDateStr.split("-").map(Number)
+  const firstEvent = new Date(Date.UTC(fYear, fMonth - 1, fDay))
+  const firstEventWeekday = firstEvent.getUTCDay() // 0=Sun, 1=Mon, ...
+  const mondayWeekday = 1
+  const daysToAdd = (firstEventWeekday - mondayWeekday + 7) % 7
 
-  const eventDate = new Date(weekMonday);
-  eventDate.setUTCDate(weekMonday.getUTCDate() + daysToAdd);
+  const eventDate = new Date(weekMonday)
+  eventDate.setUTCDate(weekMonday.getUTCDate() + daysToAdd)
 
-  return `${eventDate.getUTCFullYear()}-${String(eventDate.getUTCMonth() + 1).padStart(2, "0")}-${String(eventDate.getUTCDate()).padStart(2, "0")}`;
+  return `${eventDate.getUTCFullYear()}-${String(eventDate.getUTCMonth() + 1).padStart(2, "0")}-${String(eventDate.getUTCDate()).padStart(2, "0")}`
 }
 
 /**
@@ -2895,22 +3019,22 @@ export async function fillRecurringSeriesGaps(
   firstEventDate: string,
   recurringUntil: string,
 ): Promise<{
-  success: boolean;
-  created?: number;
-  error?: string;
+  success: boolean
+  created?: number
+  error?: string
 }> {
   try {
-    const { userId } = await auth();
+    const { userId } = await auth()
     if (!userId) {
-      return { success: false, error: "Unauthorized" };
+      return { success: false, error: "Unauthorized" }
     }
-    const userIsAdmin = await isAdmin();
+    const userIsAdmin = await isAdmin()
     if (!userIsAdmin) {
-      return { success: false, error: "Unauthorized" };
+      return { success: false, error: "Unauthorized" }
     }
 
     if (missingWeeks.length === 0) {
-      return { success: true, created: 0 };
+      return { success: true, created: 0 }
     }
 
     // Get template event (any recurring event from the series)
@@ -2938,42 +3062,45 @@ export async function fillRecurringSeriesGaps(
           eq(events.isRecurring, true),
         ),
       )
-      .limit(1);
+      .limit(1)
 
-    const template = templateEvents[0];
+    const template = templateEvents[0]
     if (!template) {
-      return { success: false, error: "No template event found for this series" };
+      return {
+        success: false,
+        error: "No template event found for this series",
+      }
     }
 
     // Get existing dates to avoid duplicates
     const allSeriesEvents = await db
       .select({ date: events.date })
       .from(events)
-      .where(eq(events.recurringSeriesId, recurringSeriesId));
-    const existingDates = new Set(allSeriesEvents.map((e) => e.date));
+      .where(eq(events.recurringSeriesId, recurringSeriesId))
+    const existingDates = new Set(allSeriesEvents.map((e) => e.date))
 
     const eventsToCreate: Array<{
-      title: string;
-      description: string | null;
-      instructor: string | null;
-      instructorId: number | null;
-      date: string;
-      startTime: string;
-      endTime: string;
-      location: string | null;
-      whatToBring: string | null;
-      isWorkshop: boolean;
-      level: string;
-      isPublished: boolean;
-      propId: number | null;
-      recurringSeriesId: string;
-      isRecurring: boolean;
-      recapVideoId: string | null;
-      recurringUntil: string | null;
-    }> = [];
+      title: string
+      description: string | null
+      instructor: string | null
+      instructorId: number | null
+      date: string
+      startTime: string
+      endTime: string
+      location: string | null
+      whatToBring: string | null
+      isWorkshop: boolean
+      level: string
+      isPublished: boolean
+      propId: number | null
+      recurringSeriesId: string
+      isRecurring: boolean
+      recapVideoId: string | null
+      recurringUntil: string | null
+    }> = []
 
     for (const weekMonday of missingWeeks) {
-      const dateStr = getEventDateForWeek(weekMonday, firstEventDate);
+      const dateStr = getEventDateForWeek(weekMonday, firstEventDate)
       if (!existingDates.has(dateStr)) {
         eventsToCreate.push({
           title: template.title,
@@ -2993,15 +3120,15 @@ export async function fillRecurringSeriesGaps(
           isRecurring: true,
           recapVideoId: template.recapVideoId,
           recurringUntil,
-        });
-        existingDates.add(dateStr);
+        })
+        existingDates.add(dateStr)
       }
     }
 
     if (eventsToCreate.length > 0) {
-      await db.insert(events).values(eventsToCreate);
+      await db.insert(events).values(eventsToCreate)
 
-      const actor = await getActorInfo(userId);
+      const actor = await getActorInfo(userId)
       logActivity({
         userId: actor.id,
         actorName: actor.name,
@@ -3010,40 +3137,40 @@ export async function fillRecurringSeriesGaps(
         entityType: "event",
         entityLabel: template.title,
         metadata: { count: eventsToCreate.length, recurringSeriesId },
-      });
+      })
 
-      revalidatePath("/admin");
-      revalidatePath("/admin/recurring_events");
-      revalidatePath("/");
-      revalidatePath("/api/timetable");
-      revalidateTag("timetable-public");
+      revalidatePath("/admin")
+      revalidatePath("/admin/recurring_events")
+      revalidatePath("/")
+      revalidatePath("/api/timetable")
+      revalidateTag("timetable-public")
     }
 
-    return { success: true, created: eventsToCreate.length };
+    return { success: true, created: eventsToCreate.length }
   } catch (error) {
-    console.error("Error filling recurring series gaps:", error);
+    console.error("Error filling recurring series gaps:", error)
     return {
       success: false,
       error: "Failed to create events for missing weeks",
-    };
+    }
   }
 }
 
 export type DuplicatedRecurringTitleGroup = {
-  title: string;
-  instructor: string | null;
-  instructorId: number | null;
+  title: string
+  instructor: string | null
+  instructorId: number | null
   events: Array<{
-    id: number;
-    date: string;
-    startTime: string;
-    endTime: string;
-    instructor: string | null;
-    location: string | null;
-    recurringSeriesId: string | null;
-  }>;
-  distinctSeriesCount: number;
-};
+    id: number
+    date: string
+    startTime: string
+    endTime: string
+    instructor: string | null
+    location: string | null
+    recurringSeriesId: string | null
+  }>
+  distinctSeriesCount: number
+}
 
 /**
  * Find events that share the same title AND same instructor (or instructorId)
@@ -3051,18 +3178,18 @@ export type DuplicatedRecurringTitleGroup = {
  * Returns groups of events that could be linked into a single series.
  */
 export async function getDuplicatedRecurringTitles(): Promise<{
-  success: boolean;
-  groups?: DuplicatedRecurringTitleGroup[];
-  error?: string;
+  success: boolean
+  groups?: DuplicatedRecurringTitleGroup[]
+  error?: string
 }> {
   try {
-    const { userId } = await auth();
+    const { userId } = await auth()
     if (!userId) {
-      return { success: false, error: "Unauthorized" };
+      return { success: false, error: "Unauthorized" }
     }
-    const userIsAdmin = await isAdmin();
+    const userIsAdmin = await isAdmin()
     if (!userIsAdmin) {
-      return { success: false, error: "Unauthorized" };
+      return { success: false, error: "Unauthorized" }
     }
 
     // Get all events that are recurring or have a recurringSeriesId
@@ -3080,33 +3207,30 @@ export async function getDuplicatedRecurringTitles(): Promise<{
       })
       .from(events)
       .where(
-        or(
-          eq(events.isRecurring, true),
-          isNotNull(events.recurringSeriesId),
-        ),
+        or(eq(events.isRecurring, true), isNotNull(events.recurringSeriesId)),
       )
-      .orderBy(asc(events.title), asc(events.date));
+      .orderBy(asc(events.title), asc(events.date))
 
     // Group by title + instructor (same title and same instructor/instructorId)
     const groupKey = (ev: (typeof allRecurring)[0]) =>
-      `${ev.title}::${ev.instructorId ?? ev.instructor ?? "__none__"}`;
-    const byTitleAndInstructor = new Map<string, typeof allRecurring>();
+      `${ev.title}::${ev.instructorId ?? ev.instructor ?? "__none__"}`
+    const byTitleAndInstructor = new Map<string, typeof allRecurring>()
     for (const ev of allRecurring) {
-      const key = groupKey(ev);
-      const list = byTitleAndInstructor.get(key) ?? [];
-      list.push(ev);
-      byTitleAndInstructor.set(key, list);
+      const key = groupKey(ev)
+      const list = byTitleAndInstructor.get(key) ?? []
+      list.push(ev)
+      byTitleAndInstructor.set(key, list)
     }
 
     // Find groups with multiple distinct recurringSeriesIds
-    const groups: DuplicatedRecurringTitleGroup[] = [];
+    const groups: DuplicatedRecurringTitleGroup[] = []
     for (const [, evs] of byTitleAndInstructor) {
-      const distinctIds = new Set<string>();
+      const distinctIds = new Set<string>()
       for (const ev of evs) {
-        distinctIds.add(ev.recurringSeriesId ?? "__null__");
+        distinctIds.add(ev.recurringSeriesId ?? "__null__")
       }
       if (distinctIds.size > 1) {
-        const first = evs[0];
+        const first = evs[0]
         groups.push({
           title: first.title,
           instructor: first.instructor,
@@ -3121,17 +3245,17 @@ export async function getDuplicatedRecurringTitles(): Promise<{
             recurringSeriesId: e.recurringSeriesId,
           })),
           distinctSeriesCount: distinctIds.size,
-        });
+        })
       }
     }
 
-    return { success: true, groups };
+    return { success: true, groups }
   } catch (error) {
-    console.error("Error fetching duplicated recurring titles:", error);
+    console.error("Error fetching duplicated recurring titles:", error)
     return {
       success: false,
       error: "Failed to fetch duplicated recurring titles",
-    };
+    }
   }
 }
 
@@ -3140,22 +3264,22 @@ export async function getDuplicatedRecurringTitles(): Promise<{
  * Uses the recurringSeriesId from the earliest event by date as the target.
  */
 export async function linkRecurringEventsByTitle(eventIds: number[]): Promise<{
-  success: boolean;
-  updated?: number;
-  error?: string;
+  success: boolean
+  updated?: number
+  error?: string
 }> {
   try {
-    const { userId } = await auth();
+    const { userId } = await auth()
     if (!userId) {
-      return { success: false, error: "Unauthorized" };
+      return { success: false, error: "Unauthorized" }
     }
-    const userIsAdmin = await isAdmin();
+    const userIsAdmin = await isAdmin()
     if (!userIsAdmin) {
-      return { success: false, error: "Unauthorized" };
+      return { success: false, error: "Unauthorized" }
     }
 
     if (eventIds.length === 0) {
-      return { success: false, error: "No events selected" };
+      return { success: false, error: "No events selected" }
     }
 
     const targetEvents = await db
@@ -3166,24 +3290,24 @@ export async function linkRecurringEventsByTitle(eventIds: number[]): Promise<{
       })
       .from(events)
       .where(inArray(events.id, eventIds))
-      .orderBy(asc(events.date));
+      .orderBy(asc(events.date))
 
     if (targetEvents.length === 0) {
-      return { success: false, error: "No events found" };
+      return { success: false, error: "No events found" }
     }
 
     // Use the recurringSeriesId from the earliest event; if it's null, generate a new one
-    let targetSeriesId = targetEvents[0].recurringSeriesId;
+    let targetSeriesId = targetEvents[0].recurringSeriesId
     if (!targetSeriesId) {
-      targetSeriesId = randomUUID();
+      targetSeriesId = randomUUID()
     }
 
     const idsToUpdate = targetEvents
       .filter((e) => e.recurringSeriesId !== targetSeriesId)
-      .map((e) => e.id);
+      .map((e) => e.id)
 
     if (idsToUpdate.length === 0) {
-      return { success: true, updated: 0 };
+      return { success: true, updated: 0 }
     }
 
     await db
@@ -3193,30 +3317,33 @@ export async function linkRecurringEventsByTitle(eventIds: number[]): Promise<{
         isRecurring: true,
         updatedAt: new Date(),
       })
-      .where(inArray(events.id, idsToUpdate));
+      .where(inArray(events.id, idsToUpdate))
 
-    const actor = await getActorInfo(userId);
+    const actor = await getActorInfo(userId)
     logActivity({
       userId: actor.id,
       actorName: actor.name,
       action: "link",
       entityType: "event",
-      metadata: { count: idsToUpdate.length, recurringSeriesId: targetSeriesId },
-    });
+      metadata: {
+        count: idsToUpdate.length,
+        recurringSeriesId: targetSeriesId,
+      },
+    })
 
-    revalidatePath("/admin");
-    revalidatePath("/admin/recurring_events");
-    revalidatePath("/");
-    revalidatePath("/api/timetable");
-    revalidateTag("timetable-public");
+    revalidatePath("/admin")
+    revalidatePath("/admin/recurring_events")
+    revalidatePath("/")
+    revalidatePath("/api/timetable")
+    revalidateTag("timetable-public")
 
-    return { success: true, updated: idsToUpdate.length };
+    return { success: true, updated: idsToUpdate.length }
   } catch (error) {
-    console.error("Error linking recurring events:", error);
+    console.error("Error linking recurring events:", error)
     return {
       success: false,
       error: "Failed to link recurring events",
-    };
+    }
   }
 }
 
@@ -3229,7 +3356,7 @@ export async function copySelectedRecurringEventsToNextWeek(
 ) {
   try {
     // Check authentication
-    const { userId } = await auth();
+    const { userId } = await auth()
 
     if (!userId) {
       return {
@@ -3238,11 +3365,11 @@ export async function copySelectedRecurringEventsToNextWeek(
         copied: 0,
         skipped: 0,
         skippedItems: [],
-      };
+      }
     }
 
     // Check admin authorization
-    const userIsAdmin = await isAdmin();
+    const userIsAdmin = await isAdmin()
     if (!userIsAdmin) {
       return {
         success: false,
@@ -3250,7 +3377,7 @@ export async function copySelectedRecurringEventsToNextWeek(
         copied: 0,
         skipped: 0,
         skippedItems: [],
-      };
+      }
     }
 
     if (selectedEventIds.length === 0) {
@@ -3260,7 +3387,7 @@ export async function copySelectedRecurringEventsToNextWeek(
         copied: 0,
         skipped: 0,
         skippedItems: [],
-      };
+      }
     }
 
     // Load selected source events
@@ -3287,7 +3414,7 @@ export async function copySelectedRecurringEventsToNextWeek(
         maxCapacity: events.maxCapacity,
       })
       .from(events)
-      .where(inArray(events.id, selectedEventIds));
+      .where(inArray(events.id, selectedEventIds))
 
     if (sourceEvents.length === 0) {
       return {
@@ -3296,66 +3423,68 @@ export async function copySelectedRecurringEventsToNextWeek(
         copied: 0,
         skipped: 0,
         skippedItems: [],
-      };
+      }
     }
 
-    let copiedCount = 0;
-    let skippedCount = 0;
-    const skippedItems: Array<{ eventId: number; reason: string }> = [];
+    let copiedCount = 0
+    let skippedCount = 0
+    const skippedItems: Array<{ eventId: number; reason: string }> = []
     const eventsToInsert: Array<{
-      title: string;
-      description: string | null;
-      instructor: string | null;
-      instructorId: number | null;
-      date: string;
-      startTime: string;
-      endTime: string;
-      location: string | null;
-      whatToBring: string | null;
-      isWorkshop: boolean;
-      level: string;
-      isPublished: boolean;
-      propId: number | null;
-      recurringSeriesId: string | null;
-      isRecurring: boolean;
-      recurringUntil: string | null;
-      recapVideoId: string | null;
-      maxCapacity: number;
-      currentParticipants: number;
-    }> = [];
+      title: string
+      description: string | null
+      instructor: string | null
+      instructorId: number | null
+      date: string
+      startTime: string
+      endTime: string
+      location: string | null
+      whatToBring: string | null
+      isWorkshop: boolean
+      level: string
+      isPublished: boolean
+      propId: number | null
+      recurringSeriesId: string | null
+      isRecurring: boolean
+      recurringUntil: string | null
+      recapVideoId: string | null
+      maxCapacity: number
+      currentParticipants: number
+    }> = []
 
     for (const sourceEvent of sourceEvents) {
       // Calculate target date: same weekday in next calendar week (7 days after)
-      const sourceDate = new Date(sourceEvent.date);
-      const targetDate = new Date(sourceDate);
-      targetDate.setUTCDate(sourceDate.getUTCDate() + 7);
-      const targetDateStr = targetDate.toISOString().split("T")[0];
+      const sourceDate = new Date(sourceEvent.date)
+      const targetDate = new Date(sourceDate)
+      targetDate.setUTCDate(sourceDate.getUTCDate() + 7)
+      const targetDateStr = targetDate.toISOString().split("T")[0]
 
       // Check for duplicate
       const duplicateConditions = [
         eq(events.date, targetDateStr),
         eq(events.startTime, sourceEvent.startTime),
         eq(events.endTime, sourceEvent.endTime),
-      ];
-      
+      ]
+
       // Only add recurringSeriesId condition if it exists
       if (sourceEvent.recurringSeriesId) {
-        duplicateConditions.push(eq(events.recurringSeriesId, sourceEvent.recurringSeriesId));
+        duplicateConditions.push(
+          eq(events.recurringSeriesId, sourceEvent.recurringSeriesId),
+        )
       }
-      
+
       const existingEvents = await db
         .select({ id: events.id })
         .from(events)
         .where(and(...duplicateConditions))
-        .limit(1);
+        .limit(1)
 
       if (existingEvents.length > 0) {
-        skippedCount++;
+        skippedCount++
         skippedItems.push({
           eventId: sourceEvent.id,
           reason: "Duplicate event already exists for target date",
-        });
-        continue;
+        })
+        continue
       }
 
       // Prepare event for insertion
@@ -3379,17 +3508,17 @@ export async function copySelectedRecurringEventsToNextWeek(
         recapVideoId: sourceEvent.recapVideoId,
         maxCapacity: sourceEvent.maxCapacity,
         currentParticipants: 0, // Reset participant counter
-      });
+      })
     }
 
     // Insert all events in a single transaction
     if (eventsToInsert.length > 0) {
-      await db.insert(events).values(eventsToInsert);
-      copiedCount = eventsToInsert.length;
+      await db.insert(events).values(eventsToInsert)
+      copiedCount = eventsToInsert.length
     }
 
     if (copiedCount > 0) {
-      const actor = await getActorInfo(userId);
+      const actor = await getActorInfo(userId)
       logActivity({
         userId: actor.id,
         actorName: actor.name,
@@ -3397,23 +3526,23 @@ export async function copySelectedRecurringEventsToNextWeek(
         action: "copy",
         entityType: "event",
         metadata: { count: copiedCount },
-      });
+      })
     }
 
     // Revalidate paths
-    revalidatePath("/admin");
-    revalidatePath("/admin/recurring_events");
-    revalidatePath("/api/timetable");
-    revalidateTag("timetable-public");
+    revalidatePath("/admin")
+    revalidatePath("/admin/recurring_events")
+    revalidatePath("/api/timetable")
+    revalidateTag("timetable-public")
 
     return {
       success: true,
       copied: copiedCount,
       skipped: skippedCount,
       skippedItems,
-    };
+    }
   } catch (error) {
-    console.error("Error copying recurring events:", error);
+    console.error("Error copying recurring events:", error)
     return {
       success: false,
       error:
@@ -3423,7 +3552,7 @@ export async function copySelectedRecurringEventsToNextWeek(
       copied: 0,
       skipped: 0,
       skippedItems: [],
-    };
+    }
   }
 }
 
@@ -3435,9 +3564,9 @@ export async function copyRecurringEventsAction(formData: FormData) {
   const selectedEventIds = formData
     .getAll("selectedEventIds")
     .map((id) => Number.parseInt(id.toString(), 10))
-    .filter((id) => !Number.isNaN(id));
+    .filter((id) => !Number.isNaN(id))
 
-  return await copySelectedRecurringEventsToNextWeek(selectedEventIds);
+  return await copySelectedRecurringEventsToNextWeek(selectedEventIds)
 }
 
 /**
@@ -3446,25 +3575,25 @@ export async function copyRecurringEventsAction(formData: FormData) {
  */
 export async function runExtendRecurringEvents() {
   // Check authentication
-  const { userId } = await auth();
+  const { userId } = await auth()
 
   if (!userId) {
     return {
       success: false,
       error: "Unauthorized. You must be signed in to run this action.",
-    };
+    }
   }
 
   // Check admin authorization
-  const userIsAdmin = await isAdmin();
+  const userIsAdmin = await isAdmin()
   if (!userIsAdmin) {
     return {
       success: false,
       error: "Unauthorized. Only admins can run this action.",
-    };
+    }
   }
 
-  return await extendRecurringEvents();
+  return await extendRecurringEvents()
 }
 
 export async function updateEventRecapVideo(
@@ -3472,22 +3601,22 @@ export async function updateEventRecapVideo(
   recapVideoId: string | null,
 ) {
   // Check authentication
-  const { userId } = await auth();
+  const { userId } = await auth()
 
   if (!userId) {
     return {
       success: false,
       error: "Unauthorized. You must be signed in to add recap videos.",
-    };
+    }
   }
 
   try {
     // Get current user's email to exclude them from notifications
-    const clerkUser = await currentUser();
-    const currentUserEmail = clerkUser ? getUserEmail(clerkUser) : null;
+    const clerkUser = await currentUser()
+    const currentUserEmail = clerkUser ? getUserEmail(clerkUser) : null
 
     // Check if this is adding a recap (not removing)
-    const wasAddingRecap = recapVideoId !== null;
+    const wasAddingRecap = recapVideoId !== null
 
     // Verify event exists and is a workshop, fetch full event details
     const eventResult = await db
@@ -3511,23 +3640,23 @@ export async function updateEventRecapVideo(
       .from(events)
       .leftJoin(users, eq(events.instructorId, users.id))
       .where(eq(events.id, eventId))
-      .limit(1);
+      .limit(1)
 
     if (eventResult.length === 0) {
-      return { success: false, error: "Event not found" };
+      return { success: false, error: "Event not found" }
     }
 
-    const event = eventResult[0];
+    const event = eventResult[0]
 
     if (!event.isWorkshop) {
       return {
         success: false,
         error: "Recap videos can only be added to workshops",
-      };
+      }
     }
 
     // Only send notifications if we're adding a recap (not removing)
-    const shouldSendNotifications = wasAddingRecap && !event.recapVideoId;
+    const shouldSendNotifications = wasAddingRecap && !event.recapVideoId
 
     // Update the recap video ID
     await db
@@ -3536,15 +3665,16 @@ export async function updateEventRecapVideo(
         recapVideoId: recapVideoId || null,
         updatedAt: sql`CURRENT_TIMESTAMP`,
       })
-      .where(eq(events.id, eventId));
+      .where(eq(events.id, eventId))
 
     // Send email notifications if recap was added
     if (shouldSendNotifications && recapVideoId) {
       // Get instructor name and email
       const instructorName = event.instructorProfile
-        ? event.instructorProfile.displayName || event.instructorProfile.username
-        : event.instructor || null;
-      const instructorEmail = event.instructorProfile?.email || null;
+        ? event.instructorProfile.displayName ||
+          event.instructorProfile.username
+        : event.instructor || null
+      const instructorEmail = event.instructorProfile?.email || null
 
       // Fetch all participants for this event
       const eventParticipations = await db
@@ -3553,20 +3683,16 @@ export async function updateEventRecapVideo(
           participantEmail: participations.participantEmail,
         })
         .from(participations)
-        .where(eq(participations.eventId, eventId));
+        .where(eq(participations.eventId, eventId))
 
       // Create event URL
       const appUrl =
-        process.env.NEXT_PUBLIC_APP_URL || "https://paradise-circus.app";
-      const eventSlug = createEventSlug(
-        event.id,
-        event.title,
-        instructorName,
-      );
-      const eventUrl = `${appUrl}/event/${eventSlug}`;
+        process.env.NEXT_PUBLIC_APP_URL || "https://paradise-circus.app"
+      const eventSlug = createEventSlug(event.id, event.title, instructorName)
+      const eventUrl = `${appUrl}/event/${eventSlug}`
 
       // Send emails to participants (excluding the user who posted)
-      const emailPromises: Promise<{ success: boolean }>[] = [];
+      const emailPromises: Promise<{ success: boolean }>[] = []
 
       for (const participation of eventParticipations) {
         // Skip if this is the user who posted the recap
@@ -3575,7 +3701,7 @@ export async function updateEventRecapVideo(
           participation.participantEmail.toLowerCase() ===
             currentUserEmail.toLowerCase()
         ) {
-          continue;
+          continue
         }
 
         emailPromises.push(
@@ -3594,10 +3720,10 @@ export async function updateEventRecapVideo(
             console.error(
               `Failed to send recap email to ${participation.participantEmail}:`,
               error,
-            );
-            return { success: false };
+            )
+            return { success: false }
           }),
-        );
+        )
       }
 
       // Send email to instructor (if exists and not the user who posted)
@@ -3623,19 +3749,19 @@ export async function updateEventRecapVideo(
             console.error(
               `Failed to send recap email to instructor ${instructorEmail}:`,
               error,
-            );
-            return { success: false };
+            )
+            return { success: false }
           }),
-        );
+        )
       }
 
       // Send all emails in parallel (don't wait for them to complete)
       Promise.all(emailPromises).catch((error) => {
-        console.error("Error sending recap notification emails:", error);
-      });
+        console.error("Error sending recap notification emails:", error)
+      })
     }
 
-    const actor = await getActorInfo(userId);
+    const actor = await getActorInfo(userId)
     logActivity({
       userId: actor.id,
       actorName: actor.name,
@@ -3644,38 +3770,38 @@ export async function updateEventRecapVideo(
       entityId: String(eventId),
       entityLabel: event.title,
       metadata: { field: "recapVideoId" },
-    });
+    })
 
-    revalidatePath(`/event`);
-    revalidatePath("/api/timetable");
-    revalidateTag("timetable-public");
+    revalidatePath(`/event`)
+    revalidatePath("/api/timetable")
+    revalidateTag("timetable-public")
 
-    return { success: true };
+    return { success: true }
   } catch (error) {
-    console.error("Error updating recap video:", error);
-    return { success: false, error: "Failed to update recap video" };
+    console.error("Error updating recap video:", error)
+    return { success: false, error: "Failed to update recap video" }
   }
 }
 
 export async function promoteUserToAdmin(userId: number) {
   // Check authentication
-  const { userId: currentUserId } = await auth();
+  const { userId: currentUserId } = await auth()
 
   if (!currentUserId) {
     return {
       success: false,
       error: "Unauthorized. You must be signed in to promote users.",
-    };
+    }
   }
 
   // Check authorization: must be admin
-  const userIsAdmin = await isAdmin();
+  const userIsAdmin = await isAdmin()
 
   if (!userIsAdmin) {
     return {
       success: false,
       error: "Unauthorized. Only admins can promote users to admin.",
-    };
+    }
   }
 
   try {
@@ -3684,10 +3810,10 @@ export async function promoteUserToAdmin(userId: number) {
       .select({ id: users.id })
       .from(users)
       .where(eq(users.clerkUserId, currentUserId))
-      .limit(1);
+      .limit(1)
 
     if (currentUserResult.length === 0) {
-      return { success: false, error: "Current user not found." };
+      return { success: false, error: "Current user not found." }
     }
 
     // Check if user exists
@@ -3701,74 +3827,74 @@ export async function promoteUserToAdmin(userId: number) {
       })
       .from(users)
       .where(eq(users.id, userId))
-      .limit(1);
+      .limit(1)
 
     if (userResult.length === 0) {
-      return { success: false, error: "User not found." };
+      return { success: false, error: "User not found." }
     }
 
-    const user = userResult[0];
+    const user = userResult[0]
 
     // If already admin, return success
     if (user.isAdmin) {
-      return { success: true, message: "User is already an admin." };
+      return { success: true, message: "User is already an admin." }
     }
 
     // Promote user to admin
     await db
       .update(users)
       .set({ isAdmin: true, updatedAt: sql`CURRENT_TIMESTAMP` })
-      .where(eq(users.id, userId));
+      .where(eq(users.id, userId))
 
-    revalidatePath("/admin/users");
+    revalidatePath("/admin/users")
 
     // Send admin promotion email
     if (user.email) {
       try {
-        const adminName = user.displayName || user.username;
+        const adminName = user.displayName || user.username
         await sendAdminPromotedEmail({
           adminName,
           adminEmail: user.email,
-        });
+        })
       } catch (emailError) {
         console.error(
           `Failed to send admin promotion email to ${user.email}:`,
           emailError,
-        );
+        )
         // Don't fail the promotion if email fails
       }
     } else {
       console.warn(
         `User ${user.username} (ID: ${userId}) does not have an email address. Cannot send admin promotion email.`,
-      );
+      )
     }
 
-    return { success: true };
+    return { success: true }
   } catch (error) {
-    console.error("Error promoting user to admin:", error);
-    return { success: false, error: "Failed to promote user to admin" };
+    console.error("Error promoting user to admin:", error)
+    return { success: false, error: "Failed to promote user to admin" }
   }
 }
 
 export async function demoteUserFromAdmin(userId: number) {
   // Check authentication
-  const { userId: currentUserId } = await auth();
+  const { userId: currentUserId } = await auth()
 
   if (!currentUserId) {
     return {
       success: false,
       error: "Unauthorized. You must be signed in to demote users.",
-    };
+    }
   }
 
   // Check authorization: must be admin
-  const userIsAdmin = await isAdmin();
+  const userIsAdmin = await isAdmin()
 
   if (!userIsAdmin) {
     return {
       success: false,
       error: "Unauthorized. Only admins can demote users from admin.",
-    };
+    }
   }
 
   try {
@@ -3777,74 +3903,78 @@ export async function demoteUserFromAdmin(userId: number) {
       .select({ id: users.id })
       .from(users)
       .where(eq(users.clerkUserId, currentUserId))
-      .limit(1);
+      .limit(1)
 
     if (currentUserResult.length === 0) {
-      return { success: false, error: "Current user not found." };
+      return { success: false, error: "Current user not found." }
     }
 
-    const currentUserId_db = currentUserResult[0].id;
+    const currentUserId_db = currentUserResult[0].id
 
     // Prevent self-demotion
     if (userId === currentUserId_db) {
       return {
         success: false,
         error: "You cannot demote yourself from admin.",
-      };
+      }
     }
 
     // Check if user exists
     const userResult = await db
-      .select({ id: users.id, username: users.username, isAdmin: users.isAdmin })
+      .select({
+        id: users.id,
+        username: users.username,
+        isAdmin: users.isAdmin,
+      })
       .from(users)
       .where(eq(users.id, userId))
-      .limit(1);
+      .limit(1)
 
     if (userResult.length === 0) {
-      return { success: false, error: "User not found." };
+      return { success: false, error: "User not found." }
     }
 
-    const user = userResult[0];
+    const user = userResult[0]
 
     // If not admin, return success
     if (!user.isAdmin) {
-      return { success: true, message: "User is not an admin." };
+      return { success: true, message: "User is not an admin." }
     }
 
     // Demote user from admin
     await db
       .update(users)
       .set({ isAdmin: false, updatedAt: sql`CURRENT_TIMESTAMP` })
-      .where(eq(users.id, userId));
+      .where(eq(users.id, userId))
 
-    revalidatePath("/admin/users");
+    revalidatePath("/admin/users")
 
-    return { success: true };
+    return { success: true }
   } catch (error) {
-    console.error("Error demoting user from admin:", error);
-    return { success: false, error: "Failed to demote user from admin" };
+    console.error("Error demoting user from admin:", error)
+    return { success: false, error: "Failed to demote user from admin" }
   }
 }
 
 export async function deleteUser(userId: number) {
   // Check authentication
-  const { userId: currentUserId } = await auth();
+  const { userId: currentUserId } = await auth()
 
   if (!currentUserId) {
     return {
       success: false,
       error: "Unauthorized. You must be signed in to delete users.",
-    };
+    }
   }
 
   // Check authorization: must be admin
-  const userIsAdmin = await isAdmin();
+  const userIsAdmin = await isAdmin()
 
   if (!userIsAdmin) {
     return {
       success: false,
       error: "Unauthorized. Only admins can delete users.",
-    };
+    }
   }
 
   try {
@@ -3853,20 +3983,20 @@ export async function deleteUser(userId: number) {
       .select({ id: users.id })
       .from(users)
       .where(eq(users.clerkUserId, currentUserId))
-      .limit(1);
+      .limit(1)
 
     if (currentUserResult.length === 0) {
-      return { success: false, error: "Current user not found." };
+      return { success: false, error: "Current user not found." }
     }
 
-    const currentUserId_db = currentUserResult[0].id;
+    const currentUserId_db = currentUserResult[0].id
 
     // Prevent self-deletion
     if (userId === currentUserId_db) {
       return {
         success: false,
         error: "You cannot delete yourself.",
-      };
+      }
     }
 
     // Check if user exists
@@ -3879,46 +4009,53 @@ export async function deleteUser(userId: number) {
       })
       .from(users)
       .where(eq(users.id, userId))
-      .limit(1);
+      .limit(1)
 
     if (userResult.length === 0) {
-      return { success: false, error: "User not found." };
+      return { success: false, error: "User not found." }
     }
 
-    const user = userResult[0];
+    const user = userResult[0]
 
     // Find and delete all events where user is the instructor
     // This will cascade delete participations and comments for those events
     const userEvents = await db
       .select({ id: events.id })
       .from(events)
-      .where(eq(events.instructorId, userId));
+      .where(eq(events.instructorId, userId))
 
     if (userEvents.length > 0) {
-      await db.delete(events).where(eq(events.instructorId, userId));
+      await db.delete(events).where(eq(events.instructorId, userId))
     }
 
     // Find all participations for this user in remaining events (events they didn't create)
     const userParticipations = await db
       .select({ eventId: participations.eventId })
       .from(participations)
-      .where(eq(participations.clerkUserId, user.clerkUserId));
+      .where(eq(participations.clerkUserId, user.clerkUserId))
 
     // Group participations by eventId and count them
-    const participationsByEvent = userParticipations.reduce((acc, participation) => {
-      acc[participation.eventId] = (acc[participation.eventId] || 0) + 1
-      return acc
-    }, {} as Record<number, number>)
+    const participationsByEvent = userParticipations.reduce(
+      (acc, participation) => {
+        acc[participation.eventId] = (acc[participation.eventId] || 0) + 1
+        return acc
+      },
+      {} as Record<number, number>,
+    )
 
     // Delete all participations for this user
     if (userParticipations.length > 0) {
-      await db.delete(participations).where(eq(participations.clerkUserId, user.clerkUserId));
+      await db
+        .delete(participations)
+        .where(eq(participations.clerkUserId, user.clerkUserId))
 
       // Update participation counts for affected events
       for (const [eventId, count] of Object.entries(participationsByEvent)) {
         await db
           .update(events)
-          .set({ currentParticipants: sql`${events.currentParticipants} - ${count}` })
+          .set({
+            currentParticipants: sql`${events.currentParticipants} - ${count}`,
+          })
           .where(eq(events.id, parseInt(eventId)))
       }
     }
@@ -3927,21 +4064,23 @@ export async function deleteUser(userId: number) {
     const userComments = await db
       .select({ id: comments.id })
       .from(comments)
-      .where(eq(comments.clerkUserId, user.clerkUserId));
+      .where(eq(comments.clerkUserId, user.clerkUserId))
 
     if (userComments.length > 0) {
-      await db.delete(comments).where(eq(comments.clerkUserId, user.clerkUserId));
+      await db
+        .delete(comments)
+        .where(eq(comments.clerkUserId, user.clerkUserId))
     }
 
     // Delete user (cascade will handle user_props)
-    await db.delete(users).where(eq(users.id, userId));
+    await db.delete(users).where(eq(users.id, userId))
 
-    revalidatePath("/admin/users");
+    revalidatePath("/admin/users")
 
-    return { success: true };
+    return { success: true }
   } catch (error) {
-    console.error("Error deleting user:", error);
-    return { success: false, error: "Failed to delete user" };
+    console.error("Error deleting user:", error)
+    return { success: false, error: "Failed to delete user" }
   }
 }
 
@@ -3949,35 +4088,35 @@ export async function deleteUser(userId: number) {
  * Normalize prop names by finding and merging duplicates.
  * Duplicates are identified by normalizing names (removing spaces, lowercasing).
  * The canonical name is chosen as the one with spaces (e.g., "contact staff" over "contactstaff").
- * 
+ *
  * @returns Object with success status, merged count, and details of merged props
  */
 export async function normalizeProps() {
   // Check authentication
-  const { userId } = await auth();
+  const { userId } = await auth()
 
   if (!userId) {
     return {
       success: false,
       error: "Unauthorized. You must be signed in to normalize props.",
-    };
+    }
   }
 
   // Check authorization: must be admin
-  const userIsAdmin = await isAdmin();
+  const userIsAdmin = await isAdmin()
 
   if (!userIsAdmin) {
     return {
       success: false,
       error: "Unauthorized. Only admins can normalize props.",
-    };
+    }
   }
 
   try {
     // Helper function to normalize a prop name for comparison
     const normalizeName = (name: string): string => {
-      return name.trim().toLowerCase().replace(/\s+/g, "");
-    };
+      return name.trim().toLowerCase().replace(/\s+/g, "")
+    }
 
     // Get all props
     const allProps = await db
@@ -3986,48 +4125,51 @@ export async function normalizeProps() {
         name: props.name,
       })
       .from(props)
-      .orderBy(asc(props.name));
+      .orderBy(asc(props.name))
 
     // Group props by normalized name
-    const propsByNormalized: Map<string, Array<{ id: number; name: string }>> = new Map();
+    const propsByNormalized: Map<
+      string,
+      Array<{ id: number; name: string }>
+    > = new Map()
 
     for (const prop of allProps) {
-      const normalized = normalizeName(prop.name);
+      const normalized = normalizeName(prop.name)
       if (!propsByNormalized.has(normalized)) {
-        propsByNormalized.set(normalized, []);
+        propsByNormalized.set(normalized, [])
       }
-      propsByNormalized.get(normalized)!.push(prop);
+      propsByNormalized.get(normalized)!.push(prop)
     }
 
     // Find duplicates (groups with more than one prop)
     const duplicates: Array<{
-      normalized: string;
-      props: Array<{ id: number; name: string }>;
-      canonical: { id: number; name: string };
-    }> = [];
+      normalized: string
+      props: Array<{ id: number; name: string }>
+      canonical: { id: number; name: string }
+    }> = []
 
     for (const [normalized, propGroup] of propsByNormalized.entries()) {
       if (propGroup.length > 1) {
         // Choose canonical name: prefer one with spaces, otherwise the first alphabetically
         const canonical = propGroup.reduce((best, current) => {
-          const bestHasSpaces = best.name.includes(" ");
-          const currentHasSpaces = current.name.includes(" ");
-          
+          const bestHasSpaces = best.name.includes(" ")
+          const currentHasSpaces = current.name.includes(" ")
+
           if (currentHasSpaces && !bestHasSpaces) {
-            return current;
+            return current
           }
           if (bestHasSpaces && !currentHasSpaces) {
-            return best;
+            return best
           }
           // If both have spaces or neither has spaces, prefer alphabetically first
-          return current.name.localeCompare(best.name) < 0 ? current : best;
-        });
+          return current.name.localeCompare(best.name) < 0 ? current : best
+        })
 
         duplicates.push({
           normalized,
           props: propGroup,
           canonical,
-        });
+        })
       }
     }
 
@@ -4037,109 +4179,109 @@ export async function normalizeProps() {
         merged: 0,
         message: "No duplicate props found.",
         details: [],
-      };
+      }
     }
 
     // Merge duplicates
     const mergeDetails: Array<{
-      canonical: string;
-      merged: string[];
-      canonicalId: number;
-    }> = [];
-    let totalMerged = 0;
+      canonical: string
+      merged: string[]
+      canonicalId: number
+    }> = []
+    let totalMerged = 0
 
     for (const duplicate of duplicates) {
-      const canonicalId = duplicate.canonical.id;
-      const canonicalName = duplicate.canonical.name;
+      const canonicalId = duplicate.canonical.id
+      const canonicalName = duplicate.canonical.name
       const duplicateIds = duplicate.props
         .filter((p) => p.id !== canonicalId)
-        .map((p) => p.id);
+        .map((p) => p.id)
       const duplicateNames = duplicate.props
         .filter((p) => p.id !== canonicalId)
-        .map((p) => p.name);
+        .map((p) => p.name)
 
       if (duplicateIds.length === 0) {
-        continue;
+        continue
       }
 
       // Update user_props references
       await db
         .update(userProps)
         .set({ propId: canonicalId })
-        .where(inArray(userProps.propId, duplicateIds));
+        .where(inArray(userProps.propId, duplicateIds))
 
       // Update events references
       await db
         .update(events)
         .set({ propId: canonicalId })
-        .where(inArray(events.propId, duplicateIds));
+        .where(inArray(events.propId, duplicateIds))
 
       // Delete duplicate props
-      await db.delete(props).where(inArray(props.id, duplicateIds));
+      await db.delete(props).where(inArray(props.id, duplicateIds))
 
       mergeDetails.push({
         canonical: canonicalName,
         merged: duplicateNames,
         canonicalId,
-      });
-      totalMerged += duplicateIds.length;
+      })
+      totalMerged += duplicateIds.length
     }
 
     // Revalidate paths
-    revalidatePath("/admin");
-    revalidatePath("/artists");
-    revalidateTag("artists");
-    revalidatePath("/profile/edit");
+    revalidatePath("/admin")
+    revalidatePath("/artists")
+    revalidateTag("artists")
+    revalidatePath("/profile/edit")
 
     return {
       success: true,
       merged: totalMerged,
       message: `Successfully merged ${totalMerged} duplicate prop(s) into ${duplicates.length} canonical prop(s).`,
       details: mergeDetails,
-    };
+    }
   } catch (error) {
-    console.error("Error normalizing props:", error);
+    console.error("Error normalizing props:", error)
     return {
       success: false,
       error: "Failed to normalize props",
       merged: 0,
       details: [],
-    };
+    }
   }
 }
 
 /**
  * Find duplicate props without merging them.
  * Useful for previewing what would be merged.
- * 
+ *
  * @returns Object with duplicate groups
  */
 export async function findDuplicateProps() {
   // Check authentication
-  const { userId } = await auth();
+  const { userId } = await auth()
 
   if (!userId) {
     return {
       success: false,
       error: "Unauthorized. You must be signed in to find duplicate props.",
-    };
+    }
   }
 
   // Check authorization: must be admin
-  const userIsAdmin = await isAdmin();
+  const userIsAdmin = await isAdmin()
 
   if (!userIsAdmin) {
     return {
       success: false,
       error: "Unauthorized. Only admins can find duplicate props.",
-    };
+    }
   }
 
   try {
     // Helper function to normalize a prop name for comparison
     const normalizeName = (name: string): string => {
-      return name.trim().toLowerCase().replace(/\s+/g, "");
-    };
+      return name.trim().toLowerCase().replace(/\s+/g, "")
+    }
 
     // Get all props
     const allProps = await db
@@ -4148,48 +4290,51 @@ export async function findDuplicateProps() {
         name: props.name,
       })
       .from(props)
-      .orderBy(asc(props.name));
+      .orderBy(asc(props.name))
 
     // Group props by normalized name
-    const propsByNormalized: Map<string, Array<{ id: number; name: string }>> = new Map();
+    const propsByNormalized: Map<
+      string,
+      Array<{ id: number; name: string }>
+    > = new Map()
 
     for (const prop of allProps) {
-      const normalized = normalizeName(prop.name);
+      const normalized = normalizeName(prop.name)
       if (!propsByNormalized.has(normalized)) {
-        propsByNormalized.set(normalized, []);
+        propsByNormalized.set(normalized, [])
       }
-      propsByNormalized.get(normalized)!.push(prop);
+      propsByNormalized.get(normalized)!.push(prop)
     }
 
     // Find duplicates (groups with more than one prop)
     const duplicates: Array<{
-      normalized: string;
-      props: Array<{ id: number; name: string }>;
-      suggestedCanonical: { id: number; name: string };
-    }> = [];
+      normalized: string
+      props: Array<{ id: number; name: string }>
+      suggestedCanonical: { id: number; name: string }
+    }> = []
 
     for (const [normalized, propGroup] of propsByNormalized.entries()) {
       if (propGroup.length > 1) {
         // Choose suggested canonical name: prefer one with spaces, otherwise the first alphabetically
         const suggestedCanonical = propGroup.reduce((best, current) => {
-          const bestHasSpaces = best.name.includes(" ");
-          const currentHasSpaces = current.name.includes(" ");
-          
+          const bestHasSpaces = best.name.includes(" ")
+          const currentHasSpaces = current.name.includes(" ")
+
           if (currentHasSpaces && !bestHasSpaces) {
-            return current;
+            return current
           }
           if (bestHasSpaces && !currentHasSpaces) {
-            return best;
+            return best
           }
           // If both have spaces or neither has spaces, prefer alphabetically first
-          return current.name.localeCompare(best.name) < 0 ? current : best;
-        });
+          return current.name.localeCompare(best.name) < 0 ? current : best
+        })
 
         duplicates.push({
           normalized,
           props: propGroup,
           suggestedCanonical,
-        });
+        })
       }
     }
 
@@ -4197,17 +4342,20 @@ export async function findDuplicateProps() {
       success: true,
       duplicates,
       count: duplicates.length,
-      totalDuplicateProps: duplicates.reduce((sum, d) => sum + d.props.length, 0),
-    };
+      totalDuplicateProps: duplicates.reduce(
+        (sum, d) => sum + d.props.length,
+        0,
+      ),
+    }
   } catch (error) {
-    console.error("Error finding duplicate props:", error);
+    console.error("Error finding duplicate props:", error)
     return {
       success: false,
       error: "Failed to find duplicate props",
       duplicates: [],
       count: 0,
       totalDuplicateProps: 0,
-    };
+    }
   }
 }
 
@@ -4216,56 +4364,56 @@ export async function findDuplicateProps() {
  */
 export async function createProp(formData: FormData) {
   // Check authentication
-  const { userId } = await auth();
+  const { userId } = await auth()
 
   if (!userId) {
     return {
       success: false,
       error: "Unauthorized. You must be signed in to create props.",
-    };
+    }
   }
 
   // Check authorization: must be admin
-  const userIsAdmin = await isAdmin();
+  const userIsAdmin = await isAdmin()
 
   if (!userIsAdmin) {
     return {
       success: false,
       error: "Unauthorized. Only admins can create props.",
-    };
+    }
   }
 
-  const name = formData.get("name") as string;
+  const name = formData.get("name") as string
 
   // Validate required fields
   if (!name || !name.trim()) {
-    return { success: false, error: "Prop name is required" };
+    return { success: false, error: "Prop name is required" }
   }
 
   try {
     const newProp = await db
       .insert(props)
       .values({ name: name.trim() })
-      .returning({ id: props.id, name: props.name });
+      .returning({ id: props.id, name: props.name })
 
-    revalidatePath("/admin/props");
-    revalidateTag("props-stats");
+    revalidatePath("/admin/props")
+    revalidateTag("props-stats")
     return {
       success: true,
       prop: newProp[0],
-    };
+    }
   } catch (error) {
-    console.error("Error creating prop:", error);
+    console.error("Error creating prop:", error)
     if (error instanceof Error && error.message.includes("unique")) {
       return {
         success: false,
         error: `A prop with the name "${name.trim()}" already exists.`,
-      };
+      }
     }
     return {
       success: false,
       error: "Failed to create prop",
-    };
+    }
   }
 }
 
@@ -4274,36 +4422,36 @@ export async function createProp(formData: FormData) {
  */
 export async function updateProp(formData: FormData) {
   // Check authentication
-  const { userId } = await auth();
+  const { userId } = await auth()
 
   if (!userId) {
     return {
       success: false,
       error: "Unauthorized. You must be signed in to update props.",
-    };
+    }
   }
 
   // Check authorization: must be admin
-  const userIsAdmin = await isAdmin();
+  const userIsAdmin = await isAdmin()
 
   if (!userIsAdmin) {
     return {
       success: false,
       error: "Unauthorized. Only admins can update props.",
-    };
+    }
   }
 
-  const idInput = formData.get("id") as string;
-  const name = formData.get("name") as string;
+  const idInput = formData.get("id") as string
+  const name = formData.get("name") as string
 
   // Validate required fields
   if (!idInput || !name || !name.trim()) {
-    return { success: false, error: "Prop ID and name are required" };
+    return { success: false, error: "Prop ID and name are required" }
   }
 
-  const id = parseInt(idInput, 10);
+  const id = parseInt(idInput, 10)
   if (isNaN(id)) {
-    return { success: false, error: "Invalid prop ID" };
+    return { success: false, error: "Invalid prop ID" }
   }
 
   try {
@@ -4311,33 +4459,33 @@ export async function updateProp(formData: FormData) {
       .update(props)
       .set({ name: name.trim() })
       .where(eq(props.id, id))
-      .returning({ id: props.id, name: props.name });
+      .returning({ id: props.id, name: props.name })
 
     if (updatedProp.length === 0) {
       return {
         success: false,
         error: "Prop not found",
-      };
+      }
     }
 
-    revalidatePath("/admin/props");
-    revalidateTag("props-stats");
+    revalidatePath("/admin/props")
+    revalidateTag("props-stats")
     return {
       success: true,
       prop: updatedProp[0],
-    };
+    }
   } catch (error) {
-    console.error("Error updating prop:", error);
+    console.error("Error updating prop:", error)
     if (error instanceof Error && error.message.includes("unique")) {
       return {
         success: false,
         error: `A prop with the name "${name.trim()}" already exists.`,
-      };
+      }
     }
     return {
       success: false,
       error: "Failed to update prop",
-    };
+    }
   }
 }
 
@@ -4346,34 +4494,34 @@ export async function updateProp(formData: FormData) {
  */
 export async function deleteProp(formData: FormData) {
   // Check authentication
-  const { userId } = await auth();
+  const { userId } = await auth()
 
   if (!userId) {
     return {
       success: false,
       error: "Unauthorized. You must be signed in to delete props.",
-    };
+    }
   }
 
   // Check authorization: must be admin
-  const userIsAdmin = await isAdmin();
+  const userIsAdmin = await isAdmin()
 
   if (!userIsAdmin) {
     return {
       success: false,
       error: "Unauthorized. Only admins can delete props.",
-    };
+    }
   }
 
-  const idInput = formData.get("id") as string;
+  const idInput = formData.get("id") as string
 
   if (!idInput) {
-    return { success: false, error: "Prop ID is required" };
+    return { success: false, error: "Prop ID is required" }
   }
 
-  const id = parseInt(idInput, 10);
+  const id = parseInt(idInput, 10)
   if (isNaN(id)) {
-    return { success: false, error: "Invalid prop ID" };
+    return { success: false, error: "Invalid prop ID" }
   }
 
   try {
@@ -4381,35 +4529,147 @@ export async function deleteProp(formData: FormData) {
     const eventsUsingProp = await db
       .select({ count: sql<number>`COUNT(*)` })
       .from(events)
-      .where(eq(events.propId, id));
+      .where(eq(events.propId, id))
 
     const userPropsUsingProp = await db
       .select({ count: sql<number>`COUNT(*)` })
       .from(userProps)
-      .where(eq(userProps.propId, id));
+      .where(eq(userProps.propId, id))
 
-    const eventsCount = Number(eventsUsingProp[0]?.count || 0);
-    const userPropsCount = Number(userPropsUsingProp[0]?.count || 0);
+    const eventsCount = Number(eventsUsingProp[0]?.count || 0)
+    const userPropsCount = Number(userPropsUsingProp[0]?.count || 0)
 
     if (eventsCount > 0 || userPropsCount > 0) {
       return {
         success: false,
         error: `Cannot delete prop. It is currently used by ${eventsCount} event(s) and ${userPropsCount} user prop(s).`,
-      };
+      }
     }
 
-    await db.delete(props).where(eq(props.id, id));
+    await db.delete(props).where(eq(props.id, id))
 
-    revalidatePath("/admin/props");
-    revalidateTag("props-stats");
+    revalidatePath("/admin/props")
+    revalidateTag("props-stats")
     return {
       success: true,
-    };
+    }
   } catch (error) {
-    console.error("Error deleting prop:", error);
+    console.error("Error deleting prop:", error)
     return {
       success: false,
       error: "Failed to delete prop",
-    };
+    }
   }
+}
+
+// ---------------------------------------------------------------------------
+// Level Migration — detect level keywords in event titles and extract them
+// ---------------------------------------------------------------------------
+
+const LEVEL_PATTERNS: { pattern: RegExp; level: string }[] = [
+  { pattern: /\bbeginner\b/i, level: "Beginner" },
+  { pattern: /\bbeg\b/i, level: "Beginner" },
+  { pattern: /\bintermediate\b/i, level: "Intermediate" },
+  { pattern: /\bint\/Adv\b/i, level: "Intermediate" },
+  { pattern: /\bint\b/i, level: "Intermediate" },
+  { pattern: /\badvanced\b/i, level: "Advanced" },
+  { pattern: /\badv\b/i, level: "Advanced" },
+]
+
+function detectLevelInTitle(
+  title: string,
+): { level: string; cleanedTitle: string } | null {
+  for (const { pattern, level } of LEVEL_PATTERNS) {
+    if (pattern.test(title)) {
+      // Remove the matched keyword plus surrounding separators/whitespace/parens
+      const cleanedTitle = title
+        .replace(
+          new RegExp(`[\\s\\-–—/|,(]*${pattern.source}[\\s\\-–—/|,)]*`, "i"),
+          " ",
+        )
+        .replace(/\s{2,}/g, " ")
+        .trim()
+      return { level, cleanedTitle }
+    }
+  }
+  return null
+}
+
+export async function findEventsWithLevelInTitle() {
+  const allEvents = await db
+    .select({ id: events.id, title: events.title, level: events.level })
+    .from(events)
+
+  const matches: {
+    id: number
+    currentTitle: string
+    newTitle: string
+    detectedLevel: string
+    currentLevel: string
+  }[] = []
+
+  for (const event of allEvents) {
+    const result = detectLevelInTitle(event.title)
+    if (result) {
+      matches.push({
+        id: event.id,
+        currentTitle: event.title,
+        newTitle: result.cleanedTitle,
+        detectedLevel: result.level,
+        currentLevel: event.level,
+      })
+    }
+  }
+
+  return matches
+}
+
+export async function updateEventLevel(eventId: number) {
+  const { userId } = await auth()
+  if (!userId) return { success: false, error: "Not authenticated" }
+  const userIsAdmin = await isAdmin()
+  if (!userIsAdmin) return { success: false, error: "Not authorized" }
+
+  const [event] = await db
+    .select({ id: events.id, title: events.title, level: events.level })
+    .from(events)
+    .where(eq(events.id, eventId))
+    .limit(1)
+  if (!event) return { success: false, error: "Event not found" }
+
+  const result = detectLevelInTitle(event.title)
+  if (!result) return { success: false, error: "No level detected in title" }
+
+  await db
+    .update(events)
+    .set({ title: result.cleanedTitle, level: result.level })
+    .where(eq(events.id, eventId))
+
+  revalidatePath("/admin/level-migration")
+  return {
+    success: true,
+    event: { id: event.id, title: result.cleanedTitle, level: result.level },
+  }
+}
+
+export async function updateAllEventLevels() {
+  const { userId } = await auth()
+  if (!userId) return { success: false, error: "Not authenticated", updated: 0 }
+  const userIsAdmin = await isAdmin()
+  if (!userIsAdmin)
+    return { success: false, error: "Not authorized", updated: 0 }
+
+  const matches = await findEventsWithLevelInTitle()
+  let updated = 0
+
+  for (const match of matches) {
+    await db
+      .update(events)
+      .set({ title: match.newTitle, level: match.detectedLevel })
+      .where(eq(events.id, match.id))
+    updated++
+  }
+
+  revalidatePath("/admin/level-migration")
+  return { success: true, updated }
 }

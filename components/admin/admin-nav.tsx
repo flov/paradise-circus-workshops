@@ -11,6 +11,7 @@ import {
   Package,
   Activity,
   BarChart3,
+  Tag,
 } from "lucide-react"
 
 interface AdminNavProps {
@@ -33,6 +34,7 @@ const navLinks = [
   { href: "/admin/pending-approval", label: "Pending Approval", icon: Clock },
   { href: "/admin/users", label: "Users", icon: Users },
   { href: "/admin/props", label: "Props", icon: Package },
+  { href: "/admin/level-migration", label: "Level Migration", icon: Tag },
 ]
 
 export function AdminNav({ title, description, children }: AdminNavProps) {
