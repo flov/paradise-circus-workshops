@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
-import { WeeklyTimetable } from "@/components/weekly-timetable";
+import { WeeklyTimetable } from "@/components/timetable";
 
 export const metadata: Metadata = {
   title: {

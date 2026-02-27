@@ -733,7 +733,9 @@ export function EventForm({
           >
             <option value="All levels">All levels</option>
             <option value="Beginner">Beginner</option>
+            <option value="Beginner/Intermediate">Beginner/Intermediate</option>
             <option value="Intermediate">Intermediate</option>
+            <option value="Intermediate/Advanced">Intermediate/Advanced</option>
             <option value="Advanced">Advanced</option>
           </select>
         </div>

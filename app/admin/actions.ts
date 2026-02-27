@@ -4567,10 +4567,15 @@ export async function deleteProp(formData: FormData) {
 // ---------------------------------------------------------------------------
 
 const LEVEL_PATTERNS: { pattern: RegExp; level: string }[] = [
+  // "All levels" — must come before combined/single levels
+  { pattern: /\ball[\s]*levels\b/i, level: "All levels" },
+  // Combined levels — must come before single levels
+  { pattern: /\bbeg(?:inner)?[\s]*[\/&\-–][\s]*int(?:ermediate)?\b/i, level: "Beginner/Intermediate" },
+  { pattern: /\bint(?:ermediate)?[\s]*[\/&\-–][\s]*adv(?:ance[d]?)?\b/i, level: "Intermediate/Advanced" },
+  // Single levels
   { pattern: /\bbeginner\b/i, level: "Beginner" },
   { pattern: /\bbeg\b/i, level: "Beginner" },
   { pattern: /\bintermediate\b/i, level: "Intermediate" },
-  { pattern: /\bint\/Adv\b/i, level: "Intermediate" },
   { pattern: /\bint\b/i, level: "Intermediate" },
   { pattern: /\badvanced\b/i, level: "Advanced" },
   { pattern: /\badv\b/i, level: "Advanced" },
@@ -4645,6 +4650,18 @@ export async function updateEventLevel(eventId: number) {
     .set({ title: result.cleanedTitle, level: result.level })
     .where(eq(events.id, eventId))
 
+  const actor = await getActorInfo(userId)
+  logActivity({
+    userId: actor.id,
+    actorName: actor.name,
+    actorUsername: actor.username,
+    action: "update",
+    entityType: "event",
+    entityId: String(eventId),
+    entityLabel: "Level migration",
+    metadata: { from: event.title, to: result.cleanedTitle, level: result.level },
+  })
+
   revalidatePath("/admin/level-migration")
   return {
     success: true,
@@ -4668,6 +4685,19 @@ export async function updateAllEventLevels() {
       .set({ title: match.newTitle, level: match.detectedLevel })
       .where(eq(events.id, match.id))
     updated++
+  }
+
+  if (updated > 0) {
+    const actor = await getActorInfo(userId)
+    logActivity({
+      userId: actor.id,
+      actorName: actor.name,
+      actorUsername: actor.username,
+      action: "update",
+      entityType: "event",
+      entityLabel: "Level migration",
+      metadata: { updated, matches: matches.map((m) => ({ id: m.id, from: m.currentTitle, to: m.newTitle, level: m.detectedLevel })) },
+    })
   }
 
   revalidatePath("/admin/level-migration")

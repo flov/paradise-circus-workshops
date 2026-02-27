@@ -42,7 +42,7 @@ export function EventCard({ event, instructorDisplayName }: { event: Pick<Event,
             {event.isWorkshop && (
               <Badge
                 variant="secondary"
-                className={`text-xs ${event.level === "Beginner" ? "bg-green-500/20 text-green-700 dark:text-green-400" : event.level === "Intermediate" ? "bg-yellow-500/20 text-yellow-700 dark:text-yellow-400" : event.level === "Advanced" ? "bg-red-500/20 text-red-700 dark:text-red-400" : "bg-muted text-muted-foreground"}`}
+                className={`text-xs ${event.level === "Beginner" ? "bg-green-500/20 text-green-700 dark:text-green-400" : event.level === "Beginner/Intermediate" ? "bg-green-500/20 text-green-700 dark:text-green-400" : event.level === "Intermediate" ? "bg-yellow-500/20 text-yellow-700 dark:text-yellow-400" : event.level === "Intermediate/Advanced" ? "bg-yellow-500/20 text-yellow-700 dark:text-yellow-400" : event.level === "Advanced" ? "bg-red-500/20 text-red-700 dark:text-red-400" : "bg-muted text-muted-foreground"}`}
               >
                 {event.level}
               </Badge>
