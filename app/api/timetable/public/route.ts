@@ -1,5 +1,5 @@
 import { db } from "@/db";
-import { events, users } from "@/db/schema";
+import { events, users, props } from "@/db/schema";
 import { and, gte, lte, asc, eq } from "drizzle-orm";
 import type { NextRequest } from "next/server";
 import { unstable_cache } from "next/cache";
@@ -30,7 +30,10 @@ async function getPublicTimetableData(startDate: string, endDate: string) {
       level: events.level,
       currentParticipants: events.currentParticipants,
       maxCapacity: events.maxCapacity,
-      propId: events.propId,
+      prop: {
+        id: props.id,
+        name: props.name,
+      },
       isPublished: events.isPublished,
       isRecurring: events.isRecurring,
       recurringSeriesId: events.recurringSeriesId,
@@ -54,6 +57,7 @@ async function getPublicTimetableData(startDate: string, endDate: string) {
     })
     .from(events)
     .leftJoin(users, eq(events.instructorId, users.id))
+    .leftJoin(props, eq(events.propId, props.id))
     .where(and(dateConditions, publishCondition))
     .orderBy(asc(events.date), asc(events.startTime));
 

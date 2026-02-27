@@ -108,7 +108,7 @@ function buildEditEventProps(slot: TimeSlot) {
     whatToBring: slot.whatToBring,
     isWorkshop: slot.isWorkshop,
     level: slot.level,
-    propId: slot.propId,
+    propId: slot.prop?.id ?? null,
     isPublished: slot.isPublished,
     isRecurring: slot.isRecurring,
     recurringUntil: slot.recurringUntil ?? null,

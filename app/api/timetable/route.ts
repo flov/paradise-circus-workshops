@@ -1,5 +1,5 @@
 import { db } from "@/db";
-import { events, users } from "@/db/schema";
+import { events, users, props } from "@/db/schema";
 import { and, gte, lte, asc, eq, or } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import type { NextRequest } from "next/server";
@@ -93,7 +93,10 @@ export async function GET(request: NextRequest) {
         isWorkshop: events.isWorkshop,
         level: events.level,
         currentParticipants: events.currentParticipants,
-        propId: events.propId,
+        prop: {
+          id: props.id,
+          name: props.name,
+        },
         isPublished: events.isPublished,
         isRecurring: events.isRecurring,
         recurringSeriesId: events.recurringSeriesId,
@@ -128,6 +131,7 @@ export async function GET(request: NextRequest) {
       })
       .from(events)
       .leftJoin(users, eq(events.instructorId, users.id))
+      .leftJoin(props, eq(events.propId, props.id))
       .leftJoin(lastUpdatedByUser, eq(events.lastUpdatedBy, lastUpdatedByUser.id))
       .leftJoin(approvedByUser, eq(events.approvedBy, approvedByUser.id))
       .where(

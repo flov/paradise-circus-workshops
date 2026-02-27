@@ -20,7 +20,7 @@ export type TimeSlot = {
   whatToBring: string | null;
   isWorkshop: boolean;
   level: string;
-  propId: number | null;
+  prop: { id: number; name: string } | null;
   isPublished: boolean;
   isRecurring: boolean;
   recurringSeriesId: string | null;
@@ -237,7 +237,7 @@ export function organizeEvents(events: any[]): TimetableData {
       whatToBring: event.whatToBring,
       isWorkshop: event.isWorkshop,
       level: event.level ?? "All levels",
-      propId: event.propId || null,
+      prop: event.prop?.id ? event.prop : null,
       isPublished: event.isPublished !== undefined ? event.isPublished : true,
       isRecurring: event.isRecurring ?? false,
       recurringSeriesId: event.recurringSeriesId || null,
