@@ -61,7 +61,10 @@ export const artistListItemSchema = z.object({
   videoCount: z.number().int().describe("Total video count"),
   bio: z.string().optional().describe("Artist bio"),
   instagramHandle: z.string().optional().describe("Instagram handle"),
+  patreonPage: z.string().optional().describe("Patreon page URL"),
+  website: z.string().optional().describe("Personal website URL"),
   availableForPerformances: z.boolean().describe("Available for performances"),
+  isAdmin: z.boolean().describe("Whether the artist is an admin"),
 });
 
 export const artistsListResponseSchema = z.array(artistListItemSchema);

@@ -234,9 +234,21 @@
             "type": "string",
             "description": "Instagram handle"
           },
+          "patreonPage": {
+            "type": "string",
+            "description": "Patreon page URL"
+          },
+          "website": {
+            "type": "string",
+            "description": "Personal website URL"
+          },
           "availableForPerformances": {
             "type": "boolean",
             "description": "Available for performances"
+          },
+          "isAdmin": {
+            "type": "boolean",
+            "description": "Whether the artist is an admin"
           }
         },
         "required": [
@@ -247,7 +259,8 @@
           "workshopCount",
           "props",
           "videoCount",
-          "availableForPerformances"
+          "availableForPerformances",
+          "isAdmin"
         ]
       },
       "artistUserPropSchema": {

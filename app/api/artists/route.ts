@@ -18,6 +18,7 @@ async function getAllArtistsUncached() {
       vimeoVideos: users.vimeoVideos,
       instagramHandle: users.instagramHandle,
       patreonPage: users.patreonPage,
+      website: users.website,
       availableForPerformances: users.availableForPerformances,
     })
     .from(users)
@@ -88,6 +89,7 @@ async function getAllArtistsUncached() {
       bio: artist.bio || undefined,
       instagramHandle: artist.instagramHandle || undefined,
       patreonPage: artist.patreonPage || undefined,
+      website: artist.website || undefined,
       availableForPerformances: artist.availableForPerformances || false,
     }
   })
