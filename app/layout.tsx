@@ -55,9 +55,9 @@ export const metadata: Metadata = {
       "Discover Paradise Circus in Pai, Thailand. Explore our talented artists, view our up-to-date timetable, and join our workshops.",
     images: [
       {
-        url: "/icon-512.png",
-        width: 512,
-        height: 512,
+        url: "/icon.png",
+        width: 1024,
+        height: 1024,
         alt: "Paradise Circus Logo",
       },
     ],
@@ -67,7 +67,7 @@ export const metadata: Metadata = {
     title: "Paradise Circus - Circus Workshops in Pai, Thailand",
     description:
       "Discover Paradise Circus in Pai, Thailand. Explore our talented artists, view our up-to-date timetable, and join our workshops.",
-    images: ["/icon-512.png"],
+    images: ["/icon.png"],
   },
   robots: {
     index: true,
@@ -81,11 +81,7 @@ export const metadata: Metadata = {
     },
   },
   icons: {
-    icon: [
-      { url: "/favicon.svg", type: "image/svg+xml", sizes: "any" },
-      { url: "/favicon.ico", sizes: "32x32" },
-    ],
-    apple: "/apple-touch-icon.png",
+    apple: "/icon.png",
   },
   manifest: "/site.webmanifest",
 };
