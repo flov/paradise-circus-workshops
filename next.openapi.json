@@ -7,7 +7,7 @@
   },
   "servers": [
     { "url": "http://localhost:3000/api", "description": "Local development" },
-    { "url": "https://paradisecircus.com/api", "description": "Production" }
+    { "url": "https://paradise-circus.app/api", "description": "Production" }
   ],
   "components": {
     "securitySchemes": {
@@ -33,11 +33,26 @@
       }
     },
     "codes": {
-      "400": { "description": "Bad Request", "variables": { "ERROR_MESSAGE": "Invalid request parameters" } },
-      "401": { "description": "Unauthorized", "variables": { "ERROR_MESSAGE": "Authentication required" } },
-      "403": { "description": "Forbidden", "variables": { "ERROR_MESSAGE": "Access denied" } },
-      "404": { "description": "Not Found", "variables": { "ERROR_MESSAGE": "Resource not found" } },
-      "500": { "description": "Internal Server Error", "variables": { "ERROR_MESSAGE": "An unexpected error occurred" } }
+      "400": {
+        "description": "Bad Request",
+        "variables": { "ERROR_MESSAGE": "Invalid request parameters" }
+      },
+      "401": {
+        "description": "Unauthorized",
+        "variables": { "ERROR_MESSAGE": "Authentication required" }
+      },
+      "403": {
+        "description": "Forbidden",
+        "variables": { "ERROR_MESSAGE": "Access denied" }
+      },
+      "404": {
+        "description": "Not Found",
+        "variables": { "ERROR_MESSAGE": "Resource not found" }
+      },
+      "500": {
+        "description": "Internal Server Error",
+        "variables": { "ERROR_MESSAGE": "An unexpected error occurred" }
+      }
     }
   },
   "apiDir": "./app/api",
