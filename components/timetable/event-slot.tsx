@@ -1,8 +1,8 @@
-"use client";
+"use client"
 
-import { Repeat, Calendar } from "lucide-react";
-import { createEventSlug } from "@/lib/utils";
-import { EditEventButton } from "@/components/admin/edit-event-button";
+import { Repeat, Calendar } from "lucide-react"
+import { createEventSlug } from "@/lib/utils"
+import { EditEventButton } from "@/components/admin/edit-event-button"
 import {
   toSchemaUserDisplayInfo,
   formatTime,
@@ -10,85 +10,85 @@ import {
   isNotFullHour,
   isLongerThanOneHour,
   isExactlyOneHour,
-} from "@/lib/timetable-utils";
-import type { TimeSlot, AuthContext } from "@/lib/timetable-utils";
+} from "@/lib/timetable-utils"
+import type { TimeSlot, AuthContext } from "@/lib/timetable-utils"
 
 function getLevelBadgeClasses(level: string): string {
   if (level === "Beginner" || level === "Beg/Int") {
-    return "border-green-500/60 text-green-700 dark:text-green-400";
+    return "border-green-500/60 text-green-700 dark:text-green-400"
   }
   if (level === "Intermediate" || level === "Int/Adv") {
-    return "border-yellow-500/60 text-yellow-700 dark:text-yellow-400";
+    return "border-yellow-500/60 text-yellow-700 dark:text-yellow-400"
   }
-  return "border-red-500/60 text-red-700 dark:text-red-400";
+  return "border-red-500/60 text-red-700 dark:text-red-400"
 }
 
 function getDesktopColorClasses(
   slot: TimeSlot,
   authContext: AuthContext | null,
 ): string {
-  const isParadiseLake = slot.location === "Paradise River";
-  const isParadiseStage = slot.location === "Paradise Stage";
-  const isOtherLocation = !isParadiseStage && !isParadiseLake;
-  const isPending = !slot.isPublished;
+  const isParadiseLake = slot.location === "Paradise River"
+  const isParadiseStage = slot.location === "Paradise Stage"
+  const isOtherLocation = !isParadiseStage && !isParadiseLake
+  const isPending = !slot.isPublished
   const hasNoInstructorId =
     authContext?.isAdmin &&
-    (slot.instructorId === null || slot.instructorId === undefined);
-  const isBlocked = slot.isBlocked === true;
+    (slot.instructorId === null || slot.instructorId === undefined)
+  const isBlocked = slot.isBlocked === true
 
   if (isBlocked) {
-    if (isOtherLocation) return "bg-purple-500/10 border border-purple-500/20";
+    if (isOtherLocation) return "bg-purple-500/10 border border-purple-500/20"
     return isParadiseLake
       ? "bg-blue-500/10 border border-blue-500/20"
-      : "bg-red-500/10 border border-red-500/20";
+      : "bg-red-500/10 border border-red-500/20"
   }
 
   if (isPending) {
-    return "bg-yellow-500/20 hover:bg-yellow-500/30 border border-yellow-500/50 border-dashed";
+    return "bg-yellow-500/20 hover:bg-yellow-500/30 border border-yellow-500/50 border-dashed"
   }
 
-  const borderStyle = hasNoInstructorId ? "border-dashed" : "border-solid";
+  const borderStyle = hasNoInstructorId ? "border-dashed" : "border-solid"
   if (isOtherLocation) {
-    return `bg-purple-500/20 hover:bg-purple-500/30 border ${borderStyle} border-purple-500/40`;
+    return `bg-purple-500/20 hover:bg-purple-500/30 border ${borderStyle} border-purple-500/40`
   }
   return isParadiseLake
     ? `bg-blue-500/20 hover:bg-blue-500/30 border ${borderStyle} border-blue-500/40`
-    : `bg-red-500/20 hover:bg-red-500/30 border ${borderStyle} border-red-500/40`;
+    : `bg-red-500/20 hover:bg-red-500/30 border ${borderStyle} border-red-500/40`
 }
 
 function getMobileColorClasses(
   slot: TimeSlot,
   authContext: AuthContext | null,
 ): string {
-  const isParadiseLake = slot.location === "Paradise River";
-  const isParadiseStage = slot.location === "Paradise Stage";
-  const isOtherLocation = !isParadiseStage && !isParadiseLake;
-  const isPending = !slot.isPublished;
+  const isParadiseLake = slot.location === "Paradise River"
+  const isParadiseStage = slot.location === "Paradise Stage"
+  const isOtherLocation = !isParadiseStage && !isParadiseLake
+  const isPending = !slot.isPublished
   const hasNoInstructorId =
     authContext?.isAdmin &&
-    (slot.instructorId === null || slot.instructorId === undefined);
+    (slot.instructorId === null || slot.instructorId === undefined)
 
   if (isPending) {
-    return "bg-yellow-500/20 hover:bg-yellow-500/30 active:bg-yellow-500/35 border-yellow-500/50 hover:border-yellow-500/60 active:border-yellow-500/70 border-dashed";
+    return "bg-yellow-500/20 hover:bg-yellow-500/30 active:bg-yellow-500/35 border-yellow-500/50 hover:border-yellow-500/60 active:border-yellow-500/70 border-dashed"
   }
 
-  const borderStyle = hasNoInstructorId ? "border-dashed" : "border-solid";
+  const borderStyle = hasNoInstructorId ? "border-dashed" : "border-solid"
   if (isOtherLocation) {
-    return `bg-purple-500/15 hover:bg-purple-500/25 active:bg-purple-500/30 ${borderStyle} border-purple-500/40 hover:border-purple-500/50 active:border-purple-500/60`;
+    return `bg-purple-500/15 hover:bg-purple-500/25 active:bg-purple-500/30 ${borderStyle} border-purple-500/40 hover:border-purple-500/50 active:border-purple-500/60`
   }
   return isParadiseLake
     ? `bg-blue-500/15 hover:bg-blue-500/25 active:bg-blue-500/30 ${borderStyle} border-blue-500/40 hover:border-blue-500/50 active:border-blue-500/60`
-    : `bg-red-500/15 hover:bg-red-500/25 active:bg-red-500/30 ${borderStyle} border-red-500/40 hover:border-red-500/50 active:border-red-500/60`;
+    : `bg-red-500/15 hover:bg-red-500/25 active:bg-red-500/30 ${borderStyle} border-red-500/40 hover:border-red-500/50 active:border-red-500/60`
 }
 
 function canEditSlot(slot: TimeSlot, authContext: AuthContext | null): boolean {
-  if (!authContext) return false;
-  if (authContext.isAdmin) return true;
+  if (!authContext) return false
+  if (authContext.isAdmin) return true
   return (
     authContext.isInstructor &&
     slot.instructorId !== null &&
     slot.instructorId === authContext.userId
-  );
+  )
 }
 
 function buildEditEventProps(slot: TimeSlot) {
@@ -117,7 +117,7 @@ function buildEditEventProps(slot: TimeSlot) {
     lastUpdatedByUser: toSchemaUserDisplayInfo(slot.lastUpdatedByUser),
     approvedByUser: toSchemaUserDisplayInfo(slot.approvedByUser),
     createdAt: slot.createdAt ? new Date(slot.createdAt) : new Date(),
-  };
+  }
 }
 
 function RecurringBadge({ slot }: { slot: TimeSlot }) {
@@ -138,35 +138,35 @@ function RecurringBadge({ slot }: { slot: TimeSlot }) {
           : "Recurring event"}
       </span>
     </span>
-  );
+  )
 }
 
 function LevelBadge({
   level,
   className,
 }: {
-  level: string;
-  className?: string;
+  level: string
+  className?: string
 }) {
-  if (level === "All levels") return null;
+  if (level === "All levels") return null
   return (
     <span
       className={`text-xs px-1 rounded shrink-0 border bg-transparent ${getLevelBadgeClasses(level)} ${className ?? ""}`}
     >
       {level}
     </span>
-  );
+  )
 }
 
 export function DesktopEventSlot({
   slot,
   authContext,
 }: {
-  slot: TimeSlot;
-  authContext: AuthContext | null;
+  slot: TimeSlot
+  authContext: AuthContext | null
 }) {
-  const isPending = !slot.isPublished;
-  const isBlocked = slot.isBlocked === true;
+  const isPending = !slot.isPublished
+  const isBlocked = slot.isBlocked === true
 
   return (
     <div
@@ -187,15 +187,16 @@ export function DesktopEventSlot({
         {(isNotFullHour(slot.startTime) ||
           isLongerThanOneHour(slot.startTime, slot.endTime)) && (
           <div className="text-xs font-normal text-muted-foreground mt-0.5">
-            {formatTimeShort(slot.startTime)} -{" "}
-            {formatTimeShort(slot.endTime)}
+            {formatTimeShort(slot.startTime)} - {formatTimeShort(slot.endTime)}
           </div>
         )}
         <div className="flex justify-between">
-          <div className="text-xs text-muted-foreground mt-0.5 line-clamp-1">
-            {slot.instructorDisplayName || slot.instructor || ""}
+          <div className="flex items-center gap-1">
+            <div className="text-xs text-muted-foreground mt-0.5 line-clamp-1">
+              {slot.instructorDisplayName || slot.instructor || ""}
+            </div>
+            {slot.isWorkshop && <LevelBadge level={slot.level} />}
           </div>
-          {slot.isWorkshop && <LevelBadge level={slot.level} />}
           {(authContext?.isAdmin || authContext?.isInstructor) &&
             slot.isRecurring && <RecurringBadge slot={slot} />}
         </div>
@@ -209,17 +210,17 @@ export function DesktopEventSlot({
         </div>
       )}
     </div>
-  );
+  )
 }
 
 export function MobileEventSlot({
   slot,
   authContext,
 }: {
-  slot: TimeSlot;
-  authContext: AuthContext | null;
+  slot: TimeSlot
+  authContext: AuthContext | null
 }) {
-  const isPending = !slot.isPublished;
+  const isPending = !slot.isPublished
 
   return (
     <div
@@ -267,5 +268,5 @@ export function MobileEventSlot({
         </div>
       )}
     </div>
-  );
+  )
 }
