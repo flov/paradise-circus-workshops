@@ -14,10 +14,10 @@ import {
 import type { TimeSlot, AuthContext } from "@/lib/timetable-utils";
 
 function getLevelBadgeClasses(level: string): string {
-  if (level === "Beginner" || level === "Beginner/Intermediate") {
+  if (level === "Beginner" || level === "Beg/Int") {
     return "border-green-500/60 text-green-700 dark:text-green-400";
   }
-  if (level === "Intermediate" || level === "Intermediate/Advanced") {
+  if (level === "Intermediate" || level === "Int/Adv") {
     return "border-yellow-500/60 text-yellow-700 dark:text-yellow-400";
   }
   return "border-red-500/60 text-red-700 dark:text-red-400";

@@ -11,6 +11,7 @@ interface ScheduleEvent {
   instructorUsername?: string
   isLogo?: boolean
   isSpecial?: boolean
+  level?: string // Workshop level (e.g., "Beginner", "Intermediate")
   span?: number // Number of time slots this event spans
   isOccupied?: boolean // True if this slot is occupied by a multi-slot event
   startsAtHalfHour?: boolean // True if event starts at :30 (e.g., 12:30)
@@ -572,6 +573,14 @@ function EventCell({
                   {event.instructor}
                 </p>
               ))}
+            {event.level && (
+              <p
+                className="text-yellow-300 font-bold text-[8px] sm:text-[10px] md:text-[11px] lg:text-xs leading-tight"
+                style={{ fontFamily: "'Arial Black', 'Arial Bold', Arial, sans-serif" }}
+              >
+                {event.level}
+              </p>
+            )}
             {isBuffetTime && (
               <>
                 <p
@@ -663,6 +672,14 @@ function EventCell({
               {event.instructor}
             </p>
           ))}
+        {event.level && (
+          <p
+            className="text-yellow-300 font-bold text-[8px] sm:text-[10px] md:text-[11px] lg:text-xs leading-tight"
+            style={{ fontFamily: "'Arial Black', 'Arial Bold', Arial, sans-serif" }}
+          >
+            {event.level}
+          </p>
+        )}
         {isBuffetTime && (
           <>
             <p

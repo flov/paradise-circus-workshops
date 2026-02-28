@@ -4570,8 +4570,8 @@ const LEVEL_PATTERNS: { pattern: RegExp; level: string }[] = [
   // "All levels" — must come before combined/single levels
   { pattern: /\ball[\s]*levels\b/i, level: "All levels" },
   // Combined levels — must come before single levels
-  { pattern: /\bbeg(?:inner)?[\s]*[\/&\-–][\s]*int(?:ermediate)?\b/i, level: "Beginner/Intermediate" },
-  { pattern: /\bint(?:ermediate)?[\s]*[\/&\-–][\s]*adv(?:ance[d]?)?\b/i, level: "Intermediate/Advanced" },
+  { pattern: /\bbeg(?:inner)?[\s]*[\/&\-–][\s]*int(?:ermediate)?\b/i, level: "Beg/Int" },
+  { pattern: /\bint(?:ermediate)?[\s]*[\/&\-–][\s]*adv(?:ance[d]?)?\b/i, level: "Int/Adv" },
   // Single levels
   { pattern: /\bbeginner\b/i, level: "Beginner" },
   { pattern: /\bbeg\b/i, level: "Beginner" },

@@ -648,6 +648,8 @@ export async function getInstagramTimetableData(
         startTime: events.startTime,
         endTime: events.endTime,
         location: events.location,
+        isWorkshop: events.isWorkshop,
+        level: events.level,
         instructorUsername: users.username,
       })
       .from(events)
@@ -739,6 +741,7 @@ export async function getInstagramTimetableData(
         instructorUsername?: string;
         isLogo?: boolean;
         isSpecial?: boolean;
+        level?: string;
         span?: number;
         isOccupied?: boolean;
         startsAtHalfHour?: boolean;
@@ -806,6 +809,7 @@ export async function getInstagramTimetableData(
           eventId: event.id,
           instructorUsername: event.instructorUsername || undefined,
           isSpecial,
+          level: event.isWorkshop && event.level !== "All levels" ? event.level : undefined,
           span, // Store span for CSS grid row spanning
           startsAtHalfHour, // Flag for half-hour starts
         };
