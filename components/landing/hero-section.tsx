@@ -1,26 +1,94 @@
-"use client";
+"use client"
 
-import Link from "next/link";
-import Image from "next/image";
-import { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { ArrowRight, Sparkles } from "lucide-react";
+import Link from "next/link"
+import Image from "next/image"
+import { useState, useEffect, useCallback } from "react"
+import { useQueryClient } from "@tanstack/react-query"
+import { useAuth } from "@clerk/nextjs"
+import { Button } from "@/components/ui/button"
+import { ArrowRight, Sparkles } from "lucide-react"
+import { getWeekDates, formatLocalDate, organizeEvents } from "@/lib/timetable-utils"
+import type { AuthContext } from "@/lib/timetable-utils"
 
 const phrases = [
+  "All levels are welcome",
+  "Come curious, leave inspired",
+  "Dance with fire, dance with friends",
+  "Elevate your artistry",
+  "Every prop tells a story",
+  "Flow is a conversation with gravity",
+  "Join the circus of your dreams",
+  "Spin, breathe, connect",
   "The stage awaits — come as you are",
   "Unleash your inner performer",
-  "Where passion meets performance",
-  "Join the circus of dreams",
-  "Elevate your artistry",
   "Where ordinary becomes extraordinary",
-  "All levels are welcome",
-  "Come curious, leave confident",
-];
+  "Where passion meets performance",
+]
 
 export function HeroSection() {
-  const [randomPhrase] = useState(
-    () => phrases[Math.floor(Math.random() * phrases.length)],
-  );
+  const [index, setIndex] = useState(() =>
+    Math.floor(Math.random() * phrases.length),
+  )
+  const [fading, setFading] = useState(false)
+
+  // Prefetch this week's timetable so navigation to /timetable is instant
+  const { isSignedIn } = useAuth()
+  const queryClient = useQueryClient()
+  useEffect(() => {
+    const dates = getWeekDates(0)
+    const startDate = formatLocalDate(dates[0])
+    const endDate = formatLocalDate(dates[6])
+
+    const fetchTimetable = (userId: number | null) => {
+      const apiUrl = userId
+        ? `/api/timetable?start=${startDate}&end=${endDate}&userId=${userId}`
+        : `/api/timetable/public?start=${startDate}&end=${endDate}`
+      return queryClient.prefetchQuery({
+        queryKey: ["timetable", 0, userId],
+        queryFn: async () => {
+          const res = await fetch(apiUrl)
+          const events = await res.json()
+          return organizeEvents(events)
+        },
+        staleTime: 60_000,
+      })
+    }
+
+    if (isSignedIn) {
+      // Prefetch auth-context first, then timetable with userId
+      queryClient.prefetchQuery<AuthContext>({
+        queryKey: ["auth-context", true],
+        queryFn: async () => {
+          const res = await fetch("/api/auth/me")
+          const data = await res.json()
+          return {
+            isAdmin: data.isAdmin ?? false,
+            isInstructor: data.isInstructor ?? false,
+            userId: data.userId ?? null,
+          }
+        },
+        staleTime: 5 * 60_000,
+      }).then(() => {
+        const cached = queryClient.getQueryData<AuthContext>(["auth-context", true])
+        fetchTimetable(cached?.userId ?? null)
+      })
+    } else {
+      fetchTimetable(null)
+    }
+  }, [queryClient, isSignedIn])
+
+  const rotatePhrase = useCallback(() => {
+    setFading(true)
+    setTimeout(() => {
+      setIndex((prev) => (prev + 1) % phrases.length)
+      setFading(false)
+    }, 400)
+  }, [])
+
+  useEffect(() => {
+    const interval = setInterval(rotatePhrase, 4000)
+    return () => clearInterval(interval)
+  }, [rotatePhrase])
 
   return (
     <section className="relative min-h-[95vh] flex flex-col items-center justify-center px-4 py-4 overflow-hidden">
@@ -41,7 +109,11 @@ export function HeroSection() {
         {/* Badge */}
         <div className="inline-flex items-center gap-2 px-4 py-2 mb-8 rounded-full bg-white/10 text-white border border-white/20 backdrop-blur-sm">
           <Sparkles className="w-4 h-4" />
-          <span className="text-sm font-medium">{randomPhrase}</span>
+          <span
+            className={`text-sm font-medium transition-opacity duration-400 ${fading ? "opacity-0" : "opacity-100"}`}
+          >
+            {phrases[index]}
+          </span>
         </div>
 
         {/* Main headline */}
@@ -113,5 +185,5 @@ export function HeroSection() {
         </div>
       </div>
     </section>
-  );
+  )
 }
