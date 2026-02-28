@@ -409,6 +409,13 @@ function TimeCell({
   )
 }
 
+function getLevelColor(level: string): string {
+  if (level === "Beginner" || level === "Beg/Int") return "#4ade80" // green-400
+  if (level === "Intermediate" || level === "Int/Adv") return "#facc15" // yellow-400
+  if (level === "Advanced") return "#f87171" // red-400
+  return "#facc15"
+}
+
 function EventCell({
   event,
   rowSpan = 1,
@@ -674,8 +681,8 @@ function EventCell({
           ))}
         {event.level && (
           <p
-            className="text-yellow-300 font-bold text-[8px] sm:text-[10px] md:text-[11px] lg:text-xs leading-tight"
-            style={{ fontFamily: "'Arial Black', 'Arial Bold', Arial, sans-serif" }}
+            className="font-bold text-[8px] sm:text-[10px] md:text-[11px] lg:text-xs leading-tight"
+            style={{ fontFamily: "'Arial Black', 'Arial Bold', Arial, sans-serif", color: getLevelColor(event.level) }}
           >
             {event.level}
           </p>
