@@ -59,18 +59,44 @@ export function InstagramTimetable({
     landscape: "aspect-[4/3] max-w-[1200px]",
   }
 
+  // Ensure time slots include at least hourly markers from 12 to 18 (12pm–6pm)
+  const timeSlotsWithHourlyMarkers = useMemo(() => {
+    const requiredHours = [
+      "12pm",
+      "1pm",
+      "2pm",
+      "3pm",
+      "4pm",
+      "5pm",
+      "6pm",
+    ]
+    const getHourValue = (slot: string) => {
+      const match = slot.match(/(\d+)(?::(\d+))?(am|pm)/i)
+      if (!match) return 0
+      let hour = Number.parseInt(match[1], 10)
+      const minutes = match[2] ? Number.parseInt(match[2], 10) : 0
+      if (match[3] === "pm" && hour !== 12) hour += 12
+      if (match[3] === "am" && hour === 12) hour = 0
+      return hour * 60 + minutes
+    }
+    const combined = new Set([...requiredHours, ...data.timeSlots])
+    return Array.from(combined).sort(
+      (a, b) => getHourValue(a) - getHourValue(b),
+    )
+  }, [data.timeSlots])
+
   // Pre-calculate spans and occupied status for all cells
   const cellData: Record<string, { span: number; shouldRender: boolean }> = {}
 
   data.days.forEach((day) => {
-    data.timeSlots.forEach((time, timeIndex) => {
+    timeSlotsWithHourlyMarkers.forEach((time, timeIndex) => {
       const key = `${time}-${day}`
       const event = data.events[key]
 
       // Helper to check if a slot is occupied by an earlier event span
       const isOccupiedByEventSpan = (slotIndex: number): boolean => {
         for (let i = 0; i < slotIndex; i++) {
-          const earlierTime = data.timeSlots[i]
+          const earlierTime = timeSlotsWithHourlyMarkers[i]
           const earlierEvent = data.events[`${earlierTime}-${day}`]
           if (earlierEvent?.span && earlierEvent.span > 1) {
             const spanEndIndex = i + earlierEvent.span - 1
@@ -103,14 +129,14 @@ export function InstagramTimetable({
         } else {
           // Check if this is part of an earlier FREE FLOW group
           for (let i = 0; i < timeIndex; i++) {
-            const earlierTime = data.timeSlots[i]
+            const earlierTime = timeSlotsWithHourlyMarkers[i]
             const earlierEvent = data.events[`${earlierTime}-${day}`]
 
             if (!earlierEvent && !isOccupiedByEventSpan(i)) {
               // Count consecutive FREE FLOW slots from this earlier slot
               let freeFlowSpan = 1
-              for (let j = i + 1; j < data.timeSlots.length; j++) {
-                const checkTime = data.timeSlots[j]
+              for (let j = i + 1; j < timeSlotsWithHourlyMarkers.length; j++) {
+                const checkTime = timeSlotsWithHourlyMarkers[j]
                 const checkEvent = data.events[`${checkTime}-${day}`]
                 if (checkEvent || isOccupiedByEventSpan(j)) {
                   break
@@ -127,8 +153,8 @@ export function InstagramTimetable({
 
           // If we should render, calculate span
           if (shouldRender) {
-            for (let i = timeIndex + 1; i < data.timeSlots.length; i++) {
-              const nextTime = data.timeSlots[i]
+            for (let i = timeIndex + 1; i < timeSlotsWithHourlyMarkers.length; i++) {
+              const nextTime = timeSlotsWithHourlyMarkers[i]
               const nextEvent = data.events[`${nextTime}-${day}`]
               if (nextEvent || isOccupiedByEventSpan(i)) {
                 break
@@ -212,7 +238,7 @@ export function InstagramTimetable({
               className="grid h-full gap-[2px] sm:gap-1"
               style={{
                 gridTemplateColumns: `auto repeat(${data.days.length}, 1fr)`,
-                gridTemplateRows: `auto repeat(${data.timeSlots.length}, 1fr)`,
+                gridTemplateRows: `auto repeat(${timeSlotsWithHourlyMarkers.length}, 1fr)`,
               }}
             >
               {/* Header Row */}
@@ -229,7 +255,7 @@ export function InstagramTimetable({
               ))}
 
               {/* Time Rows */}
-              {data.timeSlots.map((time, timeIndex) => {
+              {timeSlotsWithHourlyMarkers.map((time, timeIndex) => {
                 // Calculate the grid row (1-indexed, +1 for header row)
                 const gridRow = timeIndex + 2
 
@@ -410,8 +436,10 @@ function TimeCell({
 }
 
 function getLevelColor(level: string): string {
-  if (level === "Beginner" || level === "Beg/Int") return "#4ade80" // green-400
-  if (level === "Intermediate" || level === "Int/Adv") return "#facc15" // yellow-400
+  if (level === "Beginner") return "#4ade80" // green-400
+  if (level === "Beg/Int") return "#86efac" // light green (between green and yellow)
+  if (level === "Intermediate") return "#facc15" // yellow-400
+  if (level === "Int/Adv") return "#f97316" // orange (between yellow and red)
   if (level === "Advanced") return "#f87171" // red-400
   return "#facc15"
 }
