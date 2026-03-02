@@ -24,6 +24,7 @@ import {
   getCurrentUserProfile,
   getAllInstructors,
 } from "@/app/profile/actions"
+import { validateEventTimes } from "@/lib/validations"
 import type { UserDisplayInfo } from "@/db/schema"
 
 export type EventFormInitialValues = {
@@ -128,6 +129,9 @@ export function EventForm({
   const [recurringValidationError, setRecurringValidationError] = useState<
     string | null
   >(null)
+  const [timeValidationError, setTimeValidationError] = useState<string | null>(
+    null,
+  )
   const [isDeleting, setIsDeleting] = useState(false)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [isDeletingAllFuture, setIsDeletingAllFuture] = useState(false)
@@ -276,7 +280,21 @@ export function EventForm({
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
 
-    const formData = new FormData(e.currentTarget)
+    const form = e.currentTarget
+    const startTime = (form.elements.namedItem("start_time") as HTMLInputElement)
+      ?.value
+    const endTime = (form.elements.namedItem("end_time") as HTMLInputElement)
+      ?.value
+    if (startTime && endTime) {
+      const timeError = validateEventTimes(startTime, endTime)
+      if (timeError) {
+        setTimeValidationError(timeError)
+        return
+      }
+    }
+    setTimeValidationError(null)
+
+    const formData = new FormData(form)
 
     // Add id if editing
     if (initialValues?.id) {
@@ -636,9 +654,15 @@ export function EventForm({
             name="start_time"
             type="time"
             defaultValue={initialValues?.startTime || ""}
+            min="08:00"
+            max="22:00"
             required
             disabled={isSubmitting}
+            onChange={() => setTimeValidationError(null)}
           />
+          <p className="text-xs text-muted-foreground">
+            Workshops must be between 8:00 AM and 10:00 PM
+          </p>
         </div>
         <div className="space-y-2">
           <Label htmlFor="end_time">End Time *</Label>
@@ -647,9 +671,15 @@ export function EventForm({
             name="end_time"
             type="time"
             defaultValue={initialValues?.endTime || ""}
+            min="08:00"
+            max="22:00"
             required
             disabled={isSubmitting}
+            onChange={() => setTimeValidationError(null)}
           />
+          {timeValidationError && (
+            <p className="text-xs text-destructive">{timeValidationError}</p>
+          )}
         </div>
       </div>
 

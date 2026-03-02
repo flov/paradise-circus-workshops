@@ -212,11 +212,49 @@ export const profileSchema = z.object({
     .optional(),
 });
 
-export const createEventSchema = z.object({
-  title: z.string().min(1, "Title is required"),
-  description: z.string().min(1, "Description is required"),
-  date: dateStringSchema,
-  start_time: z.string().min(1, "Start time is required"),
-  end_time: z.string().min(1, "End time is required"),
-  location: z.string().min(1, "Location is required"),
-});
+/** Parse HH:MM or HH:MM:SS to minutes since midnight for comparison */
+function timeToMinutes(time: string): number {
+  const parts = time.trim().split(":")
+  const hours = parseInt(parts[0] || "0", 10)
+  const minutes = parseInt(parts[1] || "0", 10)
+  return hours * 60 + minutes
+}
+
+export const EVENT_TIME_MIN = "08:00" // 8am
+export const EVENT_TIME_MAX = "22:00" // 10pm
+
+/** Validate event times are within 8am–10pm. Returns error message or null if valid. */
+export function validateEventTimes(
+  startTime: string,
+  endTime: string
+): string | null {
+  const startMin = timeToMinutes(startTime)
+  const endMin = timeToMinutes(endTime)
+  const minMin = timeToMinutes(EVENT_TIME_MIN)
+  const maxMin = timeToMinutes(EVENT_TIME_MAX)
+  if (startMin < minMin || endMin > maxMin) {
+    return "Event times must be between 8:00 AM and 10:00 PM"
+  }
+  return null
+}
+
+export const createEventSchema = z
+  .object({
+    title: z.string().min(1, "Title is required"),
+    description: z.string().min(1, "Description is required"),
+    date: dateStringSchema,
+    start_time: z.string().min(1, "Start time is required"),
+    end_time: z.string().min(1, "End time is required"),
+    location: z.string().min(1, "Location is required"),
+  })
+  .refine(
+    (data) => {
+      const startMin = timeToMinutes(data.start_time)
+      const endMin = timeToMinutes(data.end_time)
+      return startMin >= timeToMinutes(EVENT_TIME_MIN) && endMin <= timeToMinutes(EVENT_TIME_MAX)
+    },
+    {
+      message: "Event times must be between 8:00 AM and 10:00 PM",
+      path: ["start_time"],
+    }
+  )

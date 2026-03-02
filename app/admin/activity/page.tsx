@@ -27,7 +27,7 @@ export default async function ActivityPage() {
         description="Recent timetable activity by admins and instructors"
       />
 
-      <main className="mx-auto max-w-3xl px-4 py-8 sm:px-6 lg:px-8">
+      <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
         <ActivityFeed initialLogs={logs} initialHasMore={hasMore} />
       </main>
     </div>

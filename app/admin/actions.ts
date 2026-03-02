@@ -37,7 +37,10 @@ import {
 } from "@/lib/email"
 import { randomUUID } from "crypto"
 import { logActivity } from "@/lib/activity-log"
-import { createEventSchema } from "@/lib/validations"
+import {
+  createEventSchema,
+  validateEventTimes,
+} from "@/lib/validations"
 
 /** Resolve the current user's DB id, display name, and username for activity logging. */
 async function getActorInfo(
@@ -922,6 +925,11 @@ export async function updateEvent(formData: FormData) {
     !location
   ) {
     return { success: false, error: "Missing required fields" }
+  }
+
+  const timeError = validateEventTimes(start_time, end_time)
+  if (timeError) {
+    return { success: false, error: timeError }
   }
 
   // Validate that either instructorId or instructor string is provided
