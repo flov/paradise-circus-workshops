@@ -12,6 +12,7 @@ import {
   Activity,
   BarChart3,
   Tag,
+  MessageSquare,
 } from "lucide-react"
 
 interface AdminNavProps {
@@ -35,6 +36,7 @@ const navLinks = [
   { href: "/admin/users", label: "Users", icon: Users },
   { href: "/admin/props", label: "Props", icon: Package },
   { href: "/admin/level-migration", label: "Level Migration", icon: Tag },
+  { href: "/admin/feedback", label: "Feedback", icon: MessageSquare },
 ]
 
 export function AdminNav({ title, description, children }: AdminNavProps) {
