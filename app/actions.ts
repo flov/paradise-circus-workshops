@@ -2,17 +2,21 @@
 
 import { randomUUID } from "crypto";
 import { db } from "@/db";
-import { events, participations } from "@/db/schema";
+import { events, participations, feedbacks } from "@/db/schema";
 import { eq, sql, and } from "drizzle-orm";
 import { revalidatePath, revalidateTag, unstable_cache } from "next/cache";
 import {
   sendParticipationConfirmationEmail,
   sendAdminNotificationEmail,
   sendCommentNotificationEmail,
+  sendFeedbackNotificationEmail,
 } from "@/lib/email";
 import { auth, currentUser } from "@clerk/nextjs/server";
 import { getUserName, getUserEmail, createEventSlug } from "@/lib/utils";
 import { createParticipationSchema, addCommentSchema } from "@/lib/validations";
+import { z } from "zod";
+import { headers } from "next/headers";
+import { checkRateLimit } from "@/lib/rate-limit";
 
 export async function createParticipation(formData: FormData) {
   // Get authenticated user
@@ -869,4 +873,53 @@ export async function getInstagramTimetableData(
     cacheKey,
     { revalidate: 300, tags: ["timetable-public", "instagram-timetable"] }
   )();
+}
+
+const submitFeedbackSchema = z.object({
+  message: z.string().min(1, "Message is required").max(2000, "Message must be under 2000 characters"),
+  name: z.string().max(255).optional().or(z.literal("")),
+  email: z.string().email("Invalid email").optional().or(z.literal("")),
+  website: z.literal(""),  // honeypot — bots fill this, humans don't
+});
+
+export async function submitFeedback(formData: FormData) {
+  // Rate limit: 3 submissions per IP per 10 minutes
+  const headersList = await headers();
+  const ip =
+    headersList.get("x-forwarded-for")?.split(",")[0].trim() ??
+    headersList.get("x-real-ip") ??
+    "unknown";
+
+  if (!checkRateLimit(ip, { limit: 3, windowMs: 10 * 60 * 1000 })) {
+    return { success: false, error: "Too many submissions. Please try again later." };
+  }
+
+  const raw = {
+    message: formData.get("message") as string,
+    name: (formData.get("name") as string) || undefined,
+    email: (formData.get("email") as string) || undefined,
+    website: (formData.get("website") as string) ?? "",
+  };
+
+  const parsed = submitFeedbackSchema.safeParse(raw);
+  if (!parsed.success) {
+    return { success: false, error: parsed.error.issues[0].message };
+  }
+
+  const { message, name, email } = parsed.data;
+  const nameValue = name || null;
+  const emailValue = email || null;
+
+  try {
+    await db.insert(feedbacks).values({ message, name: nameValue, email: emailValue });
+  } catch (error) {
+    console.error("Failed to save feedback:", error);
+    return { success: false, error: "Failed to save feedback" };
+  }
+
+  sendFeedbackNotificationEmail({ message, name: nameValue ?? undefined, email: emailValue ?? undefined }).catch(
+    (err) => console.error("Failed to send feedback notification:", err),
+  );
+
+  return { success: true };
 }

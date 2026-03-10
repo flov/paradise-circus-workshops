@@ -11,6 +11,7 @@ import { EventCancelledEmail } from "@/emails/event-cancelled";
 import { InstructorAssignedEmail } from "@/emails/instructor-assigned";
 import { RecapAddedEmail } from "@/emails/recap-added";
 import { AdminPromotedEmail } from "@/emails/admin-promoted";
+import { FeedbackNotificationEmail } from "@/emails/feedback-notification";
 
 type ParticipationConfirmationEmailProps = {
   participantName: string;
@@ -729,6 +730,37 @@ The Paradise Circus Team
   } catch (error) {
     console.error("Failed to send recap notification email:", error);
     throw error;
+  }
+
+  return { success: true };
+}
+
+export async function sendFeedbackNotificationEmail(props: {
+  name?: string;
+  email?: string;
+  message: string;
+}) {
+  const emailHtml = await render(<FeedbackNotificationEmail {...props} />);
+
+  if (!process.env.RESEND_API_KEY) {
+    console.error("RESEND_API_KEY is not set. Feedback notification will not be sent.");
+    return { success: false, error: "Email service not configured" };
+  }
+
+  try {
+    const resend = new Resend(process.env.RESEND_API_KEY);
+    const fromEmail = process.env.RESEND_FROM_EMAIL || "onboarding@resend.dev";
+
+    await resend.emails.send({
+      from: fromEmail,
+      to: "contact@paradise-circus.app",
+      subject: "New feedback received",
+      html: emailHtml,
+    });
+
+    console.log("Feedback notification email sent");
+  } catch (error) {
+    console.error("Failed to send feedback notification email:", error);
   }
 
   return { success: true };

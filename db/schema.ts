@@ -258,6 +258,17 @@ export const activityLogs = pgTable(
   }),
 )
 
+export const feedbacks = pgTable("feedbacks", {
+  id: serial("id").primaryKey(),
+  name: varchar("name", { length: 255 }),
+  email: varchar("email", { length: 255 }),
+  message: text("message").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+})
+
+export type Feedback = InferSelectModel<typeof feedbacks>
+export type NewFeedback = InferInsertModel<typeof feedbacks>
+
 // Export inferred types for each table
 export type Event = InferSelectModel<typeof events>
 export type NewEvent = InferInsertModel<typeof events>

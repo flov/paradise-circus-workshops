@@ -1,0 +1,1 @@
+ALTER TABLE "feedbacks" ADD COLUMN "name" varchar(255);

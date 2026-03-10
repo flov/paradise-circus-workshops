@@ -218,6 +218,20 @@
       "when": 1772038146454,
       "tag": "0030_drop-admin-settings",
       "breakpoints": true
+    },
+    {
+      "idx": 31,
+      "version": "7",
+      "when": 1773157419539,
+      "tag": "0031_add-feedbacks-table",
+      "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "7",
+      "when": 1773179570954,
+      "tag": "0032_add-name-to-feedbacks",
+      "breakpoints": true
     }
   ]
 }

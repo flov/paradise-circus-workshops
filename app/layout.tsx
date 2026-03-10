@@ -4,6 +4,7 @@ import { Analytics } from "@vercel/analytics/next";
 import { ClerkProvider } from "@clerk/nextjs";
 import { QueryProvider } from "@/components/query-provider";
 import { AppShell } from "@/components/app-shell";
+import { FeedbackWidget } from "@/components/feedback-widget";
 import "./globals.css";
 
 const _geist = Geist({ subsets: ["latin"] });
@@ -121,6 +122,7 @@ export default function RootLayout({
         >
           <QueryProvider>
             <AppShell>{children}</AppShell>
+            <FeedbackWidget />
             <Analytics />
           </QueryProvider>
         </body>
