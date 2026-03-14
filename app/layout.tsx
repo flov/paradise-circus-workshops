@@ -1,24 +1,24 @@
-import type { Metadata, Viewport } from "next";
-import { Geist, Geist_Mono, Rye } from "next/font/google";
-import { Analytics } from "@vercel/analytics/next";
-import { ClerkProvider } from "@clerk/nextjs";
-import { QueryProvider } from "@/components/query-provider";
-import { AppShell } from "@/components/app-shell";
-import { FeedbackWidget } from "@/components/feedback-widget";
-import "./globals.css";
+import type { Metadata, Viewport } from "next"
+import { Geist, Geist_Mono, Rye } from "next/font/google"
+import { Analytics } from "@vercel/analytics/next"
+import { ClerkProvider } from "@clerk/nextjs"
+import { QueryProvider } from "@/components/query-provider"
+import { AppShell } from "@/components/app-shell"
+import { FeedbackWidget } from "@/components/feedback-widget"
+import "./globals.css"
 
-const _geist = Geist({ subsets: ["latin"] });
-const _geistMono = Geist_Mono({ subsets: ["latin"] });
+const _geist = Geist({ subsets: ["latin"] })
+const _geistMono = Geist_Mono({ subsets: ["latin"] })
 const rye = Rye({
   subsets: ["latin"],
   weight: "400",
   variable: "--font-rye",
-});
+})
 
 const baseUrl =
   process.env.NEXT_PUBLIC_APP_URL ||
   process.env.NEXT_PUBLIC_SITE_URL ||
-  "https://paradise-circus.app";
+  "https://paradise-circus.app"
 
 export const metadata: Metadata = {
   title: {
@@ -85,19 +85,22 @@ export const metadata: Metadata = {
     apple: "/icon.png",
   },
   manifest: "/site.webmanifest",
-};
+  other: {
+    "apple-itunes-app": "app-id=6759627432",
+  },
+}
 
 export const viewport: Viewport = {
   themeColor: [
     { media: "(prefers-color-scheme: light)", color: "#ffffff" },
     { media: "(prefers-color-scheme: dark)", color: "#0f172a" },
   ],
-};
+}
 
 export default function RootLayout({
   children,
 }: Readonly<{
-  children: React.ReactNode;
+  children: React.ReactNode
 }>) {
   return (
     <ClerkProvider
@@ -128,5 +131,5 @@ export default function RootLayout({
         </body>
       </html>
     </ClerkProvider>
-  );
+  )
 }

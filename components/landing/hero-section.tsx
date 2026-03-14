@@ -7,7 +7,11 @@ import { useQueryClient } from "@tanstack/react-query"
 import { useAuth } from "@clerk/nextjs"
 import { Button } from "@/components/ui/button"
 import { ArrowRight, Sparkles } from "lucide-react"
-import { getWeekDates, formatLocalDate, organizeEvents } from "@/lib/timetable-utils"
+import {
+  getWeekDates,
+  formatLocalDate,
+  organizeEvents,
+} from "@/lib/timetable-utils"
 import type { AuthContext } from "@/lib/timetable-utils"
 
 const phrases = [
@@ -56,22 +60,27 @@ export function HeroSection() {
 
     if (isSignedIn) {
       // Prefetch auth-context first, then timetable with userId
-      queryClient.prefetchQuery<AuthContext>({
-        queryKey: ["auth-context", true],
-        queryFn: async () => {
-          const res = await fetch("/api/auth/me")
-          const data = await res.json()
-          return {
-            isAdmin: data.isAdmin ?? false,
-            isInstructor: data.isInstructor ?? false,
-            userId: data.userId ?? null,
-          }
-        },
-        staleTime: 5 * 60_000,
-      }).then(() => {
-        const cached = queryClient.getQueryData<AuthContext>(["auth-context", true])
-        fetchTimetable(cached?.userId ?? null)
-      })
+      queryClient
+        .prefetchQuery<AuthContext>({
+          queryKey: ["auth-context", true],
+          queryFn: async () => {
+            const res = await fetch("/api/auth/me")
+            const data = await res.json()
+            return {
+              isAdmin: data.isAdmin ?? false,
+              isInstructor: data.isInstructor ?? false,
+              userId: data.userId ?? null,
+            }
+          },
+          staleTime: 5 * 60_000,
+        })
+        .then(() => {
+          const cached = queryClient.getQueryData<AuthContext>([
+            "auth-context",
+            true,
+          ])
+          fetchTimetable(cached?.userId ?? null)
+        })
     } else {
       fetchTimetable(null)
     }
@@ -151,6 +160,26 @@ export function HeroSection() {
           >
             <Link href="/artists">Meet the Artists</Link>
           </Button>
+        </div>
+
+        {/* App Store CTA */}
+        <div className="mt-6 flex flex-col sm:flex-row items-center justify-center gap-4">
+          <Link
+            href="https://apps.apple.com/app/id6759627432"
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="Download on the App Store"
+            className="inline-flex items-center justify-center transition-opacity duration-200 hover:opacity-90 focus-visible:opacity-90"
+            prefetch={false}
+          >
+            <Image
+              src="/images/app-store-badge.svg"
+              alt="Download on the App Store"
+              width={160}
+              height={53}
+              className="h-12 w-auto"
+            />
+          </Link>
         </div>
 
         {/* Location badge */}
