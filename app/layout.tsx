@@ -122,7 +122,7 @@ export default function RootLayout({
         >
           <QueryProvider>
             <AppShell>{children}</AppShell>
-            <FeedbackWidget />
+            {/* <FeedbackWidget /> remove the feedback widget for the moment */}
             <Analytics />
           </QueryProvider>
         </body>
