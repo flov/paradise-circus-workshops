@@ -1510,8 +1510,30 @@ export async function updateEvent(formData: FormData) {
         return { success: true }
       }
 
+      // Resolve the intended series occurrence by submitted date.
+      // This protects against stale/anchor IDs and keeps updates scoped
+      // to the occurrence the user actually submitted.
+      let targetEventId = eventId
+      let targetSeriesDate = currentEvent.date
+      if (date !== currentEvent.date) {
+        const targetSeriesEvent = await db
+          .select({ id: events.id, date: events.date })
+          .from(events)
+          .where(
+            and(
+              eq(events.recurringSeriesId, currentEvent.recurringSeriesId),
+              eq(events.date, date),
+            ),
+          )
+          .limit(1)
+        if (targetSeriesEvent.length > 0) {
+          targetEventId = targetSeriesEvent[0].id
+          targetSeriesDate = targetSeriesEvent[0].date
+        }
+      }
+
       // Check if start date changed - if so, we need to recalculate dates
-      const startDateChanged = currentEvent.date !== date
+      const startDateChanged = targetSeriesDate !== date
 
       if (startDateChanged) {
         // For recurring events, we need to find all events in the series and update their dates
@@ -1522,11 +1544,16 @@ export async function updateEvent(formData: FormData) {
             date: events.date,
           })
           .from(events)
-          .where(eq(events.recurringSeriesId, currentEvent.recurringSeriesId))
+          .where(
+            and(
+              eq(events.recurringSeriesId, currentEvent.recurringSeriesId),
+              gte(events.date, targetSeriesDate),
+            ),
+          )
           .orderBy(asc(events.date))
 
         if (seriesEvents.length > 0) {
-          const originalStartDate = new Date(currentEvent.date)
+          const originalStartDate = new Date(targetSeriesDate)
           const newStartDate = new Date(date)
           const dateDiff = Math.round(
             (newStartDate.getTime() - originalStartDate.getTime()) /
@@ -1551,6 +1578,7 @@ export async function updateEvent(formData: FormData) {
             .where(
               and(
                 eq(events.recurringSeriesId, currentEvent.recurringSeriesId),
+                gte(events.date, targetSeriesDate),
                 inArray(events.date, dateValues),
               ),
             )
@@ -1604,7 +1632,12 @@ export async function updateEvent(formData: FormData) {
         const seriesEvents = await db
           .select({ id: events.id, date: events.date })
           .from(events)
-          .where(eq(events.recurringSeriesId, currentEvent.recurringSeriesId))
+          .where(
+            and(
+              eq(events.recurringSeriesId, currentEvent.recurringSeriesId),
+              gte(events.date, targetSeriesDate),
+            ),
+          )
         for (const seriesEvent of seriesEvents) {
           const err = await getLocationCollisionError(
             seriesEvent.date,
@@ -1617,7 +1650,10 @@ export async function updateEvent(formData: FormData) {
           if (err) return err
         }
         // First, update the specific event being edited with all fields (including date)
-        await db.update(events).set(updateData).where(eq(events.id, eventId))
+        await db
+          .update(events)
+          .set(updateData)
+          .where(eq(events.id, targetEventId))
 
         // Then, update other events in the series with all fields EXCEPT date
         // (they should keep their original dates to maintain the weekly schedule)
@@ -1629,7 +1665,8 @@ export async function updateEvent(formData: FormData) {
             and(
               eq(events.recurringSeriesId, currentEvent.recurringSeriesId),
               eq(events.isRecurring, true),
-              sql`${events.id} != ${eventId}`, // Exclude the event we just updated
+              gte(events.date, targetSeriesDate),
+              sql`${events.id} != ${targetEventId}`, // Exclude the event we just updated
             ),
           )
       }

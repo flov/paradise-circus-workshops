@@ -1423,4 +1423,177 @@ describe("updateEvent", () => {
     expect(eventAfterPublish[0].isPublished).toBe(true)
     expect(eventAfterPublish[0].lastUpdatedBy).toBe(instructor.id)
   })
+
+  it("should allow updating March recurring instance location even if February collides", async () => {
+    const admin = await createTestUser({
+      clerkUserId: "admin-recurring-location",
+      isAdmin: true,
+    })
+    const instructor = await createTestUser({
+      clerkUserId: "instructor-recurring-location",
+      username: "contactstaff",
+      displayName: "Contact Staff",
+      isInstructor: true,
+    })
+
+    const recurringSeriesId = randomUUID()
+
+    await createTestEvent({
+      title: "Contact Staff Tricks",
+      instructor: "Contact Staff",
+      instructorId: instructor.id,
+      date: "2026-02-13",
+      startTime: "15:00:00",
+      endTime: "16:00:00",
+      location: "Paradise River",
+      recurringSeriesId,
+      isRecurring: true,
+    })
+
+    const marchEvent = await createTestEvent({
+      title: "Contact Staff Tricks",
+      instructor: "Contact Staff",
+      instructorId: instructor.id,
+      date: "2026-03-14",
+      startTime: "15:00:00",
+      endTime: "16:00:00",
+      location: "Paradise River",
+      recurringSeriesId,
+      isRecurring: true,
+    })
+
+    await createTestEvent({
+      title: "Rope dart intermediat",
+      instructor: "Other Instructor",
+      date: "2026-02-13",
+      startTime: "15:00:00",
+      endTime: "16:00:00",
+      location: "Paradise Stage",
+      isRecurring: false,
+    })
+
+    mockAdminAuth(admin.clerkUserId)
+    vi.mocked(isAdmin).mockResolvedValue(true)
+    vi.mocked(isInstructor).mockResolvedValue(false)
+
+    const formData = createEventUpdateFormData(marchEvent.id, {
+      title: "Contact Staff Tricks",
+      description: marchEvent.description || "",
+      instructor: "Contact Staff",
+      instructorId: instructor.id.toString(),
+      date: "2026-03-14",
+      start_time: "15:00",
+      end_time: "16:00",
+      location: "Paradise Stage",
+      whatToBring: marchEvent.whatToBring || "",
+      propId: marchEvent.propId?.toString() ?? "",
+      isWorkshop: marchEvent.isWorkshop ? "on" : "false",
+      isPublished: marchEvent.isPublished ? "on" : "false",
+      isRecurring: "on",
+    })
+
+    const result = await updateEvent(formData)
+    expect(result).toEqual({ success: true })
+
+    const db = getTestDb()
+    const updatedMarchEvent = await db
+      .select({ id: events.id, location: events.location })
+      .from(events)
+      .where(eq(events.id, marchEvent.id))
+      .limit(1)
+
+    expect(updatedMarchEvent).toHaveLength(1)
+    expect(updatedMarchEvent[0].location).toBe("Paradise Stage")
+  })
+
+  it("should scope recurring update collision checks to submitted date, not earlier series dates", async () => {
+    const admin = await createTestUser({
+      clerkUserId: "admin-recurring-scope",
+      isAdmin: true,
+    })
+    const instructor = await createTestUser({
+      clerkUserId: "instructor-recurring-scope",
+      username: "contactstaffscope",
+      displayName: "Contact Staff",
+      isInstructor: true,
+    })
+
+    const recurringSeriesId = randomUUID()
+
+    const febEvent = await createTestEvent({
+      title: "Contact Staff Tricks",
+      instructor: "Contact Staff",
+      instructorId: instructor.id,
+      date: "2026-02-13",
+      startTime: "15:00:00",
+      endTime: "16:00:00",
+      location: "Paradise River",
+      recurringSeriesId,
+      isRecurring: true,
+    })
+
+    const marchEvent = await createTestEvent({
+      title: "Contact Staff Tricks",
+      instructor: "Contact Staff",
+      instructorId: instructor.id,
+      date: "2026-03-14",
+      startTime: "15:00:00",
+      endTime: "16:00:00",
+      location: "Paradise River",
+      recurringSeriesId,
+      isRecurring: true,
+    })
+
+    await createTestEvent({
+      title: "Rope dart intermediat",
+      instructor: "Other Instructor",
+      date: "2026-02-13",
+      startTime: "15:00:00",
+      endTime: "16:00:00",
+      location: "Paradise Stage",
+      isRecurring: false,
+    })
+
+    mockAdminAuth(admin.clerkUserId)
+    vi.mocked(isAdmin).mockResolvedValue(true)
+    vi.mocked(isInstructor).mockResolvedValue(false)
+
+    const formData = createEventUpdateFormData(febEvent.id, {
+      title: "Contact Staff Tricks",
+      description: febEvent.description || "",
+      instructor: "Contact Staff",
+      instructorId: instructor.id.toString(),
+      // Simulate UI submitting a later occurrence date with the series anchor ID.
+      date: "2026-03-14",
+      start_time: "15:00",
+      end_time: "16:00",
+      location: "Paradise Stage",
+      whatToBring: febEvent.whatToBring || "",
+      propId: febEvent.propId?.toString() ?? "",
+      isWorkshop: febEvent.isWorkshop ? "on" : "false",
+      isPublished: febEvent.isPublished ? "on" : "false",
+      isRecurring: "on",
+    })
+
+    const result = await updateEvent(formData)
+
+    expect(result).toEqual({ success: true })
+
+    const db = getTestDb()
+    const [updatedMarchEvent] = await db
+      .select({ id: events.id, date: events.date, location: events.location })
+      .from(events)
+      .where(eq(events.id, marchEvent.id))
+      .limit(1)
+
+    const [updatedFebruaryEvent] = await db
+      .select({ id: events.id, date: events.date, location: events.location })
+      .from(events)
+      .where(eq(events.id, febEvent.id))
+      .limit(1)
+
+    expect(updatedMarchEvent.date).toBe("2026-03-14")
+    expect(updatedMarchEvent.location).toBe("Paradise Stage")
+    expect(updatedFebruaryEvent.date).toBe("2026-02-13")
+  })
 })
