@@ -476,9 +476,6 @@ function EventCell({
 
   // Check if this is Wednesday at 6pm for the buffet event
   const isBuffetTime = day === "Wed" && time === "6pm"
-  // Check if this is Sunday at 12pm for the community clean up event
-  const isCleanupTime = day === "Sun" && time === "12pm"
-
   // Handle half-hour starts: position in bottom half of the slot
   const needsHalfHourPositioning = event?.startsAtHalfHour && rowSpan === 1
 
@@ -488,7 +485,7 @@ function EventCell({
         className="bg-[#4a4a4a] rounded-md sm:rounded-lg flex items-center justify-center p-0.5 sm:p-1 overflow-hidden"
         style={{
           ...gridStyle,
-          opacity: isCleanupTime || isBuffetTime ? 1 : 0.75,
+          opacity: isBuffetTime ? 1 : 0.75,
         }}
       >
         <div className="text-center w-full">
@@ -510,17 +507,6 @@ function EventCell({
                 Pi Gaew
               </p>
             </>
-          )}
-          {isCleanupTime && (
-            <p
-              className="text-[8px] sm:text-[10px] md:text-[11px] lg:text[10px] leading-tight mt-1"
-              style={{
-                color: "#a855f7",
-                fontFamily: "'Arial Black', 'Arial Bold', Arial, sans-serif",
-              }}
-            >
-              10:30 Dacha Park Community Clean Up
-            </p>
           )}
           <p className="text-gray-300 font-normal text-[9px] sm:text-[11px] md:text-[12px] lg:text-sm leading-tight">
             Free Flow
@@ -639,17 +625,6 @@ function EventCell({
                 </p>
               </>
             )}
-            {isCleanupTime && (
-              <p
-                className="text-[9px] sm:text-[11px] md:text-[12px] lg:text-sm leading-tight mt-1"
-                style={{
-                  color: "#a855f7",
-                  fontFamily: "'Arial Black', 'Arial Bold', Arial, sans-serif",
-                }}
-              >
-                10:30 Dacha Park Community Clean Up
-              </p>
-            )}
           </div>
         </div>
       </div>
@@ -727,17 +702,6 @@ function EventCell({
               All You Can Eat Buffet - Pi Gaew
             </p>
           </>
-        )}
-        {isCleanupTime && (
-          <p
-            className="text-[9px] sm:text-[10px] md:text-[10px] lg:text-[10px] leading-tight mt-1"
-            style={{
-              color: "#a855f7",
-              fontFamily: "'Arial Black', 'Arial Bold', Arial, sans-serif",
-            }}
-          >
-            10:30 Dacha Park Community Clean Up
-          </p>
         )}
       </div>
     </div>
