@@ -177,15 +177,10 @@
           "name": {
             "type": "string",
             "description": "Prop name"
-          },
-          "skillLevel": {
-            "type": "integer",
-            "description": "Skill level 0-5"
           }
         },
         "required": [
-          "name",
-          "skillLevel"
+          "name"
         ]
       },
       "artistListItemSchema": {
@@ -278,9 +273,6 @@
           "propName": {
             "type": "string"
           },
-          "skillLevel": {
-            "type": "integer"
-          },
           "createdAt": {
             "type": "string",
             "description": "ISO 8601 datetime"
@@ -291,7 +283,6 @@
           "userId",
           "propId",
           "propName",
-          "skillLevel",
           "createdAt"
         ]
       },
