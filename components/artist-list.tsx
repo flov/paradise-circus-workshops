@@ -38,7 +38,7 @@ interface Artist {
   isInstructor: boolean;
   isAdmin?: boolean;
   workshopCount?: number;
-  props: Array<{ name: string; skillLevel: number }>;
+  props: Array<{ name: string }>;
   username: string;
   videoCount?: number;
   bio?: string;
@@ -144,9 +144,6 @@ function ArtistCard({ artist }: { artist: Artist }) {
                 className="h-5 px-1.5 font-normal text-sm text-muted-foreground"
               >
                 {prop.name}
-                <span className="ml-1 text-xs opacity-75">
-                  {prop.skillLevel}/10
-                </span>
               </Badge>
             ))}
           </div>

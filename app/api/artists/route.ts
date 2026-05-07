@@ -31,7 +31,6 @@ async function getAllArtistsUncached() {
           .select({
             userId: userProps.userId,
             propName: props.name,
-            skillLevel: userProps.skillLevel,
           })
           .from(userProps)
           .innerJoin(props, eq(userProps.propId, props.id))
@@ -58,10 +57,10 @@ async function getAllArtistsUncached() {
   const propsByUserId = userPropsData.reduce(
     (acc, item) => {
       if (!acc[item.userId]) acc[item.userId] = []
-      acc[item.userId].push({ name: item.propName, skillLevel: item.skillLevel })
+      acc[item.userId].push({ name: item.propName })
       return acc
     },
-    {} as Record<number, Array<{ name: string; skillLevel: number }>>,
+    {} as Record<number, Array<{ name: string }>>,
   )
 
   const workshopCountsByUserId = workshopCountsData.reduce(

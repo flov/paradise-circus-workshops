@@ -43,7 +43,6 @@ async function getAllArtistsUncached() {
           .select({
             userId: userProps.userId,
             propName: props.name,
-            skillLevel: userProps.skillLevel,
           })
           .from(userProps)
           .innerJoin(props, eq(userProps.propId, props.id))
@@ -68,7 +67,7 @@ async function getAllArtistsUncached() {
           .groupBy(events.instructorId)
       : [];
 
-  // Group props by userId with skill levels
+  // Group props by userId
   const propsByUserId = userPropsData.reduce(
     (acc, item) => {
       if (!acc[item.userId]) {
@@ -76,11 +75,10 @@ async function getAllArtistsUncached() {
       }
       acc[item.userId].push({
         name: item.propName,
-        skillLevel: item.skillLevel,
       });
       return acc;
     },
-    {} as Record<number, Array<{ name: string; skillLevel: number }>>,
+    {} as Record<number, Array<{ name: string }>>,
   );
 
   // Create workshop counts map

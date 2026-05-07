@@ -253,7 +253,6 @@ export async function createProfile(formData: FormData) {
       try {
         const propsData = JSON.parse(propsJson) as Array<{
           propName: string;
-          skillLevel: number;
         }>;
 
         // Delete existing props
@@ -269,7 +268,6 @@ export async function createProfile(formData: FormData) {
                 return {
                   userId: user.id,
                   propId,
-                  skillLevel: Math.max(0, Math.min(10, prop.skillLevel)),
                 };
               }),
           );
@@ -448,7 +446,6 @@ export async function getUserProps(userId: number): Promise<UserProp[]> {
         userId: userProps.userId,
         propId: userProps.propId,
         propName: props.name,
-        skillLevel: userProps.skillLevel,
         createdAt: userProps.createdAt,
       })
       .from(userProps)

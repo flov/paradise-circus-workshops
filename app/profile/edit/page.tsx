@@ -45,7 +45,6 @@ export default async function EditProfilePage() {
     vimeoVideos: profile.vimeoVideos?.join(", ") ?? undefined,
     props: props.map((p) => ({
       propName: p.propName,
-      skillLevel: p.skillLevel,
     })),
   };
 

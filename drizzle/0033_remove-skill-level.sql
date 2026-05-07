@@ -1,0 +1,1 @@
+ALTER TABLE "user_props" DROP COLUMN "skill_level";

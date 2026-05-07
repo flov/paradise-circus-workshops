@@ -11,6 +11,7 @@ import {
   getYouTubeEmbedUrl,
   getVimeoEmbedUrl,
   createEventSlug,
+  getPropColor,
 } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -204,6 +205,17 @@ export default async function ArtistProfilePage({
                 <span className="font-medium">{user.performanceStyle}</span>
               </p>
             )}
+
+            {props.length > 0 && (
+              <div className="flex flex-wrap items-center gap-1.5">
+                <span className="text-sm text-muted-foreground mr-1">Skills:</span>
+                {props.map((prop) => (
+                  <Badge key={prop.id} variant="outline" className={`text-sm ${getPropColor(prop.propName)}`}>
+                    {prop.propName}
+                  </Badge>
+                ))}
+              </div>
+            )}
           </div>
         </div>
 
@@ -221,34 +233,6 @@ export default async function ArtistProfilePage({
           </Card>
         )}
 
-        {/* Props & Skills */}
-        {props.length > 0 && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-xl">Props & Skills</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {props.map((prop) => (
-                  <div key={prop.id} className="space-y-2">
-                    <div className="flex justify-between items-center">
-                      <span className="font-medium">{prop.propName}</span>
-                      <span className="text-sm text-muted-foreground">
-                        Level {prop.skillLevel}/10
-                      </span>
-                    </div>
-                    <div className="w-full bg-muted rounded-full h-2">
-                      <div
-                        className="bg-primary h-2 rounded-full transition-all"
-                        style={{ width: `${(prop.skillLevel / 10) * 100}%` }}
-                      />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        )}
 
         {/* Workshops */}
         {(workshops.upcoming.length > 0 || workshops.past.length > 0) && (

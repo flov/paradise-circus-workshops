@@ -14,7 +14,6 @@ import {
   Orbit,
   TrendingUp,
   UserCheck,
-  BarChart3,
   ArrowRight,
   CalendarDays,
   RefreshCw,
@@ -52,12 +51,6 @@ export default async function AdminStatisticsPage() {
       description: "See the most active instructors by workshop count",
       href: "/admin/stats/instructors",
       icon: UserCheck,
-    },
-    {
-      title: "Skill Distribution",
-      description: "Analyze skill levels across different props",
-      href: "/admin/stats/skills",
-      icon: BarChart3,
     },
     {
       title: "Event Statistics",

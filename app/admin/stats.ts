@@ -21,7 +21,6 @@ export interface PropStatUser {
   displayName: string | null;
   avatarImageUrl: string | null;
   bio: string | null;
-  skillLevel: number;
 }
 
 export interface PropStat {
@@ -44,14 +43,6 @@ export interface TopInstructor {
   avatarImageUrl: string | null;
   workshopCount: number;
   totalParticipants: number;
-}
-
-export interface SkillDistribution {
-  propName: string;
-  beginner: number; // 1-3
-  intermediate: number; // 4-6
-  advanced: number; // 7-10
-  averageSkill: number;
 }
 
 export interface TimeSlotData {
@@ -113,21 +104,14 @@ async function getPropsStatsUncached(): Promise<PropStat[]> {
             displayName: users.displayName,
             avatarImageUrl: users.avatarImageUrl,
             bio: users.bio,
-            skillLevel: userProps.skillLevel,
           })
           .from(userProps)
           .innerJoin(users, eq(userProps.userId, users.id))
           .where(inArray(userProps.propId, propIds))
       : [];
 
-  // Sort by skillLevel descending, then group by propId and limit to top 13 per prop
-  allUsers.sort((a, b) => {
-    // First sort by propId, then by skillLevel desc
-    if (a.propId !== b.propId) {
-      return a.propId - b.propId;
-    }
-    return b.skillLevel - a.skillLevel;
-  });
+  // Group users by propId and limit to top 13 per prop
+  allUsers.sort((a, b) => a.propId - b.propId);
 
   // Group users by propId and limit to top 13 per prop
   const usersByPropId = new Map<number, PropStatUser[]>();
@@ -144,7 +128,6 @@ async function getPropsStatsUncached(): Promise<PropStat[]> {
         displayName: user.displayName,
         avatarImageUrl: user.avatarImageUrl,
         bio: user.bio,
-        skillLevel: user.skillLevel,
       });
     }
   }
@@ -325,30 +308,6 @@ export const getTopInstructors = (limit = 10) =>
       tags: ["top-instructors"],
     },
   )();
-
-/**
- * Get skill level distribution by prop
- */
-export async function getSkillDistribution(): Promise<SkillDistribution[]> {
-  const distribution = await db
-    .select({
-      propName: props.name,
-      beginner: sql<number>`CAST(COUNT(CASE WHEN ${userProps.skillLevel} BETWEEN 1 AND 3 THEN 1 END) AS INTEGER)`,
-      intermediate: sql<number>`CAST(COUNT(CASE WHEN ${userProps.skillLevel} BETWEEN 4 AND 6 THEN 1 END) AS INTEGER)`,
-      advanced: sql<number>`CAST(COUNT(CASE WHEN ${userProps.skillLevel} BETWEEN 7 AND 10 THEN 1 END) AS INTEGER)`,
-      averageSkill: sql<number>`CAST(COALESCE(AVG(${userProps.skillLevel}), 0) AS NUMERIC(10,1))`,
-    })
-    .from(props)
-    .leftJoin(userProps, eq(props.id, userProps.propId))
-    .groupBy(props.id, props.name)
-    .having(sql`COUNT(${userProps.id}) > 0`)
-    .orderBy(desc(sql`COUNT(${userProps.id})`));
-
-  return distribution.map((d) => ({
-    ...d,
-    averageSkill: Number(d.averageSkill),
-  }));
-}
 
 /**
  * Get workshop time slot distribution (heatmap data)

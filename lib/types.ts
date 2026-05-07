@@ -34,7 +34,6 @@ export interface ProfileFormData {
   vimeoVideos?: string;
   props?: Array<{
     propName: string;
-    skillLevel: number;
   }>;
 }
 

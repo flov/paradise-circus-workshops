@@ -201,7 +201,6 @@ export const userProps = pgTable(
     propId: integer("prop_id")
       .notNull()
       .references(() => props.id, { onDelete: "cascade" }),
-    skillLevel: integer("skill_level").notNull().default(0),
     createdAt: timestamp("created_at").defaultNow().notNull(),
   },
   (table) => ({

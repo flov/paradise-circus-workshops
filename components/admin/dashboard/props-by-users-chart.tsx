@@ -66,7 +66,6 @@ export function PropsByUsersChart({ stats }: PropsByUsersChartProps) {
   const renderUserDetails = (user: PropStat["users"][0]) => (
     <div className="space-y-1">
       <p className="font-medium">{user.displayName || user.username}</p>
-      <p className="text-xs text-muted-foreground">Skill: {user.skillLevel}/10</p>
       {user.bio && (
         <p className="text-xs text-muted-foreground line-clamp-2">
           {user.bio.slice(0, 100)}
@@ -143,14 +142,6 @@ export function PropsByUsersChart({ stats }: PropsByUsersChartProps) {
                                 {getInitials(user.displayName || user.username)}
                               </AvatarFallback>
                             </Avatar>
-                            <div>
-                              <p className="text-sm text-muted-foreground">
-                                Skill Level
-                              </p>
-                              <p className="text-lg font-semibold">
-                                {user.skillLevel}/10
-                              </p>
-                            </div>
                           </div>
                           {user.bio && (
                             <div>

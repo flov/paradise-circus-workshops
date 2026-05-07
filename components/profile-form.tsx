@@ -14,7 +14,6 @@ import type { ProfileFormData, PropOption } from "@/lib/types";
 
 interface Prop {
   propName: string;
-  skillLevel: number;
 }
 
 interface ProfileFormProps {
@@ -92,7 +91,7 @@ export function ProfileForm({
   );
 
   const addProp = useCallback(() => {
-    setProps((prev) => [...prev, { propName: "", skillLevel: 5 }]);
+    setProps((prev) => [...prev, { propName: "" }]);
   }, []);
 
   const removeProp = useCallback((index: number) => {
@@ -321,7 +320,7 @@ export function ProfileForm({
           </div>
 
           <div className="space-y-2">
-            <Label>Props & Skills</Label>
+            <Label>Props/Skills</Label>
             <div className="space-y-3">
               {props.map((prop, index) => (
                 <div key={index} className="flex gap-2 items-center">
@@ -344,30 +343,6 @@ export function ProfileForm({
                       ))}
                     </datalist>
                   </div>
-                  <div className="flex items-center gap-2 w-32">
-                    <input
-                      type="range"
-                      min="0"
-                      max="10"
-                      value={prop.skillLevel}
-                      onChange={(e) =>
-                        updateProp(
-                          index,
-                          "skillLevel",
-                          parseInt(e.target.value),
-                        )
-                      }
-                      className="flex-1"
-                      aria-label={`Skill level for ${prop.propName || "prop"}`}
-                      aria-valuemin={0}
-                      aria-valuemax={10}
-                      aria-valuenow={prop.skillLevel}
-                      aria-valuetext={`Level ${prop.skillLevel} out of 10`}
-                    />
-                    <span className="text-sm w-8 text-right" aria-live="polite">
-                      {prop.skillLevel}
-                    </span>
-                  </div>
                   <Button
                     type="button"
                     variant="ghost"
@@ -385,7 +360,7 @@ export function ProfileForm({
                 className="w-full"
               >
                 <Plus className="h-4 w-4 mr-2" />
-                Add Prop
+                Add Prop/Skill
               </Button>
             </div>
           </div>

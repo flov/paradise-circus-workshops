@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "build": "pnpm openapi:generate && BASELINE_BROWSER_MAPPING_IGNORE_OLD_DATA=1 next build --webpack",
-    "dev": "next dev",
+    "dev": "next dev -p 3005",
     "lint": "eslint .",
     "start": "next start",
     "db:migrate": "tsx scripts/migrate.ts",

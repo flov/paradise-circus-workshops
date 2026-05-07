@@ -47,7 +47,6 @@ export const propsListResponseSchema = z.array(propItemSchema);
 // API response schemas for OpenAPI docs
 export const artistPropSchema = z.object({
   name: z.string().describe("Prop name"),
-  skillLevel: z.number().int().describe("Skill level 0-5"),
 });
 
 export const artistListItemSchema = z.object({
@@ -74,7 +73,6 @@ export const artistUserPropSchema = z.object({
   userId: z.number().int(),
   propId: z.number().int(),
   propName: z.string(),
-  skillLevel: z.number().int(),
   createdAt: z.string().describe("ISO 8601 datetime"),
 });
 
