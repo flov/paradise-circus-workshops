@@ -3,52 +3,42 @@ import { db } from "@/db";
 import { events, users } from "@/db/schema";
 import { eq, gte, and } from "drizzle-orm";
 import { createEventSlug } from "@/lib/utils";
+import { unstable_cache } from "next/cache";
 
-// Generate at request time - build uses a different DB (Neon branch) that may lack tables
-export const dynamic = "force-dynamic";
+export const revalidate = 3600;
 
-export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const baseUrl =
-    process.env.NEXT_PUBLIC_APP_URL ||
-    process.env.NEXT_PUBLIC_SITE_URL ||
-    "https://paradise-circus.app";
+const staticPages = (
+  baseUrl: string,
+): MetadataRoute.Sitemap => [
+  {
+    url: baseUrl,
+    changeFrequency: "daily",
+    priority: 1.0,
+  },
+  {
+    url: `${baseUrl}/timetable`,
+    changeFrequency: "daily",
+    priority: 0.9,
+  },
+  {
+    url: `${baseUrl}/artists`,
+    changeFrequency: "weekly",
+    priority: 0.8,
+  },
+  {
+    url: `${baseUrl}/about`,
+    changeFrequency: "monthly",
+    priority: 0.7,
+  },
+  {
+    url: `${baseUrl}/faq`,
+    changeFrequency: "monthly",
+    priority: 0.6,
+  },
+];
 
-  // Static pages
-  const staticPages: MetadataRoute.Sitemap = [
-    {
-      url: baseUrl,
-      lastModified: new Date(),
-      changeFrequency: "daily",
-      priority: 1.0,
-    },
-    {
-      url: `${baseUrl}/timetable`,
-      lastModified: new Date(),
-      changeFrequency: "daily",
-      priority: 0.9,
-    },
-    {
-      url: `${baseUrl}/artists`,
-      lastModified: new Date(),
-      changeFrequency: "weekly",
-      priority: 0.8,
-    },
-    {
-      url: `${baseUrl}/about`,
-      lastModified: new Date(),
-      changeFrequency: "monthly",
-      priority: 0.7,
-    },
-    {
-      url: `${baseUrl}/faq`,
-      lastModified: new Date(),
-      changeFrequency: "monthly",
-      priority: 0.6,
-    },
-  ];
-
-  try {
-    // Get all published events (including future and recent past events for SEO)
+const getCachedSitemapEntries = unstable_cache(
+  async (baseUrl: string): Promise<MetadataRoute.Sitemap> => {
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
     const dateString = thirtyDaysAgo.toISOString().split("T")[0];
@@ -79,7 +69,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
       return {
         url: `${baseUrl}/event/${slug}`,
-        lastModified: event.updatedAt || new Date(),
+        lastModified: event.updatedAt || undefined,
         changeFrequency: "weekly" as const,
         priority: 0.3,
       };
@@ -94,14 +84,27 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
     const artistPages: MetadataRoute.Sitemap = allUsers.map((user) => ({
       url: `${baseUrl}/artists/${user.username}`,
-      lastModified: user.updatedAt || new Date(),
+      lastModified: user.updatedAt || undefined,
       changeFrequency: "monthly" as const,
       priority: 0.9,
     }));
 
-    return [...staticPages, ...artistPages, ...eventPages];
+    return [...staticPages(baseUrl), ...artistPages, ...eventPages];
+  },
+  ["sitemap-entries"],
+  { revalidate: 3600, tags: ["events", "artists"] },
+);
+
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+  const baseUrl =
+    process.env.NEXT_PUBLIC_APP_URL ||
+    process.env.NEXT_PUBLIC_SITE_URL ||
+    "https://paradise-circus.app";
+
+  try {
+    return await getCachedSitemapEntries(baseUrl);
   } catch (error) {
     console.error("Sitemap database error, returning static pages only:", error);
-    return staticPages;
+    return staticPages(baseUrl);
   }
 }

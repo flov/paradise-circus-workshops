@@ -15,6 +15,7 @@ process.env.NODE_ENV = "test";
 vi.mock("next/cache", () => ({
   revalidatePath: vi.fn(),
   revalidateTag: vi.fn(),
+  unstable_cache: vi.fn((fn: () => unknown) => fn),
 }));
 
 // Mock Next.js server components

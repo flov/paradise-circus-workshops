@@ -1,7 +1,7 @@
 User-agent: *
 Allow: /
 
-# Disallow admin and private routes
+# Disallow admin, private, and kiosk routes
 Disallow: /admin/
 Disallow: /api/
 Disallow: /profile/
@@ -9,6 +9,9 @@ Disallow: /sign-in/
 Disallow: /sign-up/
 Disallow: /onboarding/
 Disallow: /booking-confirmation/
+Disallow: /participation-confirmation/
+Disallow: /instagram
+Disallow: /instagram/
 
 # Allow public pages
 Allow: /

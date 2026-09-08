@@ -10,6 +10,7 @@ import Link from "next/link";
 import { db } from "@/db";
 import { users } from "@/db/schema";
 import { eq, or } from "drizzle-orm";
+import { unstable_cache } from "next/cache";
 
 export const metadata: Metadata = {
   title: {
@@ -17,26 +18,32 @@ export const metadata: Metadata = {
   },
 };
 
-async function getFlowWizardUsername(): Promise<string | null> {
-  try {
-    const result = await db
-      .select({ username: users.username })
-      .from(users)
-      .where(
-        or(
-          eq(users.displayName, "The Flow Wizard"),
-          eq(users.username, "flow-wizard"),
-          eq(users.username, "the-flow-wizard"),
-        ),
-      )
-      .limit(1);
+export const revalidate = 3600;
 
-    return result.length > 0 ? result[0].username : null;
-  } catch (error) {
-    console.error("Error fetching Flow Wizard username:", error);
-    return null;
-  }
-}
+const getFlowWizardUsername = unstable_cache(
+  async (): Promise<string | null> => {
+    try {
+      const result = await db
+        .select({ username: users.username })
+        .from(users)
+        .where(
+          or(
+            eq(users.displayName, "The Flow Wizard"),
+            eq(users.username, "flow-wizard"),
+            eq(users.username, "the-flow-wizard"),
+          ),
+        )
+        .limit(1);
+
+      return result.length > 0 ? result[0].username : null;
+    } catch (error) {
+      console.error("Error fetching Flow Wizard username:", error);
+      return null;
+    }
+  },
+  ["flow-wizard-username"],
+  { revalidate: 3600, tags: ["artists"] },
+);
 
 export default async function FAQPage() {
   const flowWizardUsername = await getFlowWizardUsername();

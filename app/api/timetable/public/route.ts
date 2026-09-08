@@ -89,14 +89,11 @@ export async function GET(request: NextRequest) {
   const { start: startDate, end: endDate } = result.data;
 
   try {
-    // Cache the public timetable data
-    // Cache key includes date range to handle different week views
-    // Cache duration: 60 seconds in dev, 5 minutes (300s) in production
     const cachedData = unstable_cache(
       async () => getPublicTimetableData(startDate, endDate),
       [`timetable-public-${startDate}-${endDate}`],
       {
-        revalidate: process.env.NODE_ENV === "development" ? 60 : 300,
+        revalidate: process.env.NODE_ENV === "development" ? 60 : 3600,
         tags: ["timetable-public"],
       },
     );
