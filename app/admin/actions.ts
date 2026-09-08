@@ -872,6 +872,13 @@ export async function approveEvent(eventId: number) {
     revalidatePath("/admin")
     revalidatePath("/admin/pending-approval")
     revalidatePath("/")
+    revalidatePath("/timetable")
+    revalidatePath("/instagram")
+    revalidatePath("/api/timetable")
+    revalidateTag("timetable-public")
+    revalidateTag("instagram-timetable")
+    revalidateTag("events")
+    revalidateTag(`event-${eventId}`)
 
     return { success: true }
   } catch (error) {
