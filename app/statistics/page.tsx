@@ -1,16 +1,18 @@
 import { unstable_cache } from "next/cache";
 import { PropsByUsersChart } from "@/components/admin/dashboard/props-by-users-chart";
 import { EventsStatsDashboard } from "@/components/admin/dashboard/events-stats-dashboard";
-import { getPropsStats, getEventStats } from "@/app/admin/stats";
+import { TopInstructorsCard } from "@/components/admin/dashboard/top-instructors-card";
+import { getPropsStats, getEventStats, getTopInstructors } from "@/app/admin/stats";
 import { TrendingUp } from "lucide-react";
 
 const getCachedStatisticsData = unstable_cache(
   async () => {
-    const [propsStats, eventStats] = await Promise.all([
+    const [propsStats, eventStats, topInstructors] = await Promise.all([
       getPropsStats(),
       getEventStats(),
+      getTopInstructors(5), // Get top 5 instructors
     ]);
-    return { propsStats, eventStats };
+    return { propsStats, eventStats, topInstructors };
   },
   ["statistics-page"],
   {
@@ -27,7 +29,7 @@ function daysBetween(earliest: string, latest: string): number {
 }
 
 export default async function StatisticsPage() {
-  const { propsStats, eventStats } = await getCachedStatisticsData();
+  const { propsStats, eventStats, topInstructors } = await getCachedStatisticsData();
 
   const { summary } = eventStats;
   const hasDateRange =
@@ -70,6 +72,12 @@ export default async function StatisticsPage() {
             summary={eventStats.summary}
             byProp={eventStats.byProp}
           />
+        </div>
+        
+        {/* Top Instructors Section */}
+        <div className="mt-12">
+          <h2 className="text-2xl font-bold text-foreground mb-6">Most Active Instructors</h2>
+          <TopInstructorsCard instructors={topInstructors} />
         </div>
       </main>
     </div>
