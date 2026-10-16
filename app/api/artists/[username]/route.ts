@@ -34,7 +34,7 @@ export async function GET(
         return { user, props, workshops }
       },
       [`api-artist-${username}`],
-      { revalidate: 3600, tags: ["artists", `artist-${username}`] },
+      { revalidate: 43200, tags: ["artists", `artist-${username}`] },
     )
 
     const data = await getData()

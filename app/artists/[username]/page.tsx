@@ -41,7 +41,7 @@ const getCachedArtistProfile = (username: string) =>
       return { user, props: userProps, workshops };
     },
     [`artist-${username}`],
-    { revalidate: 3600, tags: ["artists", `artist-${username}`] }
+    { revalidate: 43200, tags: ["artists", `artist-${username}`] }
   )();
 
 export async function generateMetadata({
@@ -68,8 +68,8 @@ export async function generateMetadata({
   };
 }
 
-// ISR: Revalidate every hour
-export const revalidate = 3600;
+// ISR: Revalidate every 12 hours
+export const revalidate = 43200;
 
 export default async function ArtistProfilePage({
   params,

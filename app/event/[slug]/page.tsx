@@ -109,7 +109,7 @@ export default async function EventPage({
       return { eventResult, eventProp }
     },
     [`event-${eventId}`],
-    { revalidate: 3600, tags: ["events", `event-${eventId}`] },
+    { revalidate: 43200, tags: ["events", `event-${eventId}`] },
   )
 
   const cached = await getEventData(eventId)
@@ -188,7 +188,7 @@ export default async function EventPage({
         .where(eq(participations.eventId, id))
     },
     [`event-${eventId}-participations`],
-    { revalidate: 3600, tags: [`event-${eventId}-participations`] },
+    { revalidate: 43200, tags: [`event-${eventId}-participations`] },
   )
 
   const getComments = unstable_cache(
@@ -207,7 +207,7 @@ export default async function EventPage({
         .orderBy(asc(comments.createdAt))
     },
     [`event-${eventId}-comments`],
-    { revalidate: 3600, tags: [`event-${eventId}-comments`] },
+    { revalidate: 43200, tags: [`event-${eventId}-comments`] },
   )
 
   // Fetch user profile (only if authenticated), participations, and comments in parallel

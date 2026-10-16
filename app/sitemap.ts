@@ -5,7 +5,7 @@ import { eq, gte, and } from "drizzle-orm";
 import { createEventSlug } from "@/lib/utils";
 import { unstable_cache } from "next/cache";
 
-export const revalidate = 3600;
+export const revalidate = 43200;
 
 const staticPages = (
   baseUrl: string,
@@ -92,7 +92,7 @@ const getCachedSitemapEntries = unstable_cache(
     return [...staticPages(baseUrl), ...artistPages, ...eventPages];
   },
   ["sitemap-entries"],
-  { revalidate: 3600, tags: ["events", "artists"] },
+  { revalidate: 43200, tags: ["events", "artists"] },
 );
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {

@@ -8,8 +8,8 @@ export const metadata: Metadata = {
   },
 };
 
-// ISR: Revalidate every hour - profile fetched client-side to keep page static
-export const revalidate = 3600;
+// ISR: Revalidate every 12 hours - profile fetched client-side to keep page static
+export const revalidate = 43200;
 
 function TimetableFallback() {
   return (

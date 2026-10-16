@@ -163,7 +163,7 @@ export async function GET(request: NextRequest) {
       () => getTimetableEvents(startDate, endDate, visibility),
       [`timetable-auth-${startDate}-${endDate}-${visibility}`],
       {
-        revalidate: process.env.NODE_ENV === "development" ? 60 : 3600,
+        revalidate: process.env.NODE_ENV === "development" ? 60 : 43200,
         tags: ["timetable-public"],
       },
     )();

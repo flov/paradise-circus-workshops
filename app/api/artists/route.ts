@@ -97,7 +97,7 @@ async function getAllArtistsUncached() {
 const getAllArtists = unstable_cache(
   getAllArtistsUncached,
   ["api-artists-list"],
-  { revalidate: 3600, tags: ["artists"] },
+  { revalidate: 43200, tags: ["artists"] },
 )
 
 /**

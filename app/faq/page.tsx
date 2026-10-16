@@ -18,7 +18,7 @@ export const metadata: Metadata = {
   },
 };
 
-export const revalidate = 3600;
+export const revalidate = 43200;
 
 const getFlowWizardUsername = unstable_cache(
   async (): Promise<string | null> => {
@@ -42,7 +42,7 @@ const getFlowWizardUsername = unstable_cache(
     }
   },
   ["flow-wizard-username"],
-  { revalidate: 3600, tags: ["artists"] },
+  { revalidate: 43200, tags: ["artists"] },
 );
 
 export default async function FAQPage() {

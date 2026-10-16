@@ -3,8 +3,8 @@ import { InstagramWeekNavigation } from "@/components/instagram-week-navigation"
 import { getInstagramTimetableData } from "@/app/actions";
 import { Suspense } from "react";
 
-// ISR: Revalidate every hour. Event mutations already bust timetable-public.
-export const revalidate = 3600;
+// ISR: Revalidate every 12 hours. Event mutations already bust timetable-public.
+export const revalidate = 43200;
 
 async function InstagramTimetableWrapper({ date, location }: { date: string | null; location: string }) {
   const scheduleData = await getInstagramTimetableData(date || undefined, location);

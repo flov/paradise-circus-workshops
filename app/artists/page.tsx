@@ -11,8 +11,8 @@ export const metadata: Metadata = {
   },
 };
 
-// ISR: Revalidate every hour
-export const revalidate = 3600;
+// ISR: Revalidate every 12 hours
+export const revalidate = 43200;
 
 async function getAllArtistsUncached() {
   // Get all users with their props and workshop counts
@@ -122,7 +122,7 @@ async function getAllArtistsUncached() {
 const getAllArtists = unstable_cache(
   getAllArtistsUncached,
   ["artists-list"],
-  { revalidate: 3600, tags: ["artists"] }
+  { revalidate: 43200, tags: ["artists"] }
 );
 
 export default async function ArtistsPage() {

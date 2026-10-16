@@ -14,7 +14,7 @@ async function getAllPropsUncached() {
 const getAllProps = unstable_cache(
   getAllPropsUncached,
   ["api-props-list"],
-  { revalidate: 3600, tags: ["props-stats"] },
+  { revalidate: 43200, tags: ["props-stats"] },
 )
 
 /**

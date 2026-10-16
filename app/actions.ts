@@ -871,7 +871,7 @@ export async function getInstagramTimetableData(
   }
     },
     cacheKey,
-    { revalidate: 3600, tags: ["timetable-public", "instagram-timetable"] }
+    { revalidate: 43200, tags: ["timetable-public", "instagram-timetable"] }
   )();
 }
 

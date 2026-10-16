@@ -93,7 +93,7 @@ export async function GET(request: NextRequest) {
       async () => getPublicTimetableData(startDate, endDate),
       [`timetable-public-${startDate}-${endDate}`],
       {
-        revalidate: process.env.NODE_ENV === "development" ? 60 : 3600,
+        revalidate: process.env.NODE_ENV === "development" ? 60 : 43200,
         tags: ["timetable-public"],
       },
     );
