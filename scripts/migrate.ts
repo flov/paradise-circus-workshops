@@ -1,6 +1,5 @@
 /**
- * Run Drizzle migrations using the Neon HTTP driver (same connection as the app).
- * Use this when drizzle-kit migrate fails (e.g. env loading or Neon connection issues).
+ * Run Drizzle migrations using node-postgres (same connection style as the app).
  *
  * Usage: pnpm tsx scripts/migrate.ts
  *
@@ -13,9 +12,9 @@ import { resolve } from "path";
 config({ path: resolve(process.cwd(), ".env") });
 config({ path: resolve(process.cwd(), ".env.local"), override: true });
 
-import { neon } from "@neondatabase/serverless";
-import { drizzle } from "drizzle-orm/neon-http";
-import { migrate } from "drizzle-orm/neon-http/migrator";
+import { Pool } from "pg";
+import { drizzle } from "drizzle-orm/node-postgres";
+import { migrate } from "drizzle-orm/node-postgres/migrator";
 
 const databaseUrl = process.env.DATABASE_URL;
 if (!databaseUrl) {
@@ -23,18 +22,45 @@ if (!databaseUrl) {
   process.exit(1);
 }
 
+// Prefer direct connection for migrations when a pooler URL is configured
+const migrateUrl = databaseUrl.includes("pooler.supabase.com")
+  ? databaseUrl
+      .replace("postgres.dbpzfqmbgxbetmvbchag", "postgres")
+      .replace(/@[^/]*pooler\.supabase\.com:\d+/, "@db.dbpzfqmbgxbetmvbchag.supabase.co:5432")
+  : databaseUrl;
+
 // Log which DB we're connecting to (hide password)
-const urlSafe = databaseUrl.replace(/:[^:@]+@/, ":****@");
+const urlSafe = migrateUrl.replace(/:[^:@]+@/, ":****@");
 console.log("Migrating database:", urlSafe);
 
-async function run() {
-  const sql = neon(databaseUrl);
-  const db = drizzle(sql);
+function stripSslMode(url: string): string {
+  try {
+    const parsed = new URL(url);
+    parsed.searchParams.delete("sslmode");
+    parsed.searchParams.delete("uselibpqcompat");
+    return parsed.toString();
+  } catch {
+    return url;
+  }
+}
 
-  await migrate(db, {
-    migrationsFolder: resolve(process.cwd(), "drizzle"),
+async function run() {
+  const pool = new Pool({
+    connectionString: stripSslMode(migrateUrl),
+    ssl: migrateUrl.includes("localhost")
+      ? undefined
+      : { rejectUnauthorized: false },
   });
-  console.log("Migrations completed successfully.");
+  const db = drizzle(pool);
+
+  try {
+    await migrate(db, {
+      migrationsFolder: resolve(process.cwd(), "drizzle"),
+    });
+    console.log("Migrations completed successfully.");
+  } finally {
+    await pool.end();
+  }
 }
 
 run().catch((err) => {

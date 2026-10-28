@@ -10,19 +10,24 @@ function createTestDb() {
   if (!databaseUrl) {
     throw new Error("DATABASE_URL_TEST must be set for tests");
   }
+  const { Pool } = require("pg");
+  const { drizzle } = require("drizzle-orm/node-postgres");
   const isLocalPostgres =
     databaseUrl.includes("localhost") || databaseUrl.includes("127.0.0.1");
-
-  if (isLocalPostgres) {
-    const { Pool } = require("pg");
-    const { drizzle } = require("drizzle-orm/node-postgres");
-    const pool = new Pool({ connectionString: databaseUrl });
-    return drizzle(pool, { schema });
+  let connectionString = databaseUrl;
+  try {
+    const parsed = new URL(databaseUrl);
+    parsed.searchParams.delete("sslmode");
+    parsed.searchParams.delete("uselibpqcompat");
+    connectionString = parsed.toString();
+  } catch {
+    // keep original
   }
-  const { neon } = require("@neondatabase/serverless");
-  const { drizzle } = require("drizzle-orm/neon-http");
-  const sqlClient = neon(databaseUrl);
-  return drizzle(sqlClient, { schema });
+  const pool = new Pool({
+    connectionString,
+    ssl: isLocalPostgres ? undefined : { rejectUnauthorized: false },
+  });
+  return drizzle(pool, { schema });
 }
 
 export function getTestDb() {
