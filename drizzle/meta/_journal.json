@@ -239,6 +239,13 @@
       "when": 1778159942173,
       "tag": "0033_remove-skill-level",
       "breakpoints": true
+    },
+    {
+      "idx": 34,
+      "version": "7",
+      "when": 1762179600000,
+      "tag": "0034_enable_rls_public_tables",
+      "breakpoints": true
     }
   ]
 }
