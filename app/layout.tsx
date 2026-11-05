@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next"
 import { Geist, Geist_Mono, Rye } from "next/font/google"
 import { Analytics } from "@vercel/analytics/next"
+import { SpeedInsights } from "@vercel/speed-insights/next"
 import { ClerkProvider } from "@clerk/nextjs"
 import { QueryProvider } from "@/components/query-provider"
 import { AppShell } from "@/components/app-shell"
@@ -127,6 +128,7 @@ export default function RootLayout({
             <AppShell>{children}</AppShell>
             {/* <FeedbackWidget /> remove the feedback widget for the moment */}
             <Analytics />
+            <SpeedInsights />
           </QueryProvider>
         </body>
       </html>
