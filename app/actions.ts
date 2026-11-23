@@ -6,7 +6,6 @@ import { events, participations, feedbacks } from "@/db/schema";
 import { eq, sql, and } from "drizzle-orm";
 import { revalidatePath, revalidateTag, unstable_cache } from "next/cache";
 import {
-  sendParticipationConfirmationEmail,
   sendAdminNotificationEmail,
   sendCommentNotificationEmail,
   sendFeedbackNotificationEmail,
@@ -79,7 +78,6 @@ export async function createParticipation(formData: FormData) {
         endTime: events.endTime,
         location: events.location,
         instructor: events.instructor,
-        whatToBring: events.whatToBring,
       })
       .from(events)
       .where(eq(events.id, eventId));
@@ -118,25 +116,6 @@ export async function createParticipation(formData: FormData) {
       .update(events)
       .set({ currentParticipants: sql`${events.currentParticipants} + 1` })
       .where(eq(events.id, eventId));
-
-    try {
-      await sendParticipationConfirmationEmail({
-        participantName: name,
-        participantEmail: email,
-        eventTitle: event.title,
-        eventDate: event.date,
-        eventStartTime: event.startTime,
-        eventEndTime: event.endTime,
-        eventLocation: event.location || "",
-        instructorName: event.instructor,
-        participationId,
-        confirmationToken: token,
-        whatToBring: event.whatToBring,
-      });
-    } catch (emailError) {
-      console.error("Failed to send confirmation email:", emailError);
-      // Continue even if email fails
-    }
 
     try {
       await sendAdminNotificationEmail({

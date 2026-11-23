@@ -104,8 +104,7 @@ export default async function ParticipationConfirmationPage({
             Participation Confirmed!
           </h1>
           <p className='text-muted-foreground text-lg'>
-            Your spot has been reserved. We'll send a confirmation email
-            shortly.
+            Your spot has been reserved.
           </p>
         </div>
 
